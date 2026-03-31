@@ -207,12 +207,32 @@ async function startServer() {
   app.put("/api/admin/restaurants/:id/profile", async (req, res) => {
     const id = Number(req.params.id);
     if (!requireRestaurantOrSuper(req, res, id)) return;
-    const { name, slug, whatsapp_number, primary_color } = req.body;
+    const {
+      name,
+      slug,
+      whatsapp_number,
+      primary_color,
+      menu_template,
+      tagline,
+      maps_url,
+      phone,
+      reservation_url,
+      instagram,
+      tiktok,
+    } = req.body;
     const patch: Record<string, unknown> = {};
     if (typeof name === "string") patch.name = name;
     if (typeof whatsapp_number === "string")
       patch.whatsapp_number = whatsapp_number;
     if (typeof primary_color === "string") patch.primary_color = primary_color;
+    if (typeof tagline === "string") patch.tagline = tagline;
+    if (typeof maps_url === "string") patch.maps_url = maps_url;
+    if (typeof phone === "string") patch.phone = phone;
+    if (typeof reservation_url === "string") patch.reservation_url = reservation_url;
+    if (typeof instagram === "string") patch.instagram = instagram;
+    if (typeof tiktok === "string") patch.tiktok = tiktok;
+    if (typeof menu_template === "string" && menu_template.trim())
+      patch.menu_template = menu_template.trim();
     if (typeof slug === "string" && slug.trim()) {
       const taken = await db("restaurants")
         .where({ slug: slug.trim() })
@@ -239,11 +259,31 @@ async function startServer() {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const { name, slug, whatsapp_number, primary_color } = req.body;
+    const {
+      name,
+      slug,
+      whatsapp_number,
+      primary_color,
+      menu_template,
+      tagline,
+      maps_url,
+      phone,
+      reservation_url,
+      instagram,
+      tiktok,
+    } = req.body;
     const patch: Record<string, unknown> = {};
     if (typeof name === "string") patch.name = name;
     if (typeof whatsapp_number === "string") patch.whatsapp_number = whatsapp_number;
     if (typeof primary_color === "string") patch.primary_color = primary_color;
+    if (typeof tagline === "string") patch.tagline = tagline;
+    if (typeof maps_url === "string") patch.maps_url = maps_url;
+    if (typeof phone === "string") patch.phone = phone;
+    if (typeof reservation_url === "string") patch.reservation_url = reservation_url;
+    if (typeof instagram === "string") patch.instagram = instagram;
+    if (typeof tiktok === "string") patch.tiktok = tiktok;
+    if (typeof menu_template === "string" && menu_template.trim())
+      patch.menu_template = menu_template.trim();
     if (typeof slug === "string" && slug.trim()) {
       const taken = await db("restaurants")
         .where({ slug: slug.trim() })
@@ -331,6 +371,7 @@ async function startServer() {
           name,
           slug,
           whatsapp_number,
+          menu_template: "modern-01",
         });
         newId = Number(Array.isArray(ids) ? ids[0] : ids);
         await trx("restaurant_users").insert({
@@ -400,7 +441,10 @@ async function startServer() {
       translations: safeJsonParse(prod.translations as string, {}),
     }));
 
-    await db("scans").insert({ restaurant_id: restaurant.id });
+    const skipScan = String(req.query.preview) === "true";
+    if (!skipScan) {
+      await db("scans").insert({ restaurant_id: restaurant.id });
+    }
 
     res.json({
       ...restaurant,

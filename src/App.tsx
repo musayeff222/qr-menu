@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useParams, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link, useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import {
+  MenuTemplateView,
+  getTemplateById,
+  TemplatePicker,
+  MENU_TEMPLATE_COUNT,
+  type MenuTemplateDef,
+} from "./menu-templates";
 import { 
   LayoutDashboard, 
   Utensils, 
@@ -329,6 +336,13 @@ interface Restaurant {
   is_active: boolean;
   plan: string;
   staff_username?: string;
+  menu_template?: string;
+  tagline?: string;
+  maps_url?: string;
+  phone?: string;
+  reservation_url?: string;
+  instagram?: string;
+  tiktok?: string;
 }
 
 interface Category {
@@ -1092,7 +1106,19 @@ const RestaurantPanel = () => {
   const [newCat, setNewCat] = useState("");
   const [newProd, setNewProd] = useState({ name: "", price: 0, category_id: 0, description: "" });
   const [qrCode, setQrCode] = useState("");
-  const [profile, setProfile] = useState({ name: "", slug: "", whatsapp_number: "", primary_color: "#ef4444" });
+  const [profile, setProfile] = useState({
+    name: "",
+    slug: "",
+    whatsapp_number: "",
+    primary_color: "#ef4444",
+    menu_template: "modern-01",
+    tagline: "",
+    maps_url: "",
+    phone: "",
+    reservation_url: "",
+    instagram: "",
+    tiktok: "",
+  });
   const [editingTranslations, setEditingTranslations] = useState<{ type: 'category' | 'product', id: number, data: any } | null>(null);
   const [currentLang, setCurrentLang] = useState("az");
   const [loadError, setLoadError] = useState("");
@@ -1133,6 +1159,13 @@ const RestaurantPanel = () => {
         slug: r.slug || "",
         whatsapp_number: r.whatsapp_number || "",
         primary_color: r.primary_color || "#ef4444",
+        menu_template: r.menu_template || "modern-01",
+        tagline: r.tagline || "",
+        maps_url: r.maps_url || "",
+        phone: r.phone || "",
+        reservation_url: r.reservation_url || "",
+        instagram: r.instagram || "",
+        tiktok: r.tiktok || "",
       });
       const menuUrl = `${window.location.origin}/r/${r.slug}`;
       const qr = await fetch(`/api/qrcode?url=${encodeURIComponent(menuUrl)}`).then((x) => x.json());
@@ -1166,6 +1199,19 @@ const RestaurantPanel = () => {
     localStorage.removeItem("restaurantSession");
     localStorage.removeItem("restaurantId");
     navigate("/panel");
+  };
+
+  const selectTemplate = async (tpl: MenuTemplateDef) => {
+    const res = await fetch(`/api/admin/restaurants/${id}/profile`, {
+      method: "PUT",
+      headers: authAnyStaffHeaders(),
+      body: JSON.stringify({ menu_template: tpl.id }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setRestaurant(data.restaurant);
+      setProfile((p) => ({ ...p, menu_template: tpl.id }));
+    } else alert("Template save failed");
   };
 
   const addCategory = async () => {
@@ -1307,7 +1353,44 @@ const RestaurantPanel = () => {
               value={profile.whatsapp_number}
               onChange={(e) => setProfile({ ...profile, whatsapp_number: e.target.value })}
             />
-            <div className="flex gap-2 items-center">
+            <textarea
+              className="p-2 border rounded-lg text-sm sm:col-span-2"
+              placeholder="Tagline / short description"
+              rows={2}
+              value={profile.tagline}
+              onChange={(e) => setProfile({ ...profile, tagline: e.target.value })}
+            />
+            <input
+              className="p-2 border rounded-lg text-sm"
+              placeholder="Google Maps URL"
+              value={profile.maps_url}
+              onChange={(e) => setProfile({ ...profile, maps_url: e.target.value })}
+            />
+            <input
+              className="p-2 border rounded-lg text-sm"
+              placeholder="Phone (call)"
+              value={profile.phone}
+              onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+            />
+            <input
+              className="p-2 border rounded-lg text-sm"
+              placeholder="Reservation URL"
+              value={profile.reservation_url}
+              onChange={(e) => setProfile({ ...profile, reservation_url: e.target.value })}
+            />
+            <input
+              className="p-2 border rounded-lg text-sm"
+              placeholder="Instagram URL"
+              value={profile.instagram}
+              onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
+            />
+            <input
+              className="p-2 border rounded-lg text-sm"
+              placeholder="TikTok URL"
+              value={profile.tiktok}
+              onChange={(e) => setProfile({ ...profile, tiktok: e.target.value })}
+            />
+            <div className="flex gap-2 items-center sm:col-span-2">
               <input
                 type="color"
                 className="h-10 w-14 rounded border cursor-pointer"
@@ -1319,6 +1402,18 @@ const RestaurantPanel = () => {
               </Button>
             </div>
           </div>
+        </Card>
+
+        <Card className="p-4 sm:p-6 mb-8">
+          <h3 className="font-bold text-lg mb-1">Menu templates</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            {MENU_TEMPLATE_COUNT} mobile-first designs. Preview opens your live menu with demo data.
+          </p>
+          <TemplatePicker
+            restaurantSlug={restaurant.slug}
+            selectedId={profile.menu_template}
+            onSelect={selectTemplate}
+          />
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -1532,6 +1627,10 @@ const RestaurantPanel = () => {
 const CustomerMenu = () => {
   const bundle = useI18nBundle();
   const { slug } = useParams();
+  const [searchParams] = useSearchParams();
+  const preview = searchParams.get("preview") === "true";
+  const previewTemplateId = searchParams.get("previewTemplate") ?? "";
+
   const [data, setData] = useState<any>(null);
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
   const [cart, setCart] = useState<any[]>([]);
@@ -1547,134 +1646,66 @@ const CustomerMenu = () => {
   }, []);
 
   useEffect(() => {
-    fetch(`/api/restaurants/${slug}`).then(res => res.json()).then(res => {
-      setData(res);
-      if (res.categories.length > 0) setActiveCategory(res.categories[0].id);
-    });
-  }, [slug]);
+    const qs = preview ? "?preview=true" : "";
+    fetch(`/api/restaurants/${slug}${qs}`)
+      .then((res) => res.json())
+      .then((res) => {
+        setData(res);
+        if (res.categories?.length > 0) setActiveCategory(res.categories[0].id);
+      });
+  }, [slug, preview]);
 
   const t = (key: string) => bundle[currentLang]?.[key] || key;
 
+  useEffect(() => {
+    if (!data?.name) return;
+    const tpl = getTemplateById(
+      previewTemplateId || data.menu_template || "modern-01"
+    );
+    document.title = `${data.name} · ${tpl.name}`;
+    return () => {
+      document.title = "QRMenu";
+    };
+  }, [data, previewTemplateId]);
+
   if (!data) return <div className="p-10 text-center">{t("loading")}</div>;
 
-  const addToCart = (product: any) => {
-    setCart([...cart, product]);
+  const { categories, products, ...restaurantRow } = data;
+  const template = getTemplateById(
+    previewTemplateId || data.menu_template || "modern-01"
+  );
+
+  const addToCart = (product: Record<string, unknown>) => {
+    setCart((c) => [...c, product]);
   };
 
   const sendWhatsApp = () => {
-    const text = `Hello! I'd like to order:\n${cart.map(p => `- ${p.translations?.[currentLang]?.name || p.name} ($${p.price})`).join("\n")}\nTotal: $${cart.reduce((s, p) => s + p.price, 0)}`;
-    window.open(`https://wa.me/${data.whatsapp_number}?text=${encodeURIComponent(text)}`);
+    const wa = String(data.whatsapp_number ?? "").replace(/\D/g, "");
+    if (!wa) return;
+    const text = `Hello! I'd like to order:\n${cart
+      .map(
+        (p) =>
+          `- ${(p.translations as any)?.[currentLang]?.name || p.name} ($${p.price})`
+      )
+      .join("\n")}\nTotal: $${cart.reduce((s, p) => s + Number(p.price), 0)}`;
+    window.open(`https://wa.me/${wa}?text=${encodeURIComponent(text)}`);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32">
-      {/* Header */}
-      <div 
-        className="h-48 bg-cover bg-center relative"
-        style={{ backgroundColor: data.primary_color }}
-      >
-        <div className="absolute top-4 right-4 z-20">
-          <select 
-            className="bg-white/20 backdrop-blur-md text-white border border-white/30 rounded-lg p-1 text-xs font-bold outline-none"
-            value={currentLang}
-            onChange={e => setCurrentLang(e.target.value)}
-          >
-            <option value="az" className="text-black">AZ</option>
-            <option value="en" className="text-black">EN</option>
-            <option value="ru" className="text-black">RU</option>
-            <option value="tr" className="text-black">TR</option>
-          </select>
-        </div>
-        <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-24 h-24 bg-white rounded-full shadow-xl p-2">
-          <div className="w-full h-full bg-gray-100 rounded-full flex items-center justify-center">
-            <Utensils size={32} style={{ color: data.primary_color }} />
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-14 text-center px-6">
-        <h1 className="text-2xl font-bold">{data.name}</h1>
-        <p className="text-gray-500 text-sm">{t("scan_order_enjoy")}</p>
-      </div>
-
-      {/* Categories */}
-      <div className="sticky top-0 bg-white/80 backdrop-blur-md z-10 mt-6 border-b overflow-x-auto whitespace-nowrap px-4 py-3 no-scrollbar">
-        {data.categories.map((cat: any) => (
-          <button
-            key={cat.id}
-            onClick={() => setActiveCategory(cat.id)}
-            className={cn(
-              "px-4 py-2 rounded-full text-sm font-bold mr-2 transition-colors",
-              activeCategory === cat.id 
-                ? "bg-black text-white" 
-                : "bg-gray-100 text-gray-600"
-            )}
-          >
-            {cat.translations?.[currentLang] || cat.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Products */}
-      <div className="px-4 mt-6 space-y-4">
-        {data.products.filter((p: any) => p.category_id === activeCategory).map((prod: any) => (
-          <motion.div 
-            layout
-            key={prod.id}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-          >
-            <Card className="p-3 flex gap-4">
-              <div className="w-24 h-24 bg-gray-100 rounded-xl flex-shrink-0"></div>
-              <div className="flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-bold">{prod.translations?.[currentLang]?.name || prod.name}</h3>
-                  <p className="text-xs text-gray-500 line-clamp-2">{prod.translations?.[currentLang]?.desc || prod.description}</p>
-                </div>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="font-bold text-lg" style={{ color: data.primary_color }}>${prod.price}</span>
-                  <button 
-                    onClick={() => addToCart(prod)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white"
-                    style={{ backgroundColor: data.primary_color }}
-                  >
-                    <Plus size={18} />
-                  </button>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Cart Button */}
-      <AnimatePresence>
-        {cart.length > 0 && (
-          <motion.div 
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            className="fixed bottom-6 left-6 right-6 z-20"
-          >
-            <button 
-              onClick={sendWhatsApp}
-              className="w-full bg-green-600 text-white p-4 rounded-2xl shadow-2xl flex justify-between items-center font-bold"
-            >
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-lg">
-                  <ShoppingCart size={20} />
-                </div>
-                <span>{cart.length} {t("items_in_cart")}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>{t("order_via_whatsapp")}</span>
-                <ChevronRight size={20} />
-              </div>
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+    <MenuTemplateView
+      template={template}
+      restaurant={restaurantRow}
+      categories={categories}
+      products={products}
+      activeCategory={activeCategory}
+      setActiveCategory={(id) => setActiveCategory(id)}
+      currentLang={currentLang}
+      setCurrentLang={setCurrentLang}
+      cart={cart}
+      addToCart={addToCart}
+      onWhatsAppOrder={sendWhatsApp}
+      t={t}
+    />
   );
 };
 

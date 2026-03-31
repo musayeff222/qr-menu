@@ -293,6 +293,13 @@ export async function initDatabase() {
         table.string("primary_color").defaultTo("#ef4444");
         table.string("whatsapp_number");
         table.string("theme").defaultTo("modern");
+        table.string("menu_template", 64).defaultTo("modern-01");
+        table.text("tagline");
+        table.string("maps_url", 500);
+        table.string("phone", 64);
+        table.string("reservation_url", 500);
+        table.string("instagram", 200);
+        table.string("tiktok", 200);
         table.boolean("is_active").defaultTo(true);
         table.string("plan").defaultTo("free");
         table.timestamps(true, true);
@@ -391,6 +398,30 @@ export async function initDatabase() {
       });
     }
 
+    if (await db.schema.hasTable("restaurants")) {
+      await ensureColumn("restaurants", "menu_template", (table) => {
+        table.string("menu_template", 64);
+      });
+      await ensureColumn("restaurants", "tagline", (table) => {
+        table.text("tagline");
+      });
+      await ensureColumn("restaurants", "maps_url", (table) => {
+        table.string("maps_url", 500);
+      });
+      await ensureColumn("restaurants", "phone", (table) => {
+        table.string("phone", 64);
+      });
+      await ensureColumn("restaurants", "reservation_url", (table) => {
+        table.string("reservation_url", 500);
+      });
+      await ensureColumn("restaurants", "instagram", (table) => {
+        table.string("instagram", 200);
+      });
+      await ensureColumn("restaurants", "tiktok", (table) => {
+        table.string("tiktok", 200);
+      });
+    }
+
     const settingsRow = await db("settings").count("id as c").first();
     if (Number((settingsRow as { c?: string | number })?.c ?? 0) === 0) {
       await db("settings").insert([
@@ -414,6 +445,13 @@ export async function initDatabase() {
         primary_color: "#ef4444",
         theme: "modern",
         plan: "vip",
+        menu_template: "modern-01",
+        tagline: "Scan, order, enjoy — fresh flavors daily.",
+        maps_url: "https://maps.google.com/?q=Baku",
+        phone: "+994000000000",
+        reservation_url: "https://example.com/book",
+        instagram: "https://instagram.com",
+        tiktok: "https://tiktok.com",
       });
 
       const rest = await db("restaurants").where({ slug: "burger-joint" }).first();
@@ -452,6 +490,8 @@ export async function initDatabase() {
         .where({ username: "admin" })
         .update({ password: "admin123" });
     }
+
+    await db("restaurants").whereNull("menu_template").update({ menu_template: "modern-01" });
 
     const ru = await db("restaurant_users").where({ username: "burger_admin" }).first();
     if (!ru) {
