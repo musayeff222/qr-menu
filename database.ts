@@ -59,6 +59,10 @@ export function createKnex(): Knex {
 
 export const db = createKnex();
 
+export function getDbDriver(): "mysql" | "sqlite" {
+  return mysqlConnectionFromEnv() ? "mysql" : "sqlite";
+}
+
 /** Default UI strings (seeded into ui_locale; frontend merges with built-in fallbacks). */
 export const DEFAULT_UI_STRINGS: Record<string, Record<string, string>> = {
   az: {
@@ -357,6 +361,22 @@ export async function initDatabase() {
       });
     }
 
+    if (!(await db.schema.hasTable("restaurant_users"))) {
+      await db.schema.createTable("restaurant_users", (table) => {
+        table.increments("id");
+        table
+          .integer("restaurant_id")
+          .unsigned()
+          .notNullable()
+          .references("id")
+          .inTable("restaurants")
+          .onDelete("CASCADE");
+        table.string("username", 64).unique().notNullable();
+        table.string("password", 255).notNullable();
+        table.timestamps(true, true);
+      });
+    }
+
     if (await db.schema.hasTable("categories")) {
       await ensureColumn("categories", "translations", (table) => {
         table.text("translations");
@@ -431,6 +451,18 @@ export async function initDatabase() {
       await db("admin_users")
         .where({ username: "admin" })
         .update({ password: "admin123" });
+    }
+
+    const ru = await db("restaurant_users").where({ username: "burger_admin" }).first();
+    if (!ru) {
+      const r = await db("restaurants").where({ slug: "burger-joint" }).first();
+      if (r) {
+        await db("restaurant_users").insert({
+          restaurant_id: r.id,
+          username: "burger_admin",
+          password: "burger123",
+        });
+      }
     }
   } catch (err) {
     console.error("initDatabase error:", err);

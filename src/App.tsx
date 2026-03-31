@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useParams, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
   Utensils, 
@@ -8,15 +8,17 @@ import {
   Plus, 
   Trash2, 
   ChevronRight, 
-  Menu as MenuIcon,
   X,
   ShoppingCart,
   MessageSquare,
   Globe,
-  Palette,
-  BarChart3,
-  Users,
-  ShieldCheck
+  ShieldCheck,
+  Server,
+  Wifi,
+  LogIn,
+  Sparkles,
+  ArrowRight,
+  Store
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { clsx, type ClassValue } from "clsx";
@@ -24,6 +26,29 @@ import { twMerge } from "tailwind-merge";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+function authSuperHeaders(): HeadersInit {
+  const t = localStorage.getItem("adminSession");
+  const h: Record<string, string> = { "Content-Type": "application/json" };
+  if (t) h.Authorization = `Bearer ${t}`;
+  return h;
+}
+
+function authRestaurantHeaders(): HeadersInit {
+  const t = localStorage.getItem("restaurantSession");
+  const h: Record<string, string> = { "Content-Type": "application/json" };
+  if (t) h.Authorization = `Bearer ${t}`;
+  return h;
+}
+
+/** Restoran işçisi və ya super admin (restoran idarəetməsi üçün). */
+function authAnyStaffHeaders(): HeadersInit {
+  const h: Record<string, string> = { "Content-Type": "application/json" };
+  const rt = localStorage.getItem("restaurantSession");
+  const st = localStorage.getItem("adminSession");
+  if (rt || st) h.Authorization = `Bearer ${rt || st}`;
+  return h;
 }
 
 // --- Translations ---
@@ -72,7 +97,25 @@ const UI_TRANSLATIONS: any = {
     landing_feat2_t: "QR kod",
     landing_feat2_d: "Avtomatik QR kodlar.",
     landing_feat3_t: "WhatsApp",
-    landing_feat3_d: "Birbaşa telefonunuza sifariş."
+    landing_feat3_d: "Birbaşa telefonunuza sifariş.",
+    server_health: "Server və baza",
+    server_online: "Qoşulub",
+    server_error: "Xəta",
+    db_driver: "Növ",
+    response_ms: "ms",
+    rest_login_title: "Restoran girişi",
+    rest_login_sub: "Menyunuzu idarə etmək üçün daxil olun",
+    restaurant_staff_login: "Restoran paneli",
+    admin_acc_user: "Restoran admin login",
+    admin_acc_pass: "Restoran şifrə",
+    staff_note: "Hər restoran öz menyusuna bu hesabla girir",
+    staff_username_col: "Restoran login",
+    reset_staff_short: "Girişi yenilə",
+    your_link: "İctimai link",
+    slug_label: "URL (slug)",
+    save_profile: "Yadda saxla",
+    super_dashboard: "İdarə paneli",
+    demo_login: "Demo: burger_admin / burger123"
   },
   en: {
     dashboard: "Dashboard",
@@ -118,7 +161,25 @@ const UI_TRANSLATIONS: any = {
     landing_feat2_t: "QR Generation",
     landing_feat2_d: "Auto-generated QR codes for every table.",
     landing_feat3_t: "WhatsApp Orders",
-    landing_feat3_d: "Receive orders directly on your phone."
+    landing_feat3_d: "Receive orders directly on your phone.",
+    server_health: "Server & database",
+    server_online: "Connected",
+    server_error: "Error",
+    db_driver: "Driver",
+    response_ms: "ms",
+    rest_login_title: "Restaurant login",
+    rest_login_sub: "Sign in to manage your menu",
+    restaurant_staff_login: "Restaurant panel",
+    admin_acc_user: "Restaurant admin username",
+    admin_acc_pass: "Restaurant admin password",
+    staff_note: "Each restaurant uses these credentials for its panel",
+    staff_username_col: "Staff login",
+    reset_staff_short: "Reset access",
+    your_link: "Public menu link",
+    slug_label: "URL (slug)",
+    save_profile: "Save",
+    super_dashboard: "Dashboard",
+    demo_login: "Demo: burger_admin / burger123"
   },
   ru: {
     dashboard: "Панель",
@@ -164,7 +225,25 @@ const UI_TRANSLATIONS: any = {
     landing_feat2_t: "QR-коды",
     landing_feat2_d: "Автоматические QR для столов.",
     landing_feat3_t: "WhatsApp",
-    landing_feat3_d: "Заказы прямо на телефон."
+    landing_feat3_d: "Заказы прямо на телефон.",
+    server_health: "Сервер и БД",
+    server_online: "Подключено",
+    server_error: "Ошибка",
+    db_driver: "Тип",
+    response_ms: "мс",
+    rest_login_title: "Вход для ресторана",
+    rest_login_sub: "Войдите для управления меню",
+    restaurant_staff_login: "Панель ресторана",
+    admin_acc_user: "Логин администратора",
+    admin_acc_pass: "Пароль администратора",
+    staff_note: "Каждый ресторан входит со своей учётной записью",
+    staff_username_col: "Логин персонала",
+    reset_staff_short: "Сбросить доступ",
+    your_link: "Публичная ссылка",
+    slug_label: "URL (slug)",
+    save_profile: "Сохранить",
+    super_dashboard: "Панель",
+    demo_login: "Демо: burger_admin / burger123"
   },
   tr: {
     dashboard: "Panel",
@@ -210,7 +289,25 @@ const UI_TRANSLATIONS: any = {
     landing_feat2_t: "QR üretimi",
     landing_feat2_d: "Otomatik QR kodlar.",
     landing_feat3_t: "WhatsApp sipariş",
-    landing_feat3_d: "Siparişler doğrudan telefona."
+    landing_feat3_d: "Siparişler doğrudan telefona.",
+    server_health: "Sunucu ve veritabanı",
+    server_online: "Bağlı",
+    server_error: "Hata",
+    db_driver: "Sürücü",
+    response_ms: "ms",
+    rest_login_title: "Restoran girişi",
+    rest_login_sub: "Menünüzü yönetmek için giriş yapın",
+    restaurant_staff_login: "Restoran paneli",
+    admin_acc_user: "Restoran admin kullanıcı adı",
+    admin_acc_pass: "Restoran admin şifre",
+    staff_note: "Her restoran kendi hesabıyla paneline girer",
+    staff_username_col: "Personel girişi",
+    reset_staff_short: "Erişimi sıfırla",
+    your_link: "Genel menü linki",
+    slug_label: "URL (slug)",
+    save_profile: "Kaydet",
+    super_dashboard: "Panel",
+    demo_login: "Demo: burger_admin / burger123"
   }
 };
 
@@ -231,6 +328,7 @@ interface Restaurant {
   theme: string;
   is_active: boolean;
   plan: string;
+  staff_username?: string;
 }
 
 interface Category {
@@ -289,75 +387,138 @@ const LandingPage = () => {
   const t = (key: string) => bundle[lang]?.[key] || key;
 
   const feats = [
-    { titleKey: "landing_feat1_t", descKey: "landing_feat1_d", icon: <Plus /> },
-    { titleKey: "landing_feat2_t", descKey: "landing_feat2_d", icon: <QrCode /> },
-    { titleKey: "landing_feat3_t", descKey: "landing_feat3_d", icon: <MessageSquare /> },
+    { titleKey: "landing_feat1_t", descKey: "landing_feat1_d", icon: Plus },
+    { titleKey: "landing_feat2_t", descKey: "landing_feat2_d", icon: QrCode },
+    { titleKey: "landing_feat3_t", descKey: "landing_feat3_d", icon: MessageSquare },
   ] as const;
 
   return (
-    <div className="min-h-screen bg-white">
-      <nav className="p-6 flex justify-between items-center max-w-7xl mx-auto flex-wrap gap-4">
-        <div className="text-2xl font-bold text-red-600 flex items-center gap-2">
-          <Utensils /> QRMenu
-        </div>
-        <div className="flex items-center gap-4 flex-wrap">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-red-950/80 to-slate-950 text-white overflow-x-hidden">
+      <motion.div
+        className="absolute inset-0 opacity-40 pointer-events-none"
+        animate={{ backgroundPosition: ["0% 0%", "100% 100%"] }}
+        transition={{ duration: 20, repeat: Infinity, repeatType: "reverse" }}
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 20% 50%, rgba(239,68,68,0.35), transparent 45%), radial-gradient(circle at 80% 20%, rgba(248,113,113,0.2), transparent 40%)",
+          backgroundSize: "120% 120%",
+        }}
+      />
+
+      <nav className="relative z-10 px-4 sm:px-6 py-4 flex flex-wrap justify-between items-center gap-3 max-w-7xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, x: -12 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-white"
+        >
+          <Sparkles className="text-red-400 shrink-0" size={26} />
+          QRMenu
+        </motion.div>
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
           <select
-            className="text-sm border rounded-lg px-2 py-1.5 bg-white text-gray-800"
+            className="text-xs sm:text-sm border border-white/20 bg-white/10 backdrop-blur rounded-lg px-2 py-2 text-white outline-none"
             value={lang}
             onChange={(e) => setLang(e.target.value)}
           >
-            <option value="az">AZ</option>
-            <option value="en">EN</option>
-            <option value="ru">RU</option>
-            <option value="tr">TR</option>
+            <option value="az" className="text-gray-900">AZ</option>
+            <option value="en" className="text-gray-900">EN</option>
+            <option value="ru" className="text-gray-900">RU</option>
+            <option value="tr" className="text-gray-900">TR</option>
           </select>
-          <Link to="/admin" className="text-gray-600 hover:text-black">
-            {t("landing_nav_admin")}
+          <Link
+            to="/panel"
+            className="text-sm px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 transition-colors flex items-center gap-1"
+          >
+            <Store size={18} /> {t("restaurant_staff_login")}
           </Link>
           <Link
-            to="/restaurant/1"
-            className="bg-red-600 text-white px-4 py-2 rounded-lg"
+            to="/admin"
+            className="text-sm px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 transition-colors font-medium"
           >
-            {t("landing_nav_start")}
+            {t("landing_nav_admin")}
           </Link>
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-6 py-20 text-center">
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-6xl font-extrabold tracking-tight mb-6"
-        >
-          {t("landing_hero_1")}{" "}
-          <span className="text-red-600">{t("landing_hero_2")}</span>
-        </motion.h1>
-        <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
-          {t("landing_hero_sub")}
-        </p>
-        <div className="flex justify-center gap-4">
-          <Link
-            to="/restaurant/1"
-            className="bg-black text-white px-8 py-4 rounded-xl text-lg font-bold shadow-xl"
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-24">
+        <div className="text-center max-w-3xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", damping: 22 }}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs sm:text-sm text-red-100 mb-6"
           >
-            {t("landing_cta")}
-          </Link>
+            <Wifi size={14} className="text-red-300" />
+            QR · WhatsApp · Çoxdilli
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight mb-6"
+          >
+            {t("landing_hero_1")}{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-300 to-amber-200">
+              {t("landing_hero_2")}
+            </span>
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12 }}
+            className="text-base sm:text-lg md:text-xl text-red-100/90 mb-10 max-w-2xl mx-auto"
+          >
+            {t("landing_hero_sub")}
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18 }}
+            className="flex flex-col sm:flex-row gap-3 justify-center items-stretch sm:items-center"
+          >
+            <Link
+              to="/panel"
+              className="inline-flex items-center justify-center gap-2 bg-white text-red-900 px-6 py-3.5 rounded-xl text-base font-bold shadow-xl hover:shadow-red-500/20 active:scale-[0.98] transition-transform"
+            >
+              {t("landing_cta")} <ArrowRight size={20} />
+            </Link>
+            <Link
+              to="/admin"
+              className="inline-flex items-center justify-center gap-2 border border-white/25 px-6 py-3.5 rounded-xl font-medium hover:bg-white/10 transition-colors"
+            >
+              <ShieldCheck size={20} /> {t("landing_nav_admin")}
+            </Link>
+          </motion.div>
         </div>
 
-        <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-40px" }}
+          variants={{
+            hidden: {},
+            show: { transition: { staggerChildren: 0.1 } },
+          }}
+          className="mt-16 sm:mt-24 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6"
+        >
           {feats.map((feat, i) => (
-            <Card
+            <motion.div
               key={i}
-              className="p-8 text-left hover:border-red-200 transition-colors"
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                show: { opacity: 1, y: 0 },
+              }}
             >
-              <div className="w-12 h-12 bg-red-50 text-red-600 rounded-lg flex items-center justify-center mb-4">
-                {feat.icon}
-              </div>
-              <h3 className="text-xl font-bold mb-2">{t(feat.titleKey)}</h3>
-              <p className="text-gray-600">{t(feat.descKey)}</p>
-            </Card>
+              <Card className="p-6 sm:p-8 h-full bg-white/5 border-white/10 backdrop-blur-md hover:border-red-400/30 transition-colors text-left">
+                <div className="w-11 h-11 bg-red-500/20 text-red-200 rounded-xl flex items-center justify-center mb-4">
+                  <feat.icon size={22} />
+                </div>
+                <h3 className="text-lg font-bold mb-2 text-white">{t(feat.titleKey)}</h3>
+                <p className="text-sm text-red-100/75">{t(feat.descKey)}</p>
+              </Card>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </main>
     </div>
   );
@@ -389,11 +550,12 @@ const AdminLoginPage = ({ onLogin }: { onLogin: (user: any) => void }) => {
       body: JSON.stringify({ username, password })
     });
     const data = await res.json();
-    if (data.success) {
+    if (data.success && data.token) {
+      localStorage.setItem("adminSession", data.token);
       onLogin(data.user);
       localStorage.setItem("adminUser", JSON.stringify(data.user));
     } else {
-      setError(data.error);
+      setError(data.error || "Login failed");
     }
   };
 
@@ -439,13 +601,14 @@ const SuperAdminSettings = () => {
   const [currentLang, setCurrentLang] = useState("az");
 
   useEffect(() => {
-    fetch("/api/admin/settings")
+    fetch("/api/admin/settings", { headers: authSuperHeaders() })
       .then(res => res.json())
       .then(data => {
         setSettings(data);
         if (data.default_language) setCurrentLang(data.default_language);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   const t = (key: string) => bundle[currentLang]?.[key] || key;
@@ -453,7 +616,7 @@ const SuperAdminSettings = () => {
   const saveSettings = async (newSettings: any) => {
     await fetch("/api/admin/settings", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authSuperHeaders(),
       body: JSON.stringify({ settings: newSettings })
     });
     setSettings({ ...settings, ...newSettings });
@@ -544,27 +707,155 @@ const SuperAdminSettings = () => {
   );
 };
 
+const RestaurantLoginPage = () => {
+  const bundle = useI18nBundle();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string })?.from;
+  const [lang, setLang] = useState("az");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/public/settings")
+      .then((r) => r.json())
+      .then((s: { default_language?: string }) => {
+        if (s.default_language) setLang(s.default_language);
+      })
+      .catch(() => {});
+  }, []);
+
+  const t = (key: string) => bundle[lang]?.[key] || key;
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    const res = await fetch("/api/restaurant/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (data.success && data.token) {
+      localStorage.setItem("restaurantSession", data.token);
+      localStorage.setItem("restaurantId", String(data.restaurantId));
+      navigate(from || `/restaurant/${data.restaurantId}`, { replace: true });
+    } else {
+      setError(data.error || "Login failed");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-red-950 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md"
+      >
+        <Card className="p-6 sm:p-8 border border-white/10 bg-white/95 backdrop-blur shadow-2xl">
+          <div className="flex items-center gap-2 text-red-600 font-bold text-xl mb-2 justify-center">
+            <LogIn /> {t("rest_login_title")}
+          </div>
+          <p className="text-center text-gray-500 text-sm mb-6">{t("rest_login_sub")}</p>
+          <p className="text-xs text-center text-amber-700 bg-amber-50 rounded-lg p-2 mb-4">{t("demo_login")}</p>
+          <form onSubmit={submit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("username")}</label>
+              <input
+                className="w-full p-3 border rounded-lg"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("password")}</label>
+              <input
+                type="password"
+                className="w-full p-3 border rounded-lg"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            {error && <p className="text-red-600 text-sm">{error}</p>}
+            <Button type="submit" className="w-full bg-red-600 text-white py-3">
+              {t("login")}
+            </Button>
+          </form>
+          <div className="mt-6 text-center text-sm text-gray-500">
+            <Link to="/" className="text-red-600 hover:underline">
+              ← {t("landing_nav_start")}
+            </Link>
+          </div>
+        </Card>
+      </motion.div>
+    </div>
+  );
+};
+
 const SuperAdminPanel = () => {
   const bundle = useI18nBundle();
   const [user, setUser] = useState<any>(null);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [stats, setStats] = useState({ totalRestaurants: 0, totalScans: 0 });
-  const [newRest, setNewRest] = useState({ name: "", slug: "", whatsapp: "" });
+  const [health, setHealth] = useState<{
+    ok: boolean;
+    database?: string;
+    driver?: string;
+    latencyMs?: number;
+  } | null>(null);
+  const [newRest, setNewRest] = useState({
+    name: "",
+    slug: "",
+    whatsapp: "",
+    admin_user: "",
+    admin_pass: "",
+  });
   const [view, setView] = useState<"dashboard" | "settings">("dashboard");
   const [currentLang, setCurrentLang] = useState("az");
 
+  const loadDashboard = () => {
+    fetch("/api/restaurants", { headers: authSuperHeaders() })
+      .then((res) => (res.ok ? res.json() : []))
+      .then(setRestaurants);
+    fetch("/api/stats", { headers: authSuperHeaders() })
+      .then((res) => (res.ok ? res.json() : { totalRestaurants: 0, totalScans: 0 }))
+      .then(setStats);
+  };
+
   useEffect(() => {
     const savedUser = localStorage.getItem("adminUser");
-    if (savedUser) setUser(JSON.parse(savedUser));
+    const tok = localStorage.getItem("adminSession");
+    if (savedUser && tok) setUser(JSON.parse(savedUser));
+    else {
+      localStorage.removeItem("adminUser");
+      localStorage.removeItem("adminSession");
+    }
+  }, []);
 
-    fetch("/api/restaurants").then(res => res.json()).then(setRestaurants);
-    fetch("/api/stats").then(res => res.json()).then(setStats);
-    
-    fetch("/api/admin/settings")
-      .then(res => res.json())
-      .then(data => {
+  useEffect(() => {
+    if (!user) return;
+    loadDashboard();
+    fetch("/api/admin/settings", { headers: authSuperHeaders() })
+      .then((res) => res.json())
+      .then((data) => {
         if (data.default_language) setCurrentLang(data.default_language);
-      });
+      })
+      .catch(() => {});
+  }, [user]);
+
+  useEffect(() => {
+    const poll = () => {
+      fetch("/api/health")
+        .then((r) => r.json())
+        .then(setHealth)
+        .catch(() => setHealth({ ok: false }));
+    };
+    poll();
+    const i = setInterval(poll, 15000);
+    return () => clearInterval(i);
   }, []);
 
   const t = (key: string) => bundle[currentLang]?.[key] || key;
@@ -572,153 +863,211 @@ const SuperAdminPanel = () => {
   const handleCreate = async () => {
     const res = await fetch("/api/restaurants", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newRest.name, slug: newRest.slug, whatsapp_number: newRest.whatsapp })
+      headers: authSuperHeaders(),
+      body: JSON.stringify({
+        name: newRest.name,
+        slug: newRest.slug,
+        whatsapp_number: newRest.whatsapp,
+        admin_username: newRest.admin_user,
+        admin_password: newRest.admin_pass,
+      }),
     });
     if (res.ok) {
-      const data = await res.json();
-      setRestaurants([...restaurants, data]);
-      setNewRest({ name: "", slug: "", whatsapp: "" });
+      const row = await res.json();
+      setRestaurants((prev) => [...prev, { ...row, staff_username: newRest.admin_user } as Restaurant]);
+      setNewRest({ name: "", slug: "", whatsapp: "", admin_user: "", admin_pass: "" });
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Create failed");
     }
+  };
+
+  const resetStaff = async (id: number) => {
+    const u = window.prompt(t("admin_acc_user"));
+    const p = window.prompt(t("password"));
+    if (!u || !p) return;
+    const res = await fetch(`/api/admin/restaurants/${id}/staff`, {
+      method: "POST",
+      headers: authSuperHeaders(),
+      body: JSON.stringify({ username: u, password: p }),
+    });
+    if (res.ok) loadDashboard();
+    else alert("Failed");
   };
 
   if (!user) return <AdminLoginPage onLogin={setUser} />;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 p-6">
-        <div className="text-xl font-bold text-red-600 mb-10 flex items-center gap-2">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+      <aside className="w-full md:w-64 shrink-0 bg-white border-b md:border-b-0 md:border-r border-gray-200 md:min-h-screen flex md:flex-col flex-row md:items-stretch items-center justify-between md:justify-start gap-1 p-3 md:p-6 md:space-y-2 overflow-x-auto md:overflow-visible">
+        <div className="hidden md:flex text-xl font-bold text-red-600 mb-6 items-center gap-2 px-1">
           <ShieldCheck /> Super Admin
         </div>
-        <nav className="space-y-2">
-          <button 
-            onClick={() => setView("dashboard")}
-            className={cn(
-              "w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-colors",
-              view === "dashboard" ? "bg-red-50 text-red-600" : "text-gray-600 hover:bg-gray-50"
-            )}
-          >
-            <LayoutDashboard size={20} /> {t("dashboard")}
-          </button>
-          <button 
-            onClick={() => setView("settings")}
-            className={cn(
-              "w-full flex items-center gap-3 p-3 rounded-lg font-medium transition-colors",
-              view === "settings" ? "bg-red-50 text-red-600" : "text-gray-600 hover:bg-gray-50"
-            )}
-          >
-            <Settings size={20} /> {t("settings")}
-          </button>
-          <div className="flex items-center gap-3 p-3 text-gray-400 hover:bg-gray-50 rounded-lg cursor-not-allowed">
-            <Users size={20} /> All Users
-          </div>
-          <div className="flex items-center gap-3 p-3 text-gray-400 hover:bg-gray-50 rounded-lg cursor-not-allowed">
-            <BarChart3 size={20} /> Revenue
-          </div>
-        </nav>
-        
-        <div className="absolute bottom-6 left-6 right-6">
-          <button 
-            onClick={() => {
-              localStorage.removeItem("adminUser");
-              setUser(null);
-            }}
-            className="w-full flex items-center gap-3 p-3 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg font-medium transition-colors"
-          >
-            <X size={20} /> {t("logout")}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setView("dashboard")}
+          className={cn(
+            "flex items-center gap-2 px-3 py-2.5 md:w-full md:px-3 rounded-lg font-medium whitespace-nowrap transition-colors",
+            view === "dashboard" ? "bg-red-50 text-red-600" : "text-gray-600 hover:bg-gray-50"
+          )}
+        >
+          <LayoutDashboard size={20} /> <span className="hidden sm:inline">{t("dashboard")}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("settings")}
+          className={cn(
+            "flex items-center gap-2 px-3 py-2.5 md:w-full rounded-lg font-medium whitespace-nowrap transition-colors",
+            view === "settings" ? "bg-red-50 text-red-600" : "text-gray-600 hover:bg-gray-50"
+          )}
+        >
+          <Settings size={20} /> <span className="hidden sm:inline">{t("settings")}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            localStorage.removeItem("adminUser");
+            localStorage.removeItem("adminSession");
+            setUser(null);
+          }}
+          className="flex items-center gap-2 px-3 py-2.5 md:w-full md:mt-auto text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg font-medium"
+        >
+          <X size={20} /> <span className="hidden sm:inline">{t("logout")}</span>
+        </button>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 p-10">
+      <main className="flex-1 p-4 sm:p-6 md:p-10 pb-24 md:pb-10 w-full min-w-0">
         {view === "settings" ? (
           <SuperAdminSettings />
         ) : (
           <>
-            <header className="flex justify-between items-center mb-10">
-              <h1 className="text-3xl font-bold">Dashboard Overview</h1>
-              <div className="flex gap-4">
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+            <header className="flex flex-col lg:flex-row lg:justify-between gap-4 mb-8">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold">{t("super_dashboard")}</h1>
+                <p className="text-gray-500 text-sm mt-1">{t("server_health")}</p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Card
+                  className={cn(
+                    "p-4 flex items-center gap-3 border",
+                    health?.ok ? "border-emerald-200 bg-emerald-50/50" : "border-red-200 bg-red-50/50"
+                  )}
+                >
+                  <Server className={health?.ok ? "text-emerald-600" : "text-red-600"} size={24} />
+                  <div>
+                    <p className="text-xs text-gray-500">{t("server_health")}</p>
+                    <p className="font-bold text-sm">
+                      {health?.ok ? t("server_online") : t("server_error")}
+                    </p>
+                    {health?.driver && (
+                      <p className="text-xs text-gray-500">
+                        {t("db_driver")}: {health.driver} · {health.latencyMs ?? "—"} {t("response_ms")}
+                      </p>
+                    )}
+                  </div>
+                </Card>
+                <Card className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
                     <Utensils size={20} />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Total Restaurants</p>
+                    <p className="text-xs text-gray-500">{t("restaurants")}</p>
                     <p className="text-xl font-bold">{stats.totalRestaurants}</p>
                   </div>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+                </Card>
+                <Card className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center">
                     <QrCode size={20} />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Total Scans</p>
+                    <p className="text-xs text-gray-500">QR scans</p>
                     <p className="text-xl font-bold">{stats.totalScans}</p>
                   </div>
-                </div>
+                </Card>
               </div>
             </header>
 
-            <Card className="p-6 mb-10">
-              <h2 className="text-xl font-bold mb-6">{t("create_restaurant")}</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <input 
-                  placeholder={t("name")} 
+            <Card className="p-4 sm:p-6 mb-8">
+              <h2 className="text-xl font-bold mb-2">{t("create_restaurant")}</h2>
+              <p className="text-sm text-gray-500 mb-4">{t("staff_note")}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <input
+                  placeholder={t("name")}
                   className="p-3 border rounded-lg"
                   value={newRest.name}
-                  onChange={e => setNewRest({ ...newRest, name: e.target.value })}
+                  onChange={(e) => setNewRest({ ...newRest, name: e.target.value })}
                 />
-                <input 
-                  placeholder={t("slug")} 
+                <input
+                  placeholder={t("slug")}
                   className="p-3 border rounded-lg"
                   value={newRest.slug}
-                  onChange={e => setNewRest({ ...newRest, slug: e.target.value })}
+                  onChange={(e) => setNewRest({ ...newRest, slug: e.target.value })}
                 />
-                <input 
-                  placeholder={t("whatsapp")} 
+                <input
+                  placeholder={t("whatsapp")}
                   className="p-3 border rounded-lg"
                   value={newRest.whatsapp}
-                  onChange={e => setNewRest({ ...newRest, whatsapp: e.target.value })}
+                  onChange={(e) => setNewRest({ ...newRest, whatsapp: e.target.value })}
                 />
-                <Button onClick={handleCreate} className="bg-red-600 text-white">{t("create")}</Button>
+                <input
+                  placeholder={t("admin_acc_user")}
+                  className="p-3 border rounded-lg"
+                  value={newRest.admin_user}
+                  onChange={(e) => setNewRest({ ...newRest, admin_user: e.target.value })}
+                />
+                <input
+                  type="password"
+                  placeholder={t("admin_acc_pass")}
+                  className="p-3 border rounded-lg"
+                  value={newRest.admin_pass}
+                  onChange={(e) => setNewRest({ ...newRest, admin_pass: e.target.value })}
+                />
+                <Button onClick={handleCreate} className="bg-red-600 text-white h-[46px]">
+                  {t("create")}
+                </Button>
               </div>
             </Card>
 
-            <Card>
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+            <Card className="overflow-hidden">
+              <div className="p-4 sm:p-6 border-b border-gray-100">
                 <h2 className="text-xl font-bold">{t("restaurants")}</h2>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-left">
+                <table className="w-full text-left text-sm min-w-[640px]">
                   <thead>
-                    <tr className="bg-gray-50 text-gray-500 text-sm uppercase">
-                      <th className="p-4">{t("name")}</th>
-                      <th className="p-4">{t("slug")}</th>
-                      <th className="p-4">Plan</th>
-                      <th className="p-4">Status</th>
-                      <th className="p-4">Actions</th>
+                    <tr className="bg-gray-50 text-gray-500 text-xs uppercase">
+                      <th className="p-3 sm:p-4">{t("name")}</th>
+                      <th className="p-3 sm:p-4">{t("slug")}</th>
+                      <th className="p-3 sm:p-4">{t("staff_username_col")}</th>
+                      <th className="p-3 sm:p-4">Plan</th>
+                      <th className="p-3 sm:p-4 text-right">{t("dashboard")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {restaurants.map(rest => (
+                    {restaurants.map((rest) => (
                       <tr key={rest.id} className="hover:bg-gray-50">
-                        <td className="p-4 font-medium">{rest.name}</td>
-                        <td className="p-4 text-gray-500">/r/{rest.slug}</td>
-                        <td className="p-4">
+                        <td className="p-3 sm:p-4 font-medium">{rest.name}</td>
+                        <td className="p-3 sm:p-4 text-gray-500 font-mono text-xs">/r/{rest.slug}</td>
+                        <td className="p-3 sm:p-4 text-gray-600">{rest.staff_username || "—"}</td>
+                        <td className="p-3 sm:p-4">
                           <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-bold uppercase">
                             {rest.plan}
                           </span>
                         </td>
-                        <td className="p-4">
-                          <span className="px-2 py-1 bg-green-50 text-green-600 rounded text-xs font-bold uppercase">
-                            Active
-                          </span>
-                        </td>
-                        <td className="p-4 flex gap-2">
-                          <Link to={`/restaurant/${rest.id}`} className="text-blue-600 hover:underline">{t("manage")}</Link>
-                          <button className="text-red-600 hover:underline">{t("block")}</button>
+                        <td className="p-3 sm:p-4 text-right space-x-2 whitespace-nowrap">
+                          <Link
+                            to={`/restaurant/${rest.id}`}
+                            className="text-blue-600 hover:underline"
+                          >
+                            {t("manage")}
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => resetStaff(rest.id)}
+                            className="text-amber-700 hover:underline"
+                          >
+                            {t("reset_staff_short")}
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -735,6 +1084,7 @@ const SuperAdminPanel = () => {
 
 const RestaurantPanel = () => {
   const bundle = useI18nBundle();
+  const navigate = useNavigate();
   const { id } = useParams();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -742,33 +1092,87 @@ const RestaurantPanel = () => {
   const [newCat, setNewCat] = useState("");
   const [newProd, setNewProd] = useState({ name: "", price: 0, category_id: 0, description: "" });
   const [qrCode, setQrCode] = useState("");
+  const [profile, setProfile] = useState({ name: "", slug: "", whatsapp_number: "", primary_color: "#ef4444" });
   const [editingTranslations, setEditingTranslations] = useState<{ type: 'category' | 'product', id: number, data: any } | null>(null);
   const [currentLang, setCurrentLang] = useState("az");
+  const [loadError, setLoadError] = useState("");
+
+  const isSuper = typeof window !== "undefined" && !!localStorage.getItem("adminSession");
 
   useEffect(() => {
-    fetch(`/api/admin/restaurants/${id}/menu`).then(res => res.json()).then(data => {
+    const st = localStorage.getItem("adminSession");
+    const rt = localStorage.getItem("restaurantSession");
+    const rid = localStorage.getItem("restaurantId");
+    if (!st && !rt) {
+      navigate("/panel", { replace: true, state: { from: `/restaurant/${id}` } });
+      return;
+    }
+    if (rt && rid && rid !== String(id)) {
+      navigate("/panel", { replace: true });
+    }
+  }, [id, navigate]);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoadError("");
+      const res = await fetch(`/api/admin/restaurants/${id}/menu`, {
+        headers: authAnyStaffHeaders(),
+      });
+      if (!res.ok) {
+        setLoadError("Unauthorized");
+        navigate("/panel", { replace: true, state: { from: `/restaurant/${id}` } });
+        return;
+      }
+      const data = await res.json();
+      setRestaurant(data.restaurant);
       setCategories(data.categories);
       setProducts(data.products);
-    });
-    
-    fetch("/api/restaurants").then(res => res.json()).then(data => {
-      const rest = data.find((r: any) => r.id === Number(id)) || data[0];
-      setRestaurant(rest);
-      
-      const menuUrl = `${window.location.origin}/r/${rest.slug}`;
-      fetch(`/api/qrcode?url=${encodeURIComponent(menuUrl)}`)
-        .then(res => res.json())
-        .then(data => setQrCode(data.qrDataUrl));
-    });
-  }, [id]);
+      const r = data.restaurant;
+      setProfile({
+        name: r.name || "",
+        slug: r.slug || "",
+        whatsapp_number: r.whatsapp_number || "",
+        primary_color: r.primary_color || "#ef4444",
+      });
+      const menuUrl = `${window.location.origin}/r/${r.slug}`;
+      const qr = await fetch(`/api/qrcode?url=${encodeURIComponent(menuUrl)}`).then((x) => x.json());
+      setQrCode(qr.qrDataUrl);
+    };
+    load();
+  }, [id, navigate]);
 
   const t = (key: string) => bundle[currentLang]?.[key] || key;
+
+  const saveProfile = async () => {
+    const res = await fetch(`/api/admin/restaurants/${id}/profile`, {
+      method: "PUT",
+      headers: authAnyStaffHeaders(),
+      body: JSON.stringify(profile),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setRestaurant(data.restaurant);
+      const menuUrl = `${window.location.origin}/r/${data.restaurant.slug}`;
+      const qr = await fetch(`/api/qrcode?url=${encodeURIComponent(menuUrl)}`).then((x) => x.json());
+      setQrCode(qr.qrDataUrl);
+      alert("OK");
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Error");
+    }
+  };
+
+  const staffLogout = () => {
+    localStorage.removeItem("restaurantSession");
+    localStorage.removeItem("restaurantId");
+    navigate("/panel");
+  };
 
   const addCategory = async () => {
     const res = await fetch("/api/admin/categories", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ restaurant_id: id, name: newCat })
+      headers: authAnyStaffHeaders(),
+      body: JSON.stringify({ restaurant_id: Number(id), name: newCat })
     });
     if (res.ok) {
       const data = await res.json();
@@ -780,8 +1184,8 @@ const RestaurantPanel = () => {
   const addProduct = async () => {
     const res = await fetch("/api/admin/products", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...newProd, restaurant_id: id })
+      headers: authAnyStaffHeaders(),
+      body: JSON.stringify({ ...newProd, restaurant_id: Number(id) })
     });
     if (res.ok) {
       const data = await res.json();
@@ -797,7 +1201,7 @@ const RestaurantPanel = () => {
     
     const res = await fetch(endpoint, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: authAnyStaffHeaders(),
       body: JSON.stringify({ translations: data })
     });
 
@@ -814,39 +1218,50 @@ const RestaurantPanel = () => {
     }
   };
 
+  if (loadError) return <div className="p-10 text-center text-red-600">{loadError}</div>;
   if (!restaurant) return <div className="p-10">{t("loading")}</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <aside className="w-64 bg-white border-r border-gray-200 p-6">
-        <div className="text-xl font-bold text-red-600 mb-10 flex items-center gap-2">
-          <Utensils /> {restaurant.name}
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row pb-safe">
+      <aside className="w-full md:w-56 shrink-0 bg-white border-b md:border-b-0 md:border-r border-gray-200 flex md:flex-col flex-row gap-1 p-3 md:p-4 overflow-x-auto md:overflow-visible">
+        <div className="hidden md:flex text-lg font-bold text-red-600 mb-4 items-center gap-2 px-1 whitespace-nowrap">
+          <Utensils /> <span className="truncate max-w-[10rem]">{restaurant.name}</span>
         </div>
-        <nav className="space-y-2">
-          <button className="w-full flex items-center gap-3 p-3 bg-red-50 text-red-600 rounded-lg font-medium">
-            <LayoutDashboard size={20} /> {t("dashboard")}
-          </button>
-          <button className="w-full flex items-center gap-3 p-3 text-gray-600 hover:bg-gray-50 rounded-lg">
-            <MenuIcon size={20} /> {t("products")}
-          </button>
-          <button className="w-full flex items-center gap-3 p-3 text-gray-600 hover:bg-gray-50 rounded-lg">
-            <QrCode size={20} /> QR Codes
-          </button>
-          <button className="w-full flex items-center gap-3 p-3 text-gray-600 hover:bg-gray-50 rounded-lg">
-            <Palette size={20} /> Themes
-          </button>
-          <button className="w-full flex items-center gap-3 p-3 text-gray-600 hover:bg-gray-50 rounded-lg">
-            <Settings size={20} /> {t("settings")}
-          </button>
-        </nav>
+        <div className="flex md:flex-col flex-row gap-1 min-w-0">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-600 font-medium text-sm whitespace-nowrap">
+            <LayoutDashboard size={18} /> {t("dashboard")}
+          </div>
+          <a
+            href={`/r/${restaurant.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 text-sm whitespace-nowrap"
+          >
+            <Globe size={18} /> {t("view_live")}
+          </a>
+          {isSuper && (
+            <Link to="/admin" className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 whitespace-nowrap">
+              ← Admin
+            </Link>
+          )}
+          {!isSuper && (
+            <button
+              type="button"
+              onClick={staffLogout}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-red-600 whitespace-nowrap"
+            >
+              <X size={18} /> {t("logout")}
+            </button>
+          )}
+        </div>
       </aside>
 
-      <main className="flex-1 p-10">
-        <header className="flex justify-between items-center mb-10">
-          <h1 className="text-3xl font-bold">Menu Management</h1>
-          <div className="flex items-center gap-4">
+      <main className="flex-1 p-4 sm:p-6 md:p-8 w-full min-w-0">
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold">Menu</h1>
+          <div className="flex flex-wrap items-center gap-3">
             <select 
-              className="p-2 border rounded-lg bg-white"
+              className="p-2 border rounded-lg bg-white text-sm"
               value={currentLang}
               onChange={e => setCurrentLang(e.target.value)}
             >
@@ -858,12 +1273,53 @@ const RestaurantPanel = () => {
             <a 
               href={`/r/${restaurant.slug}`} 
               target="_blank" 
-              className="flex items-center gap-2 text-red-600 font-bold hover:underline"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 text-red-600 font-bold text-sm hover:underline"
             >
               <Globe size={18} /> {t("view_live")}
             </a>
           </div>
         </header>
+
+        <Card className="p-4 sm:p-6 mb-8 border-red-100">
+          <h3 className="font-bold mb-3 flex items-center gap-2">
+            <QrCode size={20} className="text-red-600" /> {t("your_link")}
+          </h3>
+          <p className="text-xs text-gray-500 mb-4 font-mono break-all">
+            {typeof window !== "undefined" ? `${window.location.origin}/r/${profile.slug}` : ""}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input
+              className="p-2 border rounded-lg text-sm"
+              placeholder={t("name")}
+              value={profile.name}
+              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+            />
+            <input
+              className="p-2 border rounded-lg text-sm font-mono"
+              placeholder={t("slug_label")}
+              value={profile.slug}
+              onChange={(e) => setProfile({ ...profile, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
+            />
+            <input
+              className="p-2 border rounded-lg text-sm"
+              placeholder={t("whatsapp")}
+              value={profile.whatsapp_number}
+              onChange={(e) => setProfile({ ...profile, whatsapp_number: e.target.value })}
+            />
+            <div className="flex gap-2 items-center">
+              <input
+                type="color"
+                className="h-10 w-14 rounded border cursor-pointer"
+                value={profile.primary_color}
+                onChange={(e) => setProfile({ ...profile, primary_color: e.target.value })}
+              />
+              <Button onClick={saveProfile} className="bg-red-600 text-white text-sm flex-1">
+                {t("save_profile")}
+              </Button>
+            </div>
+          </div>
+        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-1 space-y-6">
@@ -1251,6 +1707,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/admin" element={<SuperAdminPanel />} />
+          <Route path="/panel" element={<RestaurantLoginPage />} />
           <Route path="/restaurant/:id" element={<RestaurantPanel />} />
           <Route path="/r/:slug" element={<CustomerMenu />} />
         </Routes>
