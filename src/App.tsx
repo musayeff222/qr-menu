@@ -57,7 +57,22 @@ const UI_TRANSLATIONS: any = {
     total: "Cəmi",
     loading: "Yüklənir...",
     select_category: "Kateqoriya seçin",
-    translations: "Tərcümələr"
+    translations: "Tərcümələr",
+    login: "Daxil ol",
+    username: "İstifadəçi adı",
+    password: "Şifrə",
+    landing_nav_admin: "Super Admin",
+    landing_nav_start: "Başla",
+    landing_hero_1: "Restoran menyunuz,",
+    landing_hero_2: "rəqəmsal.",
+    landing_hero_sub: "Dəqiqələr içində gözəl digital menyu yaradın. QR kodlar, kateqoriyalar və WhatsApp sifarişi.",
+    landing_cta: "Menyu yarat",
+    landing_feat1_t: "Sürətli quraşdırma",
+    landing_feat1_d: "Bir kliklə restoran və menyu.",
+    landing_feat2_t: "QR kod",
+    landing_feat2_d: "Avtomatik QR kodlar.",
+    landing_feat3_t: "WhatsApp",
+    landing_feat3_d: "Birbaşa telefonunuza sifariş."
   },
   en: {
     dashboard: "Dashboard",
@@ -88,7 +103,22 @@ const UI_TRANSLATIONS: any = {
     total: "Total",
     loading: "Loading...",
     select_category: "Select Category",
-    translations: "Translations"
+    translations: "Translations",
+    login: "Login",
+    username: "Username",
+    password: "Password",
+    landing_nav_admin: "Super Admin",
+    landing_nav_start: "Get Started",
+    landing_hero_1: "Your Restaurant Menu,",
+    landing_hero_2: "Digitalized.",
+    landing_hero_sub: "Create a beautiful digital menu in minutes. QR codes, categories, and WhatsApp orders.",
+    landing_cta: "Create Your Menu",
+    landing_feat1_t: "Fast Setup",
+    landing_feat1_d: "One click to create your restaurant and menu.",
+    landing_feat2_t: "QR Generation",
+    landing_feat2_d: "Auto-generated QR codes for every table.",
+    landing_feat3_t: "WhatsApp Orders",
+    landing_feat3_d: "Receive orders directly on your phone."
   },
   ru: {
     dashboard: "Панель",
@@ -119,7 +149,22 @@ const UI_TRANSLATIONS: any = {
     total: "Итого",
     loading: "Загрузка...",
     select_category: "Выберите категорию",
-    translations: "Переводы"
+    translations: "Переводы",
+    login: "Войти",
+    username: "Логин",
+    password: "Пароль",
+    landing_nav_admin: "Супер админ",
+    landing_nav_start: "Начать",
+    landing_hero_1: "Меню вашего ресторана,",
+    landing_hero_2: "в цифре.",
+    landing_hero_sub: "Создайте цифровое меню за минуты. QR-коды, категории и заказы в WhatsApp.",
+    landing_cta: "Создать меню",
+    landing_feat1_t: "Быстрый старт",
+    landing_feat1_d: "Ресторан и меню в один клик.",
+    landing_feat2_t: "QR-коды",
+    landing_feat2_d: "Автоматические QR для столов.",
+    landing_feat3_t: "WhatsApp",
+    landing_feat3_d: "Заказы прямо на телефон."
   },
   tr: {
     dashboard: "Panel",
@@ -150,9 +195,30 @@ const UI_TRANSLATIONS: any = {
     total: "Toplam",
     loading: "Yükleniyor...",
     select_category: "Kategori seçin",
-    translations: "Çeviriler"
+    translations: "Çeviriler",
+    login: "Giriş",
+    username: "Kullanıcı adı",
+    password: "Şifre",
+    landing_nav_admin: "Süper Admin",
+    landing_nav_start: "Başla",
+    landing_hero_1: "Restoran menünüz,",
+    landing_hero_2: "dijital.",
+    landing_hero_sub: "Dakikalar içinde dijital menü oluşturun. QR kodlar, kategoriler ve WhatsApp siparişleri.",
+    landing_cta: "Menü oluştur",
+    landing_feat1_t: "Hızlı kurulum",
+    landing_feat1_d: "Tek tıkla restoran ve menü.",
+    landing_feat2_t: "QR üretimi",
+    landing_feat2_d: "Otomatik QR kodlar.",
+    landing_feat3_t: "WhatsApp sipariş",
+    landing_feat3_d: "Siparişler doğrudan telefona."
   }
 };
+
+const I18nBundleContext = React.createContext(UI_TRANSLATIONS);
+
+function useI18nBundle() {
+  return React.useContext(I18nBundleContext);
+}
 
 // --- Types ---
 interface Restaurant {
@@ -172,6 +238,7 @@ interface Category {
   restaurant_id: number;
   name: string;
   sort_order: number;
+  translations?: Record<string, string>;
 }
 
 interface Product {
@@ -183,6 +250,7 @@ interface Product {
   price: number;
   image_url: string;
   is_available: boolean;
+  translations?: Record<string, { name?: string; desc?: string }>;
 }
 
 // --- Components ---
@@ -205,59 +273,113 @@ const Card = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivEle
 
 // --- Pages ---
 
-const LandingPage = () => (
-  <div className="min-h-screen bg-white">
-    <nav className="p-6 flex justify-between items-center max-w-7xl mx-auto">
-      <div className="text-2xl font-bold text-red-600 flex items-center gap-2">
-        <Utensils /> QRMenu
-      </div>
-      <div className="flex gap-4">
-        <Link to="/admin" className="text-gray-600 hover:text-black">Super Admin</Link>
-        <Link to="/restaurant/1" className="bg-red-600 text-white px-4 py-2 rounded-lg">Get Started</Link>
-      </div>
-    </nav>
-    
-    <main className="max-w-7xl mx-auto px-6 py-20 text-center">
-      <motion.h1 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-6xl font-extrabold tracking-tight mb-6"
-      >
-        Your Restaurant Menu, <span className="text-red-600">Digitalized.</span>
-      </motion.h1>
-      <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
-        Create a beautiful digital menu for your restaurant in minutes. 
-        Generate QR codes, manage categories, and receive orders via WhatsApp.
-      </p>
-      <div className="flex justify-center gap-4">
-        <Link to="/restaurant/1" className="bg-black text-white px-8 py-4 rounded-xl text-lg font-bold shadow-xl">
-          Create Your Menu
-        </Link>
-      </div>
-      
-      <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8">
-        {[
-          { title: "Fast Setup", desc: "One click to create your restaurant and menu.", icon: <Plus /> },
-          { title: "QR Generation", desc: "Auto-generated QR codes for every table.", icon: <QrCode /> },
-          { title: "WhatsApp Orders", desc: "Receive orders directly on your phone.", icon: <MessageSquare /> }
-        ].map((feat, i) => (
-          <Card key={i} className="p-8 text-left hover:border-red-200 transition-colors">
-            <div className="w-12 h-12 bg-red-50 text-red-600 rounded-lg flex items-center justify-center mb-4">
-              {feat.icon}
-            </div>
-            <h3 className="text-xl font-bold mb-2">{feat.title}</h3>
-            <p className="text-gray-600">{feat.desc}</p>
-          </Card>
-        ))}
-      </div>
-    </main>
-  </div>
-);
+const LandingPage = () => {
+  const bundle = useI18nBundle();
+  const [lang, setLang] = useState("az");
+
+  useEffect(() => {
+    fetch("/api/public/settings")
+      .then((r) => r.json())
+      .then((s: { default_language?: string }) => {
+        if (s.default_language) setLang(s.default_language);
+      })
+      .catch(() => {});
+  }, []);
+
+  const t = (key: string) => bundle[lang]?.[key] || key;
+
+  const feats = [
+    { titleKey: "landing_feat1_t", descKey: "landing_feat1_d", icon: <Plus /> },
+    { titleKey: "landing_feat2_t", descKey: "landing_feat2_d", icon: <QrCode /> },
+    { titleKey: "landing_feat3_t", descKey: "landing_feat3_d", icon: <MessageSquare /> },
+  ] as const;
+
+  return (
+    <div className="min-h-screen bg-white">
+      <nav className="p-6 flex justify-between items-center max-w-7xl mx-auto flex-wrap gap-4">
+        <div className="text-2xl font-bold text-red-600 flex items-center gap-2">
+          <Utensils /> QRMenu
+        </div>
+        <div className="flex items-center gap-4 flex-wrap">
+          <select
+            className="text-sm border rounded-lg px-2 py-1.5 bg-white text-gray-800"
+            value={lang}
+            onChange={(e) => setLang(e.target.value)}
+          >
+            <option value="az">AZ</option>
+            <option value="en">EN</option>
+            <option value="ru">RU</option>
+            <option value="tr">TR</option>
+          </select>
+          <Link to="/admin" className="text-gray-600 hover:text-black">
+            {t("landing_nav_admin")}
+          </Link>
+          <Link
+            to="/restaurant/1"
+            className="bg-red-600 text-white px-4 py-2 rounded-lg"
+          >
+            {t("landing_nav_start")}
+          </Link>
+        </div>
+      </nav>
+
+      <main className="max-w-7xl mx-auto px-6 py-20 text-center">
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-6xl font-extrabold tracking-tight mb-6"
+        >
+          {t("landing_hero_1")}{" "}
+          <span className="text-red-600">{t("landing_hero_2")}</span>
+        </motion.h1>
+        <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+          {t("landing_hero_sub")}
+        </p>
+        <div className="flex justify-center gap-4">
+          <Link
+            to="/restaurant/1"
+            className="bg-black text-white px-8 py-4 rounded-xl text-lg font-bold shadow-xl"
+          >
+            {t("landing_cta")}
+          </Link>
+        </div>
+
+        <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8">
+          {feats.map((feat, i) => (
+            <Card
+              key={i}
+              className="p-8 text-left hover:border-red-200 transition-colors"
+            >
+              <div className="w-12 h-12 bg-red-50 text-red-600 rounded-lg flex items-center justify-center mb-4">
+                {feat.icon}
+              </div>
+              <h3 className="text-xl font-bold mb-2">{t(feat.titleKey)}</h3>
+              <p className="text-gray-600">{t(feat.descKey)}</p>
+            </Card>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
+};
 
 const AdminLoginPage = ({ onLogin }: { onLogin: (user: any) => void }) => {
+  const bundle = useI18nBundle();
+  const [lang, setLang] = useState("az");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/public/settings")
+      .then((r) => r.json())
+      .then((s: { default_language?: string }) => {
+        if (s.default_language) setLang(s.default_language);
+      })
+      .catch(() => {});
+  }, []);
+
+  const t = (key: string) => bundle[lang]?.[key] || key;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -283,7 +405,7 @@ const AdminLoginPage = ({ onLogin }: { onLogin: (user: any) => void }) => {
         </div>
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("username")}</label>
             <input 
               type="text" 
               className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
@@ -293,7 +415,7 @@ const AdminLoginPage = ({ onLogin }: { onLogin: (user: any) => void }) => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("password")}</label>
             <input 
               type="password" 
               className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
@@ -303,7 +425,7 @@ const AdminLoginPage = ({ onLogin }: { onLogin: (user: any) => void }) => {
             />
           </div>
           {error && <p className="text-red-600 text-sm">{error}</p>}
-          <Button type="submit" className="w-full bg-red-600 text-white py-3 text-lg">Login</Button>
+          <Button type="submit" className="w-full bg-red-600 text-white py-3 text-lg">{t("login")}</Button>
         </form>
       </Card>
     </div>
@@ -311,6 +433,7 @@ const AdminLoginPage = ({ onLogin }: { onLogin: (user: any) => void }) => {
 };
 
 const SuperAdminSettings = () => {
+  const bundle = useI18nBundle();
   const [settings, setSettings] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [currentLang, setCurrentLang] = useState("az");
@@ -325,7 +448,7 @@ const SuperAdminSettings = () => {
       });
   }, []);
 
-  const t = (key: string) => UI_TRANSLATIONS[currentLang]?.[key] || key;
+  const t = (key: string) => bundle[currentLang]?.[key] || key;
 
   const saveSettings = async (newSettings: any) => {
     await fetch("/api/admin/settings", {
@@ -422,6 +545,7 @@ const SuperAdminSettings = () => {
 };
 
 const SuperAdminPanel = () => {
+  const bundle = useI18nBundle();
   const [user, setUser] = useState<any>(null);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [stats, setStats] = useState({ totalRestaurants: 0, totalScans: 0 });
@@ -443,7 +567,7 @@ const SuperAdminPanel = () => {
       });
   }, []);
 
-  const t = (key: string) => UI_TRANSLATIONS[currentLang]?.[key] || key;
+  const t = (key: string) => bundle[currentLang]?.[key] || key;
 
   const handleCreate = async () => {
     const res = await fetch("/api/restaurants", {
@@ -610,6 +734,7 @@ const SuperAdminPanel = () => {
 };
 
 const RestaurantPanel = () => {
+  const bundle = useI18nBundle();
   const { id } = useParams();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -637,7 +762,7 @@ const RestaurantPanel = () => {
     });
   }, [id]);
 
-  const t = (key: string) => UI_TRANSLATIONS[currentLang]?.[key] || key;
+  const t = (key: string) => bundle[currentLang]?.[key] || key;
 
   const addCategory = async () => {
     const res = await fetch("/api/admin/categories", {
@@ -949,11 +1074,21 @@ const RestaurantPanel = () => {
 };
 
 const CustomerMenu = () => {
+  const bundle = useI18nBundle();
   const { slug } = useParams();
   const [data, setData] = useState<any>(null);
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
   const [cart, setCart] = useState<any[]>([]);
   const [currentLang, setCurrentLang] = useState("az");
+
+  useEffect(() => {
+    fetch("/api/public/settings")
+      .then((r) => r.json())
+      .then((s: { default_language?: string }) => {
+        if (s.default_language) setCurrentLang(s.default_language);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch(`/api/restaurants/${slug}`).then(res => res.json()).then(res => {
@@ -962,7 +1097,7 @@ const CustomerMenu = () => {
     });
   }, [slug]);
 
-  const t = (key: string) => UI_TRANSLATIONS[currentLang]?.[key] || key;
+  const t = (key: string) => bundle[currentLang]?.[key] || key;
 
   if (!data) return <div className="p-10 text-center">{t("loading")}</div>;
 
@@ -1088,14 +1223,38 @@ const CustomerMenu = () => {
 };
 
 export default function App() {
+  const [bundle, setBundle] = useState(UI_TRANSLATIONS);
+
+  useEffect(() => {
+    fetch("/api/ui-translations")
+      .then((r) => r.json())
+      .then((remote: Record<string, Record<string, string>>) => {
+        const merged: Record<string, Record<string, string>> = {};
+        const locales = new Set([
+          ...Object.keys(UI_TRANSLATIONS),
+          ...Object.keys(remote),
+        ]);
+        for (const loc of locales) {
+          merged[loc] = {
+            ...(UI_TRANSLATIONS as any)[loc],
+            ...remote[loc],
+          };
+        }
+        setBundle(merged as typeof UI_TRANSLATIONS);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/admin" element={<SuperAdminPanel />} />
-        <Route path="/restaurant/:id" element={<RestaurantPanel />} />
-        <Route path="/r/:slug" element={<CustomerMenu />} />
-      </Routes>
-    </Router>
+    <I18nBundleContext.Provider value={bundle}>
+      <Router>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/admin" element={<SuperAdminPanel />} />
+          <Route path="/restaurant/:id" element={<RestaurantPanel />} />
+          <Route path="/r/:slug" element={<CustomerMenu />} />
+        </Routes>
+      </Router>
+    </I18nBundleContext.Provider>
   );
 }

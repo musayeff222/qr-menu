@@ -11,6 +11,6 @@
     "noEmit": false,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["server.ts"],
+  "include": ["server.ts", "database.ts"],
   "exclude": ["node_modules", "src", "dist"]
 }

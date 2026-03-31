@@ -2,153 +2,27 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import knex from "knex";
 import QRCode from "qrcode";
+import { db, initDatabase, getUiTranslationsForApi } from "./database.js";
 
 console.log("Server script started.");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Database initialization
-const db = knex({
-  client: "better-sqlite3",
-  connection: {
-    filename: "./qrmenu.sqlite",
-  },
-  useNullAsDefault: true,
-});
-
-async function initDb() {
-  console.log("Initializing database schema...");
+function safeJsonParse<T>(raw: string | null | undefined, fallback: T): T {
+  if (raw == null || raw === "") return fallback;
   try {
-    if (!(await db.schema.hasTable("restaurants"))) {
-      console.log("Creating restaurants table...");
-    await db.schema.createTable("restaurants", (table) => {
-      table.increments("id");
-      table.string("name").notNullable();
-      table.string("slug").unique().notNullable();
-      table.string("logo_url");
-      table.string("primary_color").defaultTo("#ef4444");
-      table.string("whatsapp_number");
-      table.string("theme").defaultTo("modern");
-      table.boolean("is_active").defaultTo(true);
-      table.string("plan").defaultTo("free");
-      table.timestamps(true, true);
-    });
-  }
-
-  if (!(await db.schema.hasTable("admin_users"))) {
-    console.log("Creating admin_users table...");
-    await db.schema.createTable("admin_users", (table) => {
-      table.increments("id");
-      table.string("username").unique().notNullable();
-      table.string("password").notNullable();
-      table.timestamps(true, true);
-    });
-  }
-
-  if (!(await db.schema.hasTable("settings"))) {
-    console.log("Creating settings table...");
-    await db.schema.createTable("settings", (table) => {
-      table.increments("id");
-      table.string("key").unique().notNullable();
-      table.string("value");
-      table.timestamps(true, true);
-    });
-  }
-
-  if (!(await db.schema.hasTable("categories"))) {
-    await db.schema.createTable("categories", (table) => {
-      table.increments("id");
-      table.integer("restaurant_id").references("id").inTable("restaurants");
-      table.string("name").notNullable();
-      table.text("translations"); // JSON string: { "az": "...", "en": "..." }
-      table.integer("sort_order").defaultTo(0);
-      table.timestamps(true, true);
-    });
-  }
-
-  if (!(await db.schema.hasTable("products"))) {
-    await db.schema.createTable("products", (table) => {
-      table.increments("id");
-      table.integer("category_id").references("id").inTable("categories");
-      table.integer("restaurant_id").references("id").inTable("restaurants");
-      table.string("name").notNullable();
-      table.string("description");
-      table.text("translations"); // JSON string: { "az": { "name": "...", "desc": "..." }, "en": { ... } }
-      table.decimal("price", 10, 2);
-      table.string("image_url");
-      table.boolean("is_available").defaultTo(true);
-      table.timestamps(true, true);
-    });
-  }
-
-  if (!(await db.schema.hasTable("scans"))) {
-    await db.schema.createTable("scans", (table) => {
-      table.increments("id");
-      table.integer("restaurant_id").references("id").inTable("restaurants");
-      table.timestamp("scanned_at").defaultTo(db.fn.now());
-    });
-  }
-
-  // Initial Data
-  console.log("Checking for initial data...");
-  const countResult = await db("restaurants").count("id as count").first();
-  const count = Number(countResult?.count || 0);
-  console.log(`Current restaurant count: ${count}`);
-  if (count === 0) {
-    console.log("Inserting initial data...");
-    await db("restaurants").insert({
-      name: "The Burger Joint",
-      slug: "burger-joint",
-      whatsapp_number: "1234567890",
-      primary_color: "#ef4444",
-      theme: "modern",
-      plan: "vip"
-    });
-    
-    const rest = await db("restaurants").where({ slug: "burger-joint" }).first();
-    const [catId] = await db("categories").insert({ restaurant_id: rest.id, name: "Burgers" });
-    await db("products").insert([
-      { restaurant_id: rest.id, category_id: catId, name: "Classic Burger", price: 12.99, description: "Juicy beef patty with lettuce and tomato." },
-      { restaurant_id: rest.id, category_id: catId, name: "Cheese Burger", price: 14.99, description: "Classic burger with melted cheddar." }
-    ]);
-    console.log("Initial data inserted.");
-  }
-
-  // Admin User
-  const adminUser = await db("admin_users").where({ username: "admin" }).first();
-  if (!adminUser) {
-    console.log("Creating default admin user...");
-    await db("admin_users").insert({
-      username: "admin",
-      password: "admin123"
-    });
-  } else {
-    // Ensure password is reset to admin123 if it was somehow different
-    await db("admin_users").where({ username: "admin" }).update({ password: "admin123" });
-  }
-
-  // Default Settings
-  const settingsCount = await db("settings").count("id as count").first();
-  if (Number(settingsCount?.count || 0) === 0) {
-    console.log("Creating default settings...");
-    await db("settings").insert([
-      { key: "default_language", value: "az" },
-      { key: "supported_languages", value: JSON.stringify(["az", "ru", "tr", "en"]) }
-    ]);
-  }
-  } catch (err) {
-    console.error("Error in initDb:", err);
-    throw err;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
   }
 }
 
 async function startServer() {
   console.log("Starting server initialization...");
   try {
-    await initDb();
+    await initDatabase();
     console.log("Database initialized successfully.");
   } catch (err) {
     console.error("Database initialization failed:", err);
@@ -160,6 +34,30 @@ async function startServer() {
 
   app.use(express.json());
   console.log("Express middleware configured.");
+
+  app.get("/api/ui-translations", async (_req, res) => {
+    try {
+      const data = await getUiTranslationsForApi();
+      res.json(data);
+    } catch (e) {
+      res.status(500).json({ error: "Failed to load translations" });
+    }
+  });
+
+  app.get("/api/public/settings", async (_req, res) => {
+    try {
+      const rows = await db("settings")
+        .select("key", "value")
+        .whereIn("key", ["default_language", "supported_languages"]);
+      const map: Record<string, string> = {};
+      for (const r of rows as { key: string; value: string }[]) {
+        map[r.key] = r.value;
+      }
+      res.json(map);
+    } catch (e) {
+      res.status(500).json({ error: "Failed to load settings" });
+    }
+  });
 
   // Auth API
   app.post("/api/admin/login", async (req, res) => {
@@ -234,12 +132,12 @@ async function startServer() {
     // Parse translations
     const parsedCategories = categories.map(cat => ({
       ...cat,
-      translations: cat.translations ? JSON.parse(cat.translations) : {}
+      translations: safeJsonParse(cat.translations as string, {}),
     }));
 
     const parsedProducts = products.map(prod => ({
       ...prod,
-      translations: prod.translations ? JSON.parse(prod.translations) : {}
+      translations: safeJsonParse(prod.translations as string, {}),
     }));
 
     // Track scan
@@ -255,12 +153,12 @@ async function startServer() {
     
     const parsedCategories = categories.map(cat => ({
       ...cat,
-      translations: cat.translations ? JSON.parse(cat.translations) : {}
+      translations: safeJsonParse(cat.translations as string, {}),
     }));
 
     const parsedProducts = products.map(prod => ({
       ...prod,
-      translations: prod.translations ? JSON.parse(prod.translations) : {}
+      translations: safeJsonParse(prod.translations as string, {}),
     }));
 
     res.json({ categories: parsedCategories, products: parsedProducts });
