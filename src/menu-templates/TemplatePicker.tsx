@@ -17,14 +17,26 @@ export interface TemplatePickerProps {
   restaurantSlug: string;
   selectedId: string;
   onSelect: (def: MenuTemplateDef) => void;
+  /** API-dən gələn fərdi şablonlar */
+  extraTemplates?: MenuTemplateDef[];
+}
+
+function normalizeCategory(c: string): TemplateCategory {
+  if (CATEGORY_ORDER.includes(c as TemplateCategory)) return c as TemplateCategory;
+  return "Modern";
 }
 
 export function TemplatePicker({
   restaurantSlug,
   selectedId,
   onSelect,
+  extraTemplates = [],
 }: TemplatePickerProps) {
   const [filter, setFilter] = useState<TemplateCategory | "All">("All");
+  const allTemplates = useMemo(
+    () => [...MENU_TEMPLATES, ...extraTemplates],
+    [extraTemplates]
+  );
   const grouped = useMemo(() => {
     const g: Record<TemplateCategory, MenuTemplateDef[]> = {
       Modern: [],
@@ -33,15 +45,15 @@ export function TemplatePicker({
       "Fast Food": [],
       Cafe: [],
     };
-    for (const t of MENU_TEMPLATES) {
-      g[t.category].push(t);
+    for (const t of allTemplates) {
+      g[normalizeCategory(t.category)].push(t);
     }
     return g;
-  }, []);
+  }, [allTemplates]);
 
   const visible =
     filter === "All"
-      ? MENU_TEMPLATES
+      ? allTemplates
       : grouped[filter as TemplateCategory];
 
   return (
@@ -57,7 +69,7 @@ export function TemplatePicker({
               : "bg-white text-gray-700 border-gray-200"
           )}
         >
-          All · {MENU_TEMPLATES.length}
+          All · {allTemplates.length}
         </button>
         {CATEGORY_ORDER.map((c) => (
           <button

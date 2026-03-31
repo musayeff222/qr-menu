@@ -11,6 +11,6 @@
     "noEmit": false,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["server.ts", "database.ts"],
+  "include": ["server.ts", "database.ts", "planTemplatePolicy.ts"],
   "exclude": ["node_modules", "src", "dist"]
 }

@@ -13,3 +13,4 @@ export {
 export { MenuTemplateView } from "./MenuTemplateView";
 export type { MenuTemplateViewProps } from "./MenuTemplateView";
 export { TemplatePicker } from "./TemplatePicker";
+export { resolveMenuTemplate, type CustomTemplateRow } from "./resolveMenuTemplate";

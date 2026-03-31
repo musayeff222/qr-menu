@@ -267,6 +267,62 @@ async function ensureColumn(
   }
 }
 
+async function seedSubscriptionPlans() {
+  const row = await db("subscription_plans").count("id as c").first();
+  if (Number((row as { c?: string | number })?.c ?? 0) > 0) return;
+  console.log("Seeding subscription_plans…");
+  await db("subscription_plans").insert([
+    {
+      name: "Free",
+      slug: "free",
+      price_monthly: 0,
+      price_yearly: 0,
+      max_products: 30,
+      max_categories: 6,
+      max_templates: 10,
+      max_qr_codes: 1,
+      whatsapp_order_enabled: true,
+      reservation_enabled: false,
+      analytics_enabled: false,
+      premium_templates_enabled: false,
+      is_active: true,
+      sort_order: 1,
+    },
+    {
+      name: "Premium",
+      slug: "premium",
+      price_monthly: 29,
+      price_yearly: 290,
+      max_products: 200,
+      max_categories: 40,
+      max_templates: 35,
+      max_qr_codes: 10,
+      whatsapp_order_enabled: true,
+      reservation_enabled: true,
+      analytics_enabled: true,
+      premium_templates_enabled: true,
+      is_active: true,
+      sort_order: 2,
+    },
+    {
+      name: "VIP",
+      slug: "vip",
+      price_monthly: 79,
+      price_yearly: 790,
+      max_products: -1,
+      max_categories: -1,
+      max_templates: -1,
+      max_qr_codes: -1,
+      whatsapp_order_enabled: true,
+      reservation_enabled: true,
+      analytics_enabled: true,
+      premium_templates_enabled: true,
+      is_active: true,
+      sort_order: 3,
+    },
+  ]);
+}
+
 async function seedUiLocale() {
   const row = await db("ui_locale").count("id as c").first();
   const n = Number((row as { c?: string | number })?.c ?? 0);
@@ -358,6 +414,66 @@ export async function initDatabase() {
       });
     }
 
+    if (!(await db.schema.hasTable("subscription_plans"))) {
+      await db.schema.createTable("subscription_plans", (table) => {
+        table.increments("id");
+        table.string("name", 128).notNullable();
+        table.string("slug", 64).unique().notNullable();
+        table.decimal("price_monthly", 10, 2).defaultTo(0);
+        table.decimal("price_yearly", 10, 2).defaultTo(0);
+        table.integer("max_products").notNullable().defaultTo(20);
+        table.integer("max_categories").notNullable().defaultTo(5);
+        table.integer("max_templates").notNullable().defaultTo(5);
+        table.integer("max_qr_codes").notNullable().defaultTo(1);
+        table.boolean("whatsapp_order_enabled").defaultTo(true);
+        table.boolean("reservation_enabled").defaultTo(false);
+        table.boolean("analytics_enabled").defaultTo(false);
+        table.boolean("premium_templates_enabled").defaultTo(false);
+        table.boolean("is_active").defaultTo(true);
+        table.integer("sort_order").defaultTo(0);
+        table.timestamps(true, true);
+      });
+    }
+
+    if (!(await db.schema.hasTable("custom_menu_templates"))) {
+      await db.schema.createTable("custom_menu_templates", (table) => {
+        table.increments("id");
+        table.string("slug_key", 96).unique().notNullable();
+        table.string("name", 160).notNullable();
+        table.string("category", 64).notNullable();
+        table.text("hero_image_url");
+        table.text("theme_json");
+        table.boolean("is_active").defaultTo(true);
+        table.timestamps(true, true);
+      });
+    }
+
+    if (!(await db.schema.hasTable("admin_notifications"))) {
+      await db.schema.createTable("admin_notifications", (table) => {
+        table.increments("id");
+        table.string("title", 255).notNullable();
+        table.text("body");
+        table.boolean("is_read").defaultTo(false);
+        table.timestamp("created_at").defaultTo(db.fn.now());
+      });
+    }
+
+    if (!(await db.schema.hasTable("menu_orders"))) {
+      await db.schema.createTable("menu_orders", (table) => {
+        table.increments("id");
+        table
+          .integer("restaurant_id")
+          .unsigned()
+          .notNullable()
+          .references("id")
+          .inTable("restaurants")
+          .onDelete("CASCADE");
+        table.text("payload");
+        table.string("status", 32).defaultTo("new");
+        table.timestamps(true, true);
+      });
+    }
+
     if (!(await db.schema.hasTable("ui_locale"))) {
       await db.schema.createTable("ui_locale", (table) => {
         table.increments("id");
@@ -390,6 +506,9 @@ export async function initDatabase() {
       });
     }
     if (await db.schema.hasTable("products")) {
+      await ensureColumn("products", "view_count", (table) => {
+        table.integer("view_count").defaultTo(0);
+      });
       await ensureColumn("products", "translations", (table) => {
         table.text("translations");
       });
@@ -399,6 +518,12 @@ export async function initDatabase() {
     }
 
     if (await db.schema.hasTable("restaurants")) {
+      await ensureColumn("restaurants", "subscription_plan_id", (table) => {
+        table.integer("subscription_plan_id").unsigned();
+      });
+      await ensureColumn("restaurants", "total_page_views", (table) => {
+        table.integer("total_page_views").defaultTo(0);
+      });
       await ensureColumn("restaurants", "menu_template", (table) => {
         table.string("menu_template", 64);
       });
@@ -434,10 +559,12 @@ export async function initDatabase() {
     }
 
     await seedUiLocale();
+    await seedSubscriptionPlans();
 
     const countResult = await db("restaurants").count("id as count").first();
     const count = Number((countResult as { count?: string | number })?.count ?? 0);
     if (count === 0) {
+      const vipPlan = await db("subscription_plans").where({ slug: "vip" }).first();
       await db("restaurants").insert({
         name: "The Burger Joint",
         slug: "burger-joint",
@@ -445,6 +572,7 @@ export async function initDatabase() {
         primary_color: "#ef4444",
         theme: "modern",
         plan: "vip",
+        subscription_plan_id: vipPlan?.id ?? null,
         menu_template: "modern-01",
         tagline: "Scan, order, enjoy — fresh flavors daily.",
         maps_url: "https://maps.google.com/?q=Baku",
@@ -492,6 +620,22 @@ export async function initDatabase() {
     }
 
     await db("restaurants").whereNull("menu_template").update({ menu_template: "modern-01" });
+
+    const freePlan = await db("subscription_plans").where({ slug: "free" }).first();
+    if (freePlan) {
+      await db("restaurants")
+        .whereNull("subscription_plan_id")
+        .update({ subscription_plan_id: freePlan.id });
+    }
+
+    const notifCount = await db("admin_notifications").count("id as c").first();
+    if (Number((notifCount as { c?: string | number })?.c ?? 0) === 0) {
+      await db("admin_notifications").insert({
+        title: "QRMenu hazırdır",
+        body: "Super Admin paneldən planlar və restoranları idarə edə bilərsiniz.",
+        is_read: false,
+      });
+    }
 
     const ru = await db("restaurant_users").where({ username: "burger_admin" }).first();
     if (!ru) {

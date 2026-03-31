@@ -75,6 +75,11 @@ export type MenuTemplateViewProps = {
   addToCart: (p: Record<string, unknown>) => void;
   onWhatsAppOrder: () => void;
   t: (k: string) => string;
+  /** Plan limitləri: WhatsApp sifariş / rezervasiya söndürülə bilər */
+  planFeatures?: {
+    whatsapp_order?: boolean;
+    reservation?: boolean;
+  };
 };
 
 const RADIUS_MAP = {
@@ -108,7 +113,10 @@ export function MenuTemplateView({
   addToCart,
   onWhatsAppOrder,
   t,
+  planFeatures,
 }: MenuTemplateViewProps) {
+  const allowWa = planFeatures?.whatsapp_order !== false;
+  const allowRes = planFeatures?.reservation !== false;
   const th = template.theme;
   const r = RADIUS_MAP[th.radius];
   const pir = IMG_R_MAP[th.productImageRadius];
@@ -142,9 +150,10 @@ export function MenuTemplateView({
   const instagram = restaurant.instagram ? String(restaurant.instagram) : "";
   const tiktok = restaurant.tiktok ? String(restaurant.tiktok) : "";
 
-  const waOrderUrl = whatsapp
-    ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(t("order_via_whatsapp"))}`
-    : "";
+  const waOrderUrl =
+    allowWa && whatsapp
+      ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(t("order_via_whatsapp"))}`
+      : "";
 
   const heroH =
     th.heroVariant === "fullscreen"
@@ -409,7 +418,7 @@ export function MenuTemplateView({
               <ActionBtn href={waOrderUrl} label="WhatsApp">
                 <MessageCircle size={20} />
               </ActionBtn>
-              <ActionBtn href={reservationUrl} label="Reservation">
+              <ActionBtn href={allowRes ? reservationUrl : ""} label="Reservation">
                 <Calendar size={20} />
               </ActionBtn>
               <ActionBtn href={instagram} label="Instagram">
@@ -512,18 +521,20 @@ export function MenuTemplateView({
                     <span className="font-bold text-lg" style={{ color: "var(--mt-primary)" }}>
                       ${prod.price}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => addToCart(prod)}
-                      className={cn(
-                        "w-10 h-10 flex items-center justify-center text-white shadow-md active:scale-90 transition-transform",
-                        RADIUS_MAP.full
-                      )}
-                      style={{ backgroundColor: "var(--mt-primary)" }}
-                      aria-label={`${t("add_product")} ${pname}`}
-                    >
-                      <Plus size={20} />
-                    </button>
+                    {allowWa ? (
+                      <button
+                        type="button"
+                        onClick={() => addToCart(prod)}
+                        className={cn(
+                          "w-10 h-10 flex items-center justify-center text-white shadow-md active:scale-90 transition-transform",
+                          RADIUS_MAP.full
+                        )}
+                        style={{ backgroundColor: "var(--mt-primary)" }}
+                        aria-label={`${t("add_product")} ${pname}`}
+                      >
+                        <Plus size={20} />
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               </motion.article>
@@ -532,7 +543,7 @@ export function MenuTemplateView({
         </section>
       </main>
 
-      {th.showFab && waOrderUrl && (
+      {allowWa && th.showFab && waOrderUrl && (
         <a
           href={waOrderUrl}
           target="_blank"
@@ -561,11 +572,18 @@ export function MenuTemplateView({
             <MapPin size={22} />
             Map
           </a>
-          <a href={waOrderUrl || "#"} className="flex flex-col items-center text-[10px] text-[var(--mt-muted)]">
+          <a
+            href={allowWa ? waOrderUrl || "#" : "#main-menu"}
+            className="flex flex-col items-center text-[10px] text-[var(--mt-muted)]"
+          >
             <MessageCircle size={22} className="text-green-600" />
             Order
           </a>
-          <button type="button" onClick={onWhatsAppOrder} className="flex flex-col items-center text-[10px] text-[var(--mt-muted)]">
+          <button
+            type="button"
+            onClick={() => allowWa && onWhatsAppOrder()}
+            className="flex flex-col items-center text-[10px] text-[var(--mt-muted)]"
+          >
             <ShoppingCart size={22} />
             Cart
           </button>
@@ -573,7 +591,7 @@ export function MenuTemplateView({
       )}
 
       <AnimatePresence>
-        {cart.length > 0 && (
+        {allowWa && cart.length > 0 && (
           <motion.div
             initial={{ y: 100 }}
             animate={{ y: 0 }}

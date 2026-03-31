@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link, NavLink, useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import {
   MenuTemplateView,
-  getTemplateById,
+  resolveMenuTemplate,
   TemplatePicker,
   MENU_TEMPLATE_COUNT,
   type MenuTemplateDef,
 } from "./menu-templates";
+import AdminApp from "./admin/AdminApp";
 import { 
   LayoutDashboard, 
   Utensils, 
   QrCode, 
-  Settings, 
   Plus, 
   Trash2, 
   ChevronRight, 
@@ -20,7 +20,6 @@ import {
   MessageSquare,
   Globe,
   ShieldCheck,
-  Server,
   Wifi,
   LogIn,
   Sparkles,
@@ -30,32 +29,10 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { authRestaurantHeaders, authAnyStaffHeaders } from "./lib/headers";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
-}
-
-function authSuperHeaders(): HeadersInit {
-  const t = localStorage.getItem("adminSession");
-  const h: Record<string, string> = { "Content-Type": "application/json" };
-  if (t) h.Authorization = `Bearer ${t}`;
-  return h;
-}
-
-function authRestaurantHeaders(): HeadersInit {
-  const t = localStorage.getItem("restaurantSession");
-  const h: Record<string, string> = { "Content-Type": "application/json" };
-  if (t) h.Authorization = `Bearer ${t}`;
-  return h;
-}
-
-/** Restoran işçisi və ya super admin (restoran idarəetməsi üçün). */
-function authAnyStaffHeaders(): HeadersInit {
-  const h: Record<string, string> = { "Content-Type": "application/json" };
-  const rt = localStorage.getItem("restaurantSession");
-  const st = localStorage.getItem("adminSession");
-  if (rt || st) h.Authorization = `Bearer ${rt || st}`;
-  return h;
 }
 
 // --- Translations ---
@@ -538,189 +515,6 @@ const LandingPage = () => {
   );
 };
 
-const AdminLoginPage = ({ onLogin }: { onLogin: (user: any) => void }) => {
-  const bundle = useI18nBundle();
-  const [lang, setLang] = useState("az");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    fetch("/api/public/settings")
-      .then((r) => r.json())
-      .then((s: { default_language?: string }) => {
-        if (s.default_language) setLang(s.default_language);
-      })
-      .catch(() => {});
-  }, []);
-
-  const t = (key: string) => bundle[lang]?.[key] || key;
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = await fetch("/api/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (data.success && data.token) {
-      localStorage.setItem("adminSession", data.token);
-      onLogin(data.user);
-      localStorage.setItem("adminUser", JSON.stringify(data.user));
-    } else {
-      setError(data.error || "Login failed");
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <Card className="w-full max-w-md p-8">
-        <div className="text-3xl font-bold text-red-600 mb-8 flex items-center gap-2 justify-center">
-          <ShieldCheck size={32} /> Super Admin
-        </div>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t("username")}</label>
-            <input 
-              type="text" 
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t("password")}</label>
-            <input 
-              type="password" 
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          <Button type="submit" className="w-full bg-red-600 text-white py-3 text-lg">{t("login")}</Button>
-        </form>
-      </Card>
-    </div>
-  );
-};
-
-const SuperAdminSettings = () => {
-  const bundle = useI18nBundle();
-  const [settings, setSettings] = useState<any>({});
-  const [loading, setLoading] = useState(true);
-  const [currentLang, setCurrentLang] = useState("az");
-
-  useEffect(() => {
-    fetch("/api/admin/settings", { headers: authSuperHeaders() })
-      .then(res => res.json())
-      .then(data => {
-        setSettings(data);
-        if (data.default_language) setCurrentLang(data.default_language);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
-
-  const t = (key: string) => bundle[currentLang]?.[key] || key;
-
-  const saveSettings = async (newSettings: any) => {
-    await fetch("/api/admin/settings", {
-      method: "POST",
-      headers: authSuperHeaders(),
-      body: JSON.stringify({ settings: newSettings })
-    });
-    setSettings({ ...settings, ...newSettings });
-    if (newSettings.default_language) setCurrentLang(newSettings.default_language);
-    alert("Settings saved!");
-  };
-
-  if (loading) return <div className="p-10">{t("loading")}</div>;
-
-  const supportedLanguages = JSON.parse(settings.supported_languages || "[]");
-
-  return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold">{t("settings")}</h1>
-        <p className="text-gray-500">Manage global application configurations.</p>
-      </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center">
-              <Globe size={20} />
-            </div>
-            <h2 className="text-xl font-bold">{t("language")}</h2>
-          </div>
-          
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">{t("default_language")}</label>
-              <select 
-                className="w-full p-3 border rounded-lg"
-                value={settings.default_language}
-                onChange={e => saveSettings({ default_language: e.target.value })}
-              >
-                <option value="az">Azerbaijani</option>
-                <option value="ru">Russian</option>
-                <option value="tr">Turkish</option>
-                <option value="en">English</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">{t("supported_languages")}</label>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { id: "az", name: "Azerbaijani" },
-                  { id: "ru", name: "Russian" },
-                  { id: "tr", name: "Turkish" },
-                  { id: "en", name: "English" }
-                ].map(lang => (
-                  <label key={lang.id} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 text-red-600"
-                      checked={supportedLanguages.includes(lang.id)}
-                      onChange={e => {
-                        const newLangs = e.target.checked 
-                          ? [...supportedLanguages, lang.id]
-                          : supportedLanguages.filter((l: string) => l !== lang.id);
-                        saveSettings({ supported_languages: JSON.stringify(newLangs) });
-                      }}
-                    />
-                    <span className="text-sm font-medium">{lang.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center">
-              <ShieldCheck size={20} />
-            </div>
-            <h2 className="text-xl font-bold">Security</h2>
-          </div>
-          <p className="text-gray-500 mb-4 text-sm">Update your super admin password.</p>
-          <div className="space-y-4">
-            <input type="password" placeholder="Current Password" className="w-full p-3 border rounded-lg" />
-            <input type="password" placeholder="New Password" className="w-full p-3 border rounded-lg" />
-            <Button className="w-full bg-black text-white">Update Password</Button>
-          </div>
-        </Card>
-      </div>
-    </div>
-  );
-};
-
 const RestaurantLoginPage = () => {
   const bundle = useI18nBundle();
   const navigate = useNavigate();
@@ -809,297 +603,15 @@ const RestaurantLoginPage = () => {
   );
 };
 
-const SuperAdminPanel = () => {
-  const bundle = useI18nBundle();
-  const [user, setUser] = useState<any>(null);
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [stats, setStats] = useState({ totalRestaurants: 0, totalScans: 0 });
-  const [health, setHealth] = useState<{
-    ok: boolean;
-    database?: string;
-    driver?: string;
-    latencyMs?: number;
-  } | null>(null);
-  const [newRest, setNewRest] = useState({
-    name: "",
-    slug: "",
-    whatsapp: "",
-    admin_user: "",
-    admin_pass: "",
-  });
-  const [view, setView] = useState<"dashboard" | "settings">("dashboard");
-  const [currentLang, setCurrentLang] = useState("az");
-
-  const loadDashboard = () => {
-    fetch("/api/restaurants", { headers: authSuperHeaders() })
-      .then((res) => (res.ok ? res.json() : []))
-      .then(setRestaurants);
-    fetch("/api/stats", { headers: authSuperHeaders() })
-      .then((res) => (res.ok ? res.json() : { totalRestaurants: 0, totalScans: 0 }))
-      .then(setStats);
-  };
-
-  useEffect(() => {
-    const savedUser = localStorage.getItem("adminUser");
-    const tok = localStorage.getItem("adminSession");
-    if (savedUser && tok) setUser(JSON.parse(savedUser));
-    else {
-      localStorage.removeItem("adminUser");
-      localStorage.removeItem("adminSession");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    loadDashboard();
-    fetch("/api/admin/settings", { headers: authSuperHeaders() })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.default_language) setCurrentLang(data.default_language);
-      })
-      .catch(() => {});
-  }, [user]);
-
-  useEffect(() => {
-    const poll = () => {
-      fetch("/api/health")
-        .then((r) => r.json())
-        .then(setHealth)
-        .catch(() => setHealth({ ok: false }));
-    };
-    poll();
-    const i = setInterval(poll, 15000);
-    return () => clearInterval(i);
-  }, []);
-
-  const t = (key: string) => bundle[currentLang]?.[key] || key;
-
-  const handleCreate = async () => {
-    const res = await fetch("/api/restaurants", {
-      method: "POST",
-      headers: authSuperHeaders(),
-      body: JSON.stringify({
-        name: newRest.name,
-        slug: newRest.slug,
-        whatsapp_number: newRest.whatsapp,
-        admin_username: newRest.admin_user,
-        admin_password: newRest.admin_pass,
-      }),
-    });
-    if (res.ok) {
-      const row = await res.json();
-      setRestaurants((prev) => [...prev, { ...row, staff_username: newRest.admin_user } as Restaurant]);
-      setNewRest({ name: "", slug: "", whatsapp: "", admin_user: "", admin_pass: "" });
-    } else {
-      const err = await res.json().catch(() => ({}));
-      alert(err.error || "Create failed");
-    }
-  };
-
-  const resetStaff = async (id: number) => {
-    const u = window.prompt(t("admin_acc_user"));
-    const p = window.prompt(t("password"));
-    if (!u || !p) return;
-    const res = await fetch(`/api/admin/restaurants/${id}/staff`, {
-      method: "POST",
-      headers: authSuperHeaders(),
-      body: JSON.stringify({ username: u, password: p }),
-    });
-    if (res.ok) loadDashboard();
-    else alert("Failed");
-  };
-
-  if (!user) return <AdminLoginPage onLogin={setUser} />;
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
-      <aside className="w-full md:w-64 shrink-0 bg-white border-b md:border-b-0 md:border-r border-gray-200 md:min-h-screen flex md:flex-col flex-row md:items-stretch items-center justify-between md:justify-start gap-1 p-3 md:p-6 md:space-y-2 overflow-x-auto md:overflow-visible">
-        <div className="hidden md:flex text-xl font-bold text-red-600 mb-6 items-center gap-2 px-1">
-          <ShieldCheck /> Super Admin
-        </div>
-        <button
-          type="button"
-          onClick={() => setView("dashboard")}
-          className={cn(
-            "flex items-center gap-2 px-3 py-2.5 md:w-full md:px-3 rounded-lg font-medium whitespace-nowrap transition-colors",
-            view === "dashboard" ? "bg-red-50 text-red-600" : "text-gray-600 hover:bg-gray-50"
-          )}
-        >
-          <LayoutDashboard size={20} /> <span className="hidden sm:inline">{t("dashboard")}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setView("settings")}
-          className={cn(
-            "flex items-center gap-2 px-3 py-2.5 md:w-full rounded-lg font-medium whitespace-nowrap transition-colors",
-            view === "settings" ? "bg-red-50 text-red-600" : "text-gray-600 hover:bg-gray-50"
-          )}
-        >
-          <Settings size={20} /> <span className="hidden sm:inline">{t("settings")}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            localStorage.removeItem("adminUser");
-            localStorage.removeItem("adminSession");
-            setUser(null);
-          }}
-          className="flex items-center gap-2 px-3 py-2.5 md:w-full md:mt-auto text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg font-medium"
-        >
-          <X size={20} /> <span className="hidden sm:inline">{t("logout")}</span>
-        </button>
-      </aside>
-
-      <main className="flex-1 p-4 sm:p-6 md:p-10 pb-24 md:pb-10 w-full min-w-0">
-        {view === "settings" ? (
-          <SuperAdminSettings />
-        ) : (
-          <>
-            <header className="flex flex-col lg:flex-row lg:justify-between gap-4 mb-8">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold">{t("super_dashboard")}</h1>
-                <p className="text-gray-500 text-sm mt-1">{t("server_health")}</p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <Card
-                  className={cn(
-                    "p-4 flex items-center gap-3 border",
-                    health?.ok ? "border-emerald-200 bg-emerald-50/50" : "border-red-200 bg-red-50/50"
-                  )}
-                >
-                  <Server className={health?.ok ? "text-emerald-600" : "text-red-600"} size={24} />
-                  <div>
-                    <p className="text-xs text-gray-500">{t("server_health")}</p>
-                    <p className="font-bold text-sm">
-                      {health?.ok ? t("server_online") : t("server_error")}
-                    </p>
-                    {health?.driver && (
-                      <p className="text-xs text-gray-500">
-                        {t("db_driver")}: {health.driver} · {health.latencyMs ?? "—"} {t("response_ms")}
-                      </p>
-                    )}
-                  </div>
-                </Card>
-                <Card className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
-                    <Utensils size={20} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">{t("restaurants")}</p>
-                    <p className="text-xl font-bold">{stats.totalRestaurants}</p>
-                  </div>
-                </Card>
-                <Card className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center">
-                    <QrCode size={20} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">QR scans</p>
-                    <p className="text-xl font-bold">{stats.totalScans}</p>
-                  </div>
-                </Card>
-              </div>
-            </header>
-
-            <Card className="p-4 sm:p-6 mb-8">
-              <h2 className="text-xl font-bold mb-2">{t("create_restaurant")}</h2>
-              <p className="text-sm text-gray-500 mb-4">{t("staff_note")}</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                <input
-                  placeholder={t("name")}
-                  className="p-3 border rounded-lg"
-                  value={newRest.name}
-                  onChange={(e) => setNewRest({ ...newRest, name: e.target.value })}
-                />
-                <input
-                  placeholder={t("slug")}
-                  className="p-3 border rounded-lg"
-                  value={newRest.slug}
-                  onChange={(e) => setNewRest({ ...newRest, slug: e.target.value })}
-                />
-                <input
-                  placeholder={t("whatsapp")}
-                  className="p-3 border rounded-lg"
-                  value={newRest.whatsapp}
-                  onChange={(e) => setNewRest({ ...newRest, whatsapp: e.target.value })}
-                />
-                <input
-                  placeholder={t("admin_acc_user")}
-                  className="p-3 border rounded-lg"
-                  value={newRest.admin_user}
-                  onChange={(e) => setNewRest({ ...newRest, admin_user: e.target.value })}
-                />
-                <input
-                  type="password"
-                  placeholder={t("admin_acc_pass")}
-                  className="p-3 border rounded-lg"
-                  value={newRest.admin_pass}
-                  onChange={(e) => setNewRest({ ...newRest, admin_pass: e.target.value })}
-                />
-                <Button onClick={handleCreate} className="bg-red-600 text-white h-[46px]">
-                  {t("create")}
-                </Button>
-              </div>
-            </Card>
-
-            <Card className="overflow-hidden">
-              <div className="p-4 sm:p-6 border-b border-gray-100">
-                <h2 className="text-xl font-bold">{t("restaurants")}</h2>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm min-w-[640px]">
-                  <thead>
-                    <tr className="bg-gray-50 text-gray-500 text-xs uppercase">
-                      <th className="p-3 sm:p-4">{t("name")}</th>
-                      <th className="p-3 sm:p-4">{t("slug")}</th>
-                      <th className="p-3 sm:p-4">{t("staff_username_col")}</th>
-                      <th className="p-3 sm:p-4">Plan</th>
-                      <th className="p-3 sm:p-4 text-right">{t("dashboard")}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {restaurants.map((rest) => (
-                      <tr key={rest.id} className="hover:bg-gray-50">
-                        <td className="p-3 sm:p-4 font-medium">{rest.name}</td>
-                        <td className="p-3 sm:p-4 text-gray-500 font-mono text-xs">/r/{rest.slug}</td>
-                        <td className="p-3 sm:p-4 text-gray-600">{rest.staff_username || "—"}</td>
-                        <td className="p-3 sm:p-4">
-                          <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-bold uppercase">
-                            {rest.plan}
-                          </span>
-                        </td>
-                        <td className="p-3 sm:p-4 text-right space-x-2 whitespace-nowrap">
-                          <Link
-                            to={`/restaurant/${rest.id}`}
-                            className="text-blue-600 hover:underline"
-                          >
-                            {t("manage")}
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => resetStaff(rest.id)}
-                            className="text-amber-700 hover:underline"
-                          >
-                            {t("reset_staff_short")}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          </>
-        )}
-      </main>
-    </div>
-  );
-};
-
 const RestaurantPanel = () => {
   const bundle = useI18nBundle();
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
+  const basePath = `/restaurant/${id}`;
+  const pathParts = location.pathname.replace(/\/$/, "").split("/").filter(Boolean);
+  const section = pathParts[2] || "dashboard";
+  const productsNew = pathParts[2] === "products" && pathParts[3] === "new";
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -1122,6 +634,9 @@ const RestaurantPanel = () => {
   const [editingTranslations, setEditingTranslations] = useState<{ type: 'category' | 'product', id: number, data: any } | null>(null);
   const [currentLang, setCurrentLang] = useState("az");
   const [loadError, setLoadError] = useState("");
+  const [extraTemplates, setExtraTemplates] = useState<MenuTemplateDef[]>([]);
+  const [dashStats, setDashStats] = useState<{ scans: number; pageViews: number; topProducts: any[] } | null>(null);
+  const [orders, setOrders] = useState<any[]>([]);
 
   const isSuper = typeof window !== "undefined" && !!localStorage.getItem("adminSession");
 
@@ -1170,9 +685,32 @@ const RestaurantPanel = () => {
       const menuUrl = `${window.location.origin}/r/${r.slug}`;
       const qr = await fetch(`/api/qrcode?url=${encodeURIComponent(menuUrl)}`).then((x) => x.json());
       setQrCode(qr.qrDataUrl);
+      const rows = data.customTemplates || [];
+      setExtraTemplates(
+        rows.map((row: { slug_key: string; name: string; category: string; hero_image_url?: string; theme_json?: string }) =>
+          resolveMenuTemplate(row.slug_key, [row])
+        )
+      );
     };
     load();
   }, [id, navigate]);
+
+  useEffect(() => {
+    if (!id || section !== "dashboard") return;
+    fetch(`/api/admin/restaurants/${id}/dashboard`, {
+      headers: authAnyStaffHeaders(),
+    })
+      .then((r) => r.json())
+      .then(setDashStats)
+      .catch(() => setDashStats(null));
+  }, [id, section]);
+
+  useEffect(() => {
+    if (!id || section !== "orders") return;
+    fetch(`/api/admin/restaurants/${id}/orders`, { headers: authAnyStaffHeaders() })
+      .then((r) => r.json())
+      .then(setOrders);
+  }, [id, section]);
 
   const t = (key: string) => bundle[currentLang]?.[key] || key;
 
@@ -1237,8 +775,36 @@ const RestaurantPanel = () => {
       const data = await res.json();
       setProducts([...products, data]);
       setNewProd({ name: "", price: 0, category_id: 0, description: "" });
+      if (productsNew) navigate(`${basePath}/products`);
     }
   };
+
+  const deleteCategory = async (cid: number) => {
+    if (!confirm("Kateqoriya və məhsulları silinsin?")) return;
+    const res = await fetch(`/api/admin/categories/${cid}`, {
+      method: "DELETE",
+      headers: authAnyStaffHeaders(),
+    });
+    if (res.ok) {
+      setCategories((c) => c.filter((x) => x.id !== cid));
+      setProducts((p) => p.filter((x) => x.category_id !== cid));
+    }
+  };
+
+  const deleteProduct = async (pid: number) => {
+    if (!confirm("Məhsul silinsin?")) return;
+    const res = await fetch(`/api/admin/products/${pid}`, {
+      method: "DELETE",
+      headers: authAnyStaffHeaders(),
+    });
+    if (res.ok) setProducts((p) => p.filter((x) => x.id !== pid));
+  };
+
+  const sidebarCls = ({ isActive }: { isActive: boolean }) =>
+    cn(
+      "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
+      isActive ? "bg-red-600 text-white" : "text-gray-600 hover:bg-gray-50"
+    );
 
   const saveTranslations = async () => {
     if (!editingTranslations) return;
@@ -1273,10 +839,25 @@ const RestaurantPanel = () => {
         <div className="hidden md:flex text-lg font-bold text-red-600 mb-4 items-center gap-2 px-1 whitespace-nowrap">
           <Utensils /> <span className="truncate max-w-[10rem]">{restaurant.name}</span>
         </div>
-        <div className="flex md:flex-col flex-row gap-1 min-w-0">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-600 font-medium text-sm whitespace-nowrap">
+        <div className="flex md:flex-col flex-row gap-1 min-w-0 md:space-y-1">
+          <NavLink to={basePath} end className={sidebarCls}>
             <LayoutDashboard size={18} /> {t("dashboard")}
-          </div>
+          </NavLink>
+          <NavLink to={`${basePath}/categories`} className={sidebarCls}>
+            <Utensils size={18} /> {t("categories")}
+          </NavLink>
+          <NavLink to={`${basePath}/products`} className={sidebarCls}>
+            <Plus size={18} /> {t("products")}
+          </NavLink>
+          <NavLink to={`${basePath}/templates`} className={sidebarCls}>
+            <QrCode size={18} /> Şablonlar
+          </NavLink>
+          <NavLink to={`${basePath}/orders`} className={sidebarCls}>
+            <ShoppingCart size={18} /> Sifarişlər
+          </NavLink>
+          <NavLink to={`${basePath}/settings`} className={sidebarCls}>
+            <Globe size={18} /> {t("settings")}
+          </NavLink>
           <a
             href={`/r/${restaurant.slug}`}
             target="_blank"
@@ -1304,7 +885,14 @@ const RestaurantPanel = () => {
 
       <main className="flex-1 p-4 sm:p-6 md:p-8 w-full min-w-0">
         <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold">Menu</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">
+            {section === "dashboard" && t("dashboard")}
+            {section === "settings" && t("settings")}
+            {section === "categories" && t("categories")}
+            {section === "products" && (productsNew ? t("add_product") : t("products"))}
+            {section === "templates" && "Şablonlar"}
+            {section === "orders" && "Sifarişlər"}
+          </h1>
           <div className="flex flex-wrap items-center gap-3">
             <select 
               className="p-2 border rounded-lg bg-white text-sm"
@@ -1327,6 +915,49 @@ const RestaurantPanel = () => {
           </div>
         </header>
 
+        {section === "dashboard" && dashStats && (
+          <div className="grid md:grid-cols-3 gap-4 mb-8">
+            <Card className="p-4">
+              <p className="text-xs text-gray-500">QR skan sayı</p>
+              <p className="text-2xl font-bold text-red-600">{dashStats.scans}</p>
+            </Card>
+            <Card className="p-4">
+              <p className="text-xs text-gray-500">Menyu baxışı</p>
+              <p className="text-2xl font-bold">{dashStats.pageViews}</p>
+            </Card>
+            <Card className="p-4">
+              <p className="text-xs text-gray-500 mb-2">Ən çox baxılan məhsullar</p>
+              <ul className="text-sm space-y-1">
+                {(dashStats.topProducts || []).slice(0, 5).map((p: any) => (
+                  <li key={p.id}>
+                    {p.name} <span className="text-gray-400">({p.view_count})</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
+        )}
+
+        {section === "orders" && (
+          <Card className="p-6">
+            <p className="text-sm text-gray-500 mb-4">
+              Son sifarişlər (stub — API hazırdır).
+            </p>
+            {orders.length === 0 ? (
+              <p className="text-gray-400 text-sm">Hələ sifariş yoxdur.</p>
+            ) : (
+              <ul className="text-sm space-y-2">
+                {orders.map((o) => (
+                  <li key={o.id} className="border rounded-lg p-3">
+                    #{o.id} · {o.status}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        )}
+
+        {section === "settings" && (
         <Card className="p-4 sm:p-6 mb-8 border-red-100">
           <h3 className="font-bold mb-3 flex items-center gap-2">
             <QrCode size={20} className="text-red-600" /> {t("your_link")}
@@ -1403,53 +1034,10 @@ const RestaurantPanel = () => {
             </div>
           </div>
         </Card>
+        )}
 
-        <Card className="p-4 sm:p-6 mb-8">
-          <h3 className="font-bold text-lg mb-1">Menu templates</h3>
-          <p className="text-sm text-gray-500 mb-4">
-            {MENU_TEMPLATE_COUNT} mobile-first designs. Preview opens your live menu with demo data.
-          </p>
-          <TemplatePicker
-            restaurantSlug={restaurant.slug}
-            selectedId={profile.menu_template}
-            onSelect={selectTemplate}
-          />
-        </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 space-y-6">
-            <Card className="p-6">
-              <h3 className="font-bold mb-4">{t("add_category")}</h3>
-              <div className="flex gap-2">
-                <input 
-                  placeholder={t("name")} 
-                  className="flex-1 p-2 border rounded-lg"
-                  value={newCat}
-                  onChange={e => setNewCat(e.target.value)}
-                />
-                <Button onClick={addCategory} className="bg-black text-white p-2">
-                  <Plus size={20} />
-                </Button>
-              </div>
-              <div className="mt-4 space-y-2">
-                {categories.map(cat => (
-                  <div key={cat.id} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
-                    <span>{cat.translations?.[currentLang] || cat.name}</span>
-                    <div className="flex gap-1">
-                      <button 
-                        onClick={() => setEditingTranslations({ type: 'category', id: cat.id, data: cat.translations || {} })}
-                        className="text-blue-600 hover:text-blue-800 p-1"
-                      >
-                        <Globe size={16} />
-                      </button>
-                      <button className="text-gray-400 hover:text-red-600 p-1"><Trash2 size={16} /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            <Card className="p-6">
+        {section === "settings" && (
+        <Card className="p-6 mb-8 max-w-md">
               <h3 className="font-bold mb-4">Your QR Code</h3>
               <div className="bg-white border rounded-xl flex flex-col items-center justify-center p-6 text-center">
                 {qrCode ? (
@@ -1482,12 +1070,103 @@ const RestaurantPanel = () => {
                 </div>
               </div>
             </Card>
-          </div>
+        )}
 
-          <div className="lg:col-span-2">
-            <Card className="p-6 mb-6">
+        {section === "templates" && (
+        <Card className="p-4 sm:p-6 mb-8">
+          <h3 className="font-bold text-lg mb-1">Menu templates</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            {MENU_TEMPLATE_COUNT}+ şablon. Canlı baxış menyunu açır.
+          </p>
+          <TemplatePicker
+            restaurantSlug={restaurant.slug}
+            selectedId={profile.menu_template}
+            onSelect={selectTemplate}
+            extraTemplates={extraTemplates}
+          />
+        </Card>
+        )}
+
+        {section === "categories" && (
+            <Card className="p-6 max-w-xl mb-8">
+              <h3 className="font-bold mb-4">{t("add_category")}</h3>
+              <div className="flex gap-2">
+                <input 
+                  placeholder={t("name")} 
+                  className="flex-1 p-2 border rounded-lg"
+                  value={newCat}
+                  onChange={e => setNewCat(e.target.value)}
+                />
+                <Button onClick={addCategory} className="bg-black text-white p-2">
+                  <Plus size={20} />
+                </Button>
+              </div>
+              <div className="mt-4 space-y-2">
+                {categories.map(cat => (
+                  <div key={cat.id} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+                    <span>{cat.translations?.[currentLang] || cat.name}</span>
+                    <div className="flex gap-1">
+                      <button 
+                        type="button"
+                        onClick={() => setEditingTranslations({ type: 'category', id: cat.id, data: cat.translations || {} })}
+                        className="text-blue-600 hover:text-blue-800 p-1"
+                      >
+                        <Globe size={16} />
+                      </button>
+                      <button type="button" onClick={() => deleteCategory(cat.id)} className="text-gray-400 hover:text-red-600 p-1"><Trash2 size={16} /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+        )}
+
+        {section === "products" && !productsNew && (
+          <div className="space-y-6">
+            <Link
+              to={`${basePath}/products/new`}
+              className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm"
+            >
+              <Plus size={18} /> {t("add_product")}
+            </Link>
+            <div className="space-y-4">
+              {categories.map(cat => (
+                <div key={cat.id}>
+                  <h4 className="font-bold text-gray-500 uppercase text-xs tracking-wider mb-2">{cat.translations?.[currentLang] || cat.name}</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {products.filter(p => p.category_id === cat.id).map(prod => (
+                      <Card key={prod.id} className="p-4 flex gap-4">
+                        <div className="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0" />
+                        <div className="flex-1">
+                          <div className="flex justify-between gap-2">
+                            <h5 className="font-bold">{prod.translations?.[currentLang]?.name || prod.name}</h5>
+                            <span className="font-bold text-red-600">${prod.price}</span>
+                          </div>
+                          <p className="text-sm text-gray-500 line-clamp-2">{prod.translations?.[currentLang]?.desc || prod.description}</p>
+                          <div className="mt-2 flex justify-end gap-2">
+                            <button 
+                              type="button"
+                              onClick={() => setEditingTranslations({ type: 'product', id: prod.id, data: prod.translations || {} })}
+                              className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs font-bold"
+                            >
+                              <Globe size={14} /> {t("translations")}
+                            </button>
+                            <button type="button" onClick={() => deleteProduct(prod.id)} className="text-red-500 p-1"><Trash2 size={16} /></button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {productsNew && (
+            <Card className="p-6 mb-6 max-w-xl">
               <h3 className="font-bold mb-4">{t("add_product")}</h3>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <input 
                   placeholder={t("name")} 
                   className="p-2 border rounded-lg"
@@ -1502,7 +1181,7 @@ const RestaurantPanel = () => {
                   onChange={e => setNewProd({ ...newProd, price: Number(e.target.value) })}
                 />
                 <select 
-                  className="p-2 border rounded-lg"
+                  className="p-2 border rounded-lg sm:col-span-2"
                   value={newProd.category_id}
                   onChange={e => setNewProd({ ...newProd, category_id: Number(e.target.value) })}
                 >
@@ -1511,41 +1190,12 @@ const RestaurantPanel = () => {
                     <option key={cat.id} value={cat.id}>{cat.translations?.[currentLang] || cat.name}</option>
                   ))}
                 </select>
-                <Button onClick={addProduct} className="bg-red-600 text-white">{t("add_product")}</Button>
+                <Button type="button" onClick={() => navigate(`${basePath}/products`)} className="border">Geri</Button>
+                <Button type="button" onClick={addProduct} className="bg-red-600 text-white">{t("add_product")}</Button>
               </div>
             </Card>
+        )}
 
-            <div className="space-y-4">
-              {categories.map(cat => (
-                <div key={cat.id}>
-                  <h4 className="font-bold text-gray-500 uppercase text-xs tracking-wider mb-2">{cat.translations?.[currentLang] || cat.name}</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {products.filter(p => p.category_id === cat.id).map(prod => (
-                      <Card key={prod.id} className="p-4 flex gap-4">
-                        <div className="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0"></div>
-                        <div className="flex-1">
-                          <div className="flex justify-between">
-                            <h5 className="font-bold">{prod.translations?.[currentLang]?.name || prod.name}</h5>
-                            <span className="font-bold text-red-600">${prod.price}</span>
-                          </div>
-                          <p className="text-sm text-gray-500 line-clamp-2">{prod.translations?.[currentLang]?.desc || prod.description}</p>
-                          <div className="mt-2 flex justify-end">
-                            <button 
-                              onClick={() => setEditingTranslations({ type: 'product', id: prod.id, data: prod.translations || {} })}
-                              className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs font-bold"
-                            >
-                              <Globe size={14} /> {t("translations")}
-                            </button>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       </main>
 
       {/* Translation Modal */}
@@ -1659,9 +1309,8 @@ const CustomerMenu = () => {
 
   useEffect(() => {
     if (!data?.name) return;
-    const tpl = getTemplateById(
-      previewTemplateId || data.menu_template || "modern-01"
-    );
+    const tid = previewTemplateId || data.menu_template || "modern-01";
+    const tpl = resolveMenuTemplate(tid, data.custom_templates);
     document.title = `${data.name} · ${tpl.name}`;
     return () => {
       document.title = "QRMenu";
@@ -1670,9 +1319,10 @@ const CustomerMenu = () => {
 
   if (!data) return <div className="p-10 text-center">{t("loading")}</div>;
 
-  const { categories, products, ...restaurantRow } = data;
-  const template = getTemplateById(
-    previewTemplateId || data.menu_template || "modern-01"
+  const { categories, products, custom_templates, plan_features, ...restaurantRow } = data;
+  const template = resolveMenuTemplate(
+    previewTemplateId || data.menu_template || "modern-01",
+    custom_templates
   );
 
   const addToCart = (product: Record<string, unknown>) => {
@@ -1705,6 +1355,10 @@ const CustomerMenu = () => {
       addToCart={addToCart}
       onWhatsAppOrder={sendWhatsApp}
       t={t}
+      planFeatures={{
+        whatsapp_order: plan_features?.whatsapp_order !== false,
+        reservation: plan_features?.reservation !== false,
+      }}
     />
   );
 };
@@ -1737,10 +1391,11 @@ export default function App() {
       <Router>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/admin" element={<SuperAdminPanel />} />
+          <Route path="/admin/*" element={<AdminApp />} />
           <Route path="/panel" element={<RestaurantLoginPage />} />
-          <Route path="/restaurant/:id" element={<RestaurantPanel />} />
+          <Route path="/restaurant/:id/*" element={<RestaurantPanel />} />
           <Route path="/r/:slug" element={<CustomerMenu />} />
+          <Route path="/menu/:slug" element={<CustomerMenu />} />
         </Routes>
       </Router>
     </I18nBundleContext.Provider>
