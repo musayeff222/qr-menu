@@ -606,6 +606,7 @@ function RestaurantsAdminPage() {
     admin_user: "",
     admin_pass: "",
     plan_id: "",
+    seed_demo: true,
   });
 
   const load = () => {
@@ -671,6 +672,7 @@ function RestaurantsAdminPage() {
         subscription_plan_id: createForm.plan_id
           ? Number(createForm.plan_id)
           : undefined,
+        seed_demo: createForm.seed_demo,
       }),
     });
     if (res.ok) {
@@ -681,6 +683,7 @@ function RestaurantsAdminPage() {
         admin_user: "",
         admin_pass: "",
         plan_id: "",
+        seed_demo: true,
       });
       load();
     } else alert(await res.text());
@@ -735,6 +738,14 @@ function RestaurantsAdminPage() {
             </option>
           ))}
         </select>
+        <label className="sm:col-span-2 lg:col-span-3 flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={createForm.seed_demo}
+            onChange={(e) => setCreateForm({ ...createForm, seed_demo: e.target.checked })}
+          />
+          Azərbaycan nümunə məhsullarını avtomatik əlavə et (plan limitinə uyğun kəsilir)
+        </label>
         <Button
           onClick={createRestaurant}
           className="sm:col-span-2 lg:col-span-3 bg-red-600 text-white"
@@ -882,7 +893,7 @@ function AdminTemplatesPage() {
               <p className="text-xs text-amber-700 font-bold">{tpl.category}</p>
               <p className="font-bold text-sm">{tpl.name}</p>
               <a
-                href={`/r/demo-slug?preview=true&previewTemplate=${encodeURIComponent(tpl.id)}`}
+                href={`/r/demo-az-menu?preview=true&previewTemplate=${encodeURIComponent(tpl.id)}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-xs text-red-600 font-semibold inline-flex items-center gap-1 mt-auto"
@@ -946,7 +957,7 @@ function AdminTemplatesPage() {
               <Button
                 onClick={() =>
                   window.open(
-                    `/r/burger-joint?preview=true&previewTemplate=${encodeURIComponent(c.slug_key)}`,
+                    `/r/demo-az-menu?preview=true&previewTemplate=${encodeURIComponent(c.slug_key)}`,
                     "_blank"
                   )
                 }

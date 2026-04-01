@@ -4,6 +4,7 @@ import { Eye, Check } from "lucide-react";
 import type { MenuTemplateDef, TemplateCategory } from "./types";
 import { MENU_TEMPLATES } from "./registry";
 import { cn } from "./cn";
+import { DEMO_MENU_PREVIEW_SLUG } from "../demoMenuSlug";
 
 const CATEGORY_ORDER: TemplateCategory[] = [
   "Modern",
@@ -126,7 +127,7 @@ export function TemplatePicker({
               <p className="text-xs text-gray-500 font-mono">{tpl.id}</p>
               <div className="flex gap-2 mt-auto">
                 <a
-                  href={`/r/${restaurantSlug}?preview=true&previewTemplate=${encodeURIComponent(tpl.id)}`}
+                  href={`/r/${DEMO_MENU_PREVIEW_SLUG}?preview=true&previewTemplate=${encodeURIComponent(tpl.id)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border border-gray-200 text-gray-800 text-sm font-medium hover:bg-gray-50"

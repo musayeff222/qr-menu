@@ -1,5 +1,6 @@
 import "dotenv/config";
 import knex, { type Knex } from "knex";
+import { DEMO_AZ_SLUG, seedDemoAzMenu } from "./demoMenuSeed.js";
 
 function mysqlConnectionFromEnv():
   | { host: string; port: number; user: string; password: string; database: string }
@@ -518,6 +519,9 @@ export async function initDatabase() {
     }
 
     if (await db.schema.hasTable("restaurants")) {
+      await ensureColumn("restaurants", "cover_image_url", (table) => {
+        table.string("cover_image_url", 500);
+      });
       await ensureColumn("restaurants", "subscription_plan_id", (table) => {
         table.integer("subscription_plan_id").unsigned();
       });
@@ -555,7 +559,13 @@ export async function initDatabase() {
           key: "supported_languages",
           value: JSON.stringify(["az", "ru", "tr", "en"]),
         },
+        { key: "seed_demo_on_create", value: "true" },
       ]);
+    } else {
+      const sd = await db("settings").where({ key: "seed_demo_on_create" }).first();
+      if (!sd) {
+        await db("settings").insert({ key: "seed_demo_on_create", value: "true" });
+      }
     }
 
     await seedUiLocale();
@@ -565,45 +575,71 @@ export async function initDatabase() {
     const count = Number((countResult as { count?: string | number })?.count ?? 0);
     if (count === 0) {
       const vipPlan = await db("subscription_plans").where({ slug: "vip" }).first();
-      await db("restaurants").insert({
-        name: "The Burger Joint",
-        slug: "burger-joint",
-        whatsapp_number: "1234567890",
-        primary_color: "#ef4444",
+      const coverDemo =
+        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600&q=80&auto=format&fit=crop";
+      const logoDemo =
+        "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=80&auto=format&fit=crop";
+      const ids = await db("restaurants").insert({
+        name: "Nümunə Azərbaycan Menyusu",
+        slug: DEMO_AZ_SLUG,
+        whatsapp_number: "994501234567",
+        primary_color: "#b45309",
         theme: "modern",
         plan: "vip",
         subscription_plan_id: vipPlan?.id ?? null,
         menu_template: "modern-01",
-        tagline: "Scan, order, enjoy — fresh flavors daily.",
-        maps_url: "https://maps.google.com/?q=Baku",
-        phone: "+994000000000",
+        tagline: "Milli mətbəx · QR kod ilə canlı menyuya baxın",
+        maps_url: "https://maps.google.com/?q=Baku+Azerbaijan",
+        phone: "+994 12 555 00 00",
         reservation_url: "https://example.com/book",
         instagram: "https://instagram.com",
         tiktok: "https://tiktok.com",
+        cover_image_url: coverDemo,
+        logo_url: logoDemo,
       });
+      const newRid = Number(Array.isArray(ids) ? ids[0] : ids);
+      await seedDemoAzMenu(db, newRid);
+      await db("restaurant_users").insert({
+        restaurant_id: newRid,
+        username: "demo",
+        password: "demo123",
+      });
+    }
 
-      const rest = await db("restaurants").where({ slug: "burger-joint" }).first();
-      if (rest) {
-        const [catId] = await db("categories").insert({
-          restaurant_id: rest.id,
-          name: "Burgers",
+    const demoRow = await db("restaurants").where({ slug: DEMO_AZ_SLUG }).first();
+    if (!demoRow) {
+      const vipPlan = await db("subscription_plans").where({ slug: "vip" }).first();
+      const coverDemo =
+        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600&q=80&auto=format&fit=crop";
+      const logoDemo =
+        "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=80&auto=format&fit=crop";
+      const ids = await db("restaurants").insert({
+        name: "Nümunə Azərbaycan Menyusu",
+        slug: DEMO_AZ_SLUG,
+        whatsapp_number: "994501234567",
+        primary_color: "#b45309",
+        theme: "modern",
+        plan: "vip",
+        subscription_plan_id: vipPlan?.id ?? null,
+        menu_template: "modern-01",
+        tagline: "Milli mətbəx · QR kod ilə canlı menyuya baxın",
+        maps_url: "https://maps.google.com/?q=Baku+Azerbaijan",
+        phone: "+994 12 555 00 00",
+        reservation_url: "https://example.com/book",
+        instagram: "https://instagram.com",
+        tiktok: "https://tiktok.com",
+        cover_image_url: coverDemo,
+        logo_url: logoDemo,
+      });
+      const newRid = Number(Array.isArray(ids) ? ids[0] : ids);
+      await seedDemoAzMenu(db, newRid);
+      const ruDemo = await db("restaurant_users").where({ username: "demo" }).first();
+      if (!ruDemo) {
+        await db("restaurant_users").insert({
+          restaurant_id: newRid,
+          username: "demo",
+          password: "demo123",
         });
-        await db("products").insert([
-          {
-            restaurant_id: rest.id,
-            category_id: catId,
-            name: "Classic Burger",
-            price: 12.99,
-            description: "Juicy beef patty with lettuce and tomato.",
-          },
-          {
-            restaurant_id: rest.id,
-            category_id: catId,
-            name: "Cheese Burger",
-            price: 14.99,
-            description: "Classic burger with melted cheddar.",
-          },
-        ]);
       }
     }
 
@@ -637,17 +673,6 @@ export async function initDatabase() {
       });
     }
 
-    const ru = await db("restaurant_users").where({ username: "burger_admin" }).first();
-    if (!ru) {
-      const r = await db("restaurants").where({ slug: "burger-joint" }).first();
-      if (r) {
-        await db("restaurant_users").insert({
-          restaurant_id: r.id,
-          username: "burger_admin",
-          password: "burger123",
-        });
-      }
-    }
   } catch (err) {
     console.error("initDatabase error:", err);
     throw err;

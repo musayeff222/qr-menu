@@ -3,7 +3,14 @@ import type {
   MenuTemplateTheme,
   TemplateCategory,
   FontPairKey,
+  HeaderLayout,
+  ProductLayout,
+  IconStyle,
 } from "./types";
+
+const HEADER_LAYOUTS: HeaderLayout[] = ["centered", "full-hero", "split", "side"];
+const PRODUCT_LAYOUTS: ProductLayout[] = ["grid", "list", "card", "slider"];
+const ICON_STYLES: IconStyle[] = ["rounded", "line", "filled", "minimal"];
 
 const HERO_POOL = [
   "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80&auto=format&fit=crop",
@@ -204,13 +211,22 @@ function buildTemplates(): MenuTemplateDef[] {
     for (let i = 0; i < 10; i++) {
       const n = i + 1;
       const id = `${g.prefix}-${String(n).padStart(2, "0")}`;
-      const theme = g.build(i, globalIdx);
+      const themeBase = g.build(i, globalIdx);
+      const headerLayout = HEADER_LAYOUTS[globalIdx % HEADER_LAYOUTS.length];
+      const productLayout = PRODUCT_LAYOUTS[(globalIdx * 2 + i * 3) % PRODUCT_LAYOUTS.length];
+      const iconStyle = ICON_STYLES[(globalIdx + i * 5) % ICON_STYLES.length];
+      const theme: MenuTemplateTheme = {
+        ...themeBase,
+        headerLayout,
+        productLayout,
+        iconStyle,
+      };
       out.push({
         id,
         name: `${g.category} ${String.fromCharCode(65 + i)}`,
         category: g.category,
-        description: `${g.category} mobile-first layout · ${theme.heroVariant} hero · ${theme.categoryNav} nav`,
-        heroImage: HERO_POOL[(globalIdx + i * 3) % HERO_POOL.length],
+        description: `${headerLayout} · ${productLayout} · ${theme.heroVariant} · ${theme.fontPair}`,
+        heroImage: HERO_POOL[(globalIdx + i * 7) % HERO_POOL.length],
         theme,
       });
       globalIdx++;

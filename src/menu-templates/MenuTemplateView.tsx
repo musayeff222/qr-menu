@@ -149,6 +149,11 @@ export function MenuTemplateView({
     : "";
   const instagram = restaurant.instagram ? String(restaurant.instagram) : "";
   const tiktok = restaurant.tiktok ? String(restaurant.tiktok) : "";
+  const coverUrl = restaurant.cover_image_url ? String(restaurant.cover_image_url) : "";
+  const heroImageSrc = coverUrl || template.heroImage;
+  const headerLayout = th.headerLayout ?? "centered";
+  const productLayout = th.productLayout ?? "list";
+  const iconStyle = th.iconStyle ?? "rounded";
 
   const waOrderUrl =
     allowWa && whatsapp
@@ -281,6 +286,34 @@ export function MenuTemplateView({
     );
   };
 
+  const iconShell = (() => {
+    const base = "flex flex-col items-center justify-center active:scale-95 transition-transform";
+    switch (iconStyle) {
+      case "line":
+        return cn(
+          base,
+          "w-12 h-12 sm:w-14 sm:h-14 border-2 border-[var(--mt-primary)] bg-transparent text-[var(--mt-primary)] shadow-none rounded-2xl"
+        );
+      case "filled":
+        return cn(
+          base,
+          "w-12 h-12 sm:w-14 sm:h-14 bg-[var(--mt-primary)] text-white border-0 shadow-lg rounded-2xl"
+        );
+      case "minimal":
+        return cn(
+          base,
+          "w-11 h-11 sm:w-12 sm:h-12 bg-transparent border-0 text-white shadow-none rounded-xl"
+        );
+      default:
+        return cn(
+          base,
+          "w-12 h-12 sm:w-14 sm:h-14",
+          r,
+          "bg-[var(--mt-surface)]/90 text-[var(--mt-text)] shadow-sm border border-black/5"
+        );
+    }
+  })();
+
   const ActionBtn = ({
     href,
     label,
@@ -296,19 +329,229 @@ export function MenuTemplateView({
         target="_blank"
         rel="noopener noreferrer"
         aria-label={label}
-        className={cn(
-          "flex flex-col items-center justify-center w-12 h-12 sm:w-14 sm:h-14",
-          r,
-          "bg-[var(--mt-surface)]/90 text-[var(--mt-text)] shadow-sm border border-black/5 active:scale-95 transition-transform"
-        )}
+        className={iconShell}
       >
         {children}
       </a>
     ) : null;
 
+  const formatPrice = (p: unknown) => {
+    const n = Number(p);
+    if (Number.isNaN(n)) return "—";
+    return `₼${n.toFixed(2)}`;
+  };
+
   const filteredProducts = products.filter(
     (p) => Number(p.category_id) === Number(activeCategory)
   );
+
+  const socialRow = (
+    <nav
+      aria-label="Quick actions"
+      className={cn(
+        "flex flex-wrap justify-center gap-2",
+        headerLayout === "full-hero" ? "mt-2" : "mt-4"
+      )}
+    >
+      <ActionBtn href={mapsUrl} label="Google Maps">
+        <MapPin size={20} />
+      </ActionBtn>
+      <ActionBtn href={phone ? `tel:${phone.replace(/\s/g, "")}` : ""} label="Telefon">
+        <Phone size={20} />
+      </ActionBtn>
+      <ActionBtn href={waOrderUrl} label="WhatsApp">
+        <MessageCircle size={20} />
+      </ActionBtn>
+      <ActionBtn href={allowRes ? reservationUrl : ""} label="Reservation">
+        <Calendar size={20} />
+      </ActionBtn>
+      <ActionBtn href={instagram} label="Instagram">
+        <Instagram size={20} />
+      </ActionBtn>
+      <ActionBtn href={tiktok} label="TikTok">
+        <Music2 size={20} />
+      </ActionBtn>
+    </nav>
+  );
+
+  const langSelect = (
+    <>
+      <label className="sr-only" htmlFor="menu-lang">
+        Language
+      </label>
+      <select
+        id="menu-lang"
+        value={currentLang}
+        onChange={(e) => setCurrentLang(e.target.value)}
+        className={cn(
+          "text-xs font-bold px-2 py-1.5 border border-white/25 bg-black/35 text-white backdrop-blur rounded-lg outline-none",
+          r
+        )}
+      >
+        <option value="az">AZ</option>
+        <option value="en">EN</option>
+        <option value="ru">RU</option>
+        <option value="tr">TR</option>
+      </select>
+    </>
+  );
+
+  const renderProductArticle = (prod: Record<string, unknown>, layout: "list" | "grid" | "card" | "slider") => {
+    const pname =
+      ((prod.translations as Record<string, { name?: string }> | undefined)?.[currentLang]?.name) ||
+      String(prod.name);
+    const pdesc =
+      ((prod.translations as Record<string, { desc?: string }> | undefined)?.[currentLang]?.desc) ||
+      String(prod.description ?? "");
+    const img = prod.image_url ? String(prod.image_url) : "";
+    const innerAdd = allowWa ? (
+      <button
+        type="button"
+        onClick={() => addToCart(prod)}
+        className={cn(
+          "w-10 h-10 flex items-center justify-center text-white shadow-md active:scale-90 transition-transform shrink-0",
+          RADIUS_MAP.full
+        )}
+        style={{ backgroundColor: "var(--mt-primary)" }}
+        aria-label={`${t("add_product")} ${pname}`}
+      >
+        <Plus size={20} />
+      </button>
+    ) : null;
+
+    if (layout === "card") {
+      return (
+        <motion.article
+          key={prod.id as number}
+          layout
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn("flex flex-col overflow-hidden", fixCard, th.cardStyle === "glass" && "bg-[var(--mt-surface)]/80")}
+          style={th.cardStyle === "glass" ? undefined : { backgroundColor: "var(--mt-surface)" }}
+        >
+          <div
+            className={cn(
+              "aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-[var(--mt-secondary)] to-[var(--mt-primary)]/30",
+              pir
+            )}
+          >
+            {img ? (
+              <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+            ) : null}
+          </div>
+          <div className={cn("flex flex-col flex-1", densityPad)}>
+            <h2
+              className={cn("text-base sm:text-lg leading-tight", th.headingWeight)}
+              style={{ fontFamily: fonts.heading }}
+            >
+              {pname}
+            </h2>
+            {pdesc ? (
+              <p className="text-xs sm:text-sm mt-1 line-clamp-3 flex-1" style={{ color: "var(--mt-muted)" }}>
+                {pdesc}
+              </p>
+            ) : null}
+            <div className="flex items-center justify-between mt-3 pt-2 border-t border-black/5">
+              <span className="font-bold text-lg" style={{ color: "var(--mt-primary)" }}>
+                {formatPrice(prod.price)}
+              </span>
+              {innerAdd}
+            </div>
+          </div>
+        </motion.article>
+      );
+    }
+
+    if (layout === "grid") {
+      return (
+        <motion.article
+          key={prod.id as number}
+          layout
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={cn(
+            "flex flex-col gap-2",
+            fixCard,
+            densityPad,
+            th.cardStyle === "glass" && "bg-[var(--mt-surface)]/80"
+          )}
+          style={th.cardStyle === "glass" ? undefined : { backgroundColor: "var(--mt-surface)" }}
+        >
+          <div
+            className={cn(
+              "w-full aspect-square max-h-36 overflow-hidden bg-gradient-to-br from-[var(--mt-secondary)] to-[var(--mt-primary)]/30",
+              pir
+            )}
+          >
+            {img ? (
+              <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+            ) : null}
+          </div>
+          <h2
+            className={cn("text-sm font-semibold leading-tight line-clamp-2", th.headingWeight)}
+            style={{ fontFamily: fonts.heading }}
+          >
+            {pname}
+          </h2>
+          <div className="flex items-center justify-between gap-2 mt-auto">
+            <span className="font-bold" style={{ color: "var(--mt-primary)" }}>
+              {formatPrice(prod.price)}
+            </span>
+            {innerAdd}
+          </div>
+        </motion.article>
+      );
+    }
+
+    return (
+      <motion.article
+        key={prod.id as number}
+        layout
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={cn(
+          "flex gap-3 sm:gap-4",
+          fixCard,
+          densityPad,
+          layout === "slider" && "min-w-[min(88vw,320px)] snap-start shrink-0",
+          th.cardStyle === "glass" && "bg-[var(--mt-surface)]/80"
+        )}
+        style={th.cardStyle === "glass" ? undefined : { backgroundColor: "var(--mt-surface)" }}
+      >
+        <div
+          className={cn(
+            "w-24 h-24 sm:w-28 sm:h-28 shrink-0 overflow-hidden bg-gradient-to-br from-[var(--mt-secondary)] to-[var(--mt-primary)]/30",
+            pir
+          )}
+        >
+          {img ? (
+            <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+          ) : null}
+        </div>
+        <div className="flex-1 flex flex-col justify-between min-w-0">
+          <div>
+            <h2
+              className={cn("text-base sm:text-lg leading-tight", th.headingWeight)}
+              style={{ fontFamily: fonts.heading }}
+            >
+              {pname}
+            </h2>
+            {pdesc ? (
+              <p className="text-xs sm:text-sm mt-1 line-clamp-3" style={{ color: "var(--mt-muted)" }}>
+                {pdesc}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex items-center justify-between mt-2">
+            <span className="font-bold text-lg" style={{ color: "var(--mt-primary)" }}>
+              {formatPrice(prod.price)}
+            </span>
+            {innerAdd}
+          </div>
+        </div>
+      </motion.article>
+    );
+  };
 
   return (
     <div
@@ -329,107 +572,215 @@ export function MenuTemplateView({
       </a>
 
       <header>
-        <div
-          className={cn(
-            "relative overflow-hidden",
-            heroH,
-            th.heroVariant === "wave" && "rounded-b-[2.5rem]"
-          )}
-        >
+        {headerLayout === "split" ? (
           <div
-            className="absolute inset-0 bg-cover bg-center scale-105"
-            style={{
-              backgroundImage: `url(${template.heroImage})`,
-            }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `linear-gradient(to bottom, rgba(0,0,0,${th.overlayPercent / 200}) 0%, rgba(0,0,0,${th.overlayPercent / 100}) 100%)`,
-            }}
-          />
-          {patternOverlay}
-
-          <div className="relative z-10 h-full flex flex-col justify-between p-4 pt-safe">
-            <div className="flex justify-end">
-              <label className="sr-only" htmlFor="menu-lang">
-                Language
-              </label>
-              <select
-                id="menu-lang"
-                value={currentLang}
-                onChange={(e) => setCurrentLang(e.target.value)}
-                className={cn(
-                  "text-xs font-bold px-2 py-1.5 border border-white/25 bg-black/35 text-white backdrop-blur rounded-lg outline-none",
-                  r
-                )}
-              >
-                <option value="az">AZ</option>
-                <option value="en">EN</option>
-                <option value="ru">RU</option>
-                <option value="tr">TR</option>
-              </select>
+            className={cn(
+              "relative flex flex-col md:flex-row md:min-h-[44vh] overflow-hidden",
+              th.heroVariant === "wave" && "rounded-b-[2.5rem]"
+            )}
+          >
+            <div className="relative md:w-1/2 min-h-[36vh] md:min-h-[44vh]">
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: `url(${heroImageSrc})` }}
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: `linear-gradient(to bottom, rgba(0,0,0,${th.overlayPercent / 200}) 0%, rgba(0,0,0,${th.overlayPercent / 100}) 100%)`,
+                }}
+              />
+              {patternOverlay}
+              <div className="absolute top-3 right-3 z-10">{langSelect}</div>
             </div>
-
             <div
-              className={cn(
-                "flex flex-col items-center text-center text-white",
-                th.heroVariant === "split" && "sm:flex-row sm:text-center sm:justify-center sm:gap-6"
-              )}
+              className="relative md:w-1/2 flex flex-col justify-center px-5 py-8 md:py-12 text-[var(--mt-text)]"
+              style={{ backgroundColor: "var(--mt-bg)" }}
             >
               <div
                 className={cn(
-                  "w-24 h-24 sm:w-28 sm:h-28 border-4 border-white/90 shadow-2xl overflow-hidden bg-[var(--mt-surface)] flex items-center justify-center",
-                  "rounded-full"
+                  "w-20 h-20 md:w-24 md:h-24 border-4 border-[var(--mt-primary)]/30 shadow-xl overflow-hidden bg-[var(--mt-surface)] flex items-center justify-center mx-auto md:mx-0 mb-4",
+                  "rounded-2xl"
                 )}
               >
                 {logoUrl ? (
                   <img src={logoUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <Utensils className="w-10 h-10 opacity-70" aria-hidden />
+                  <Utensils className="w-9 h-9 opacity-70 text-[var(--mt-primary)]" aria-hidden />
                 )}
               </div>
-              <div className="mt-4 sm:mt-0">
-                <h1
+              <h1
+                className={cn(
+                  "text-2xl sm:text-3xl tracking-tight text-center md:text-left",
+                  th.headingWeight
+                )}
+                style={{ fontFamily: fonts.heading }}
+              >
+                {name}
+              </h1>
+              <p className="mt-2 text-sm text-[var(--mt-muted)] text-center md:text-left line-clamp-3">
+                {tagline}
+              </p>
+              <div className="mt-4 [&_a]:text-[var(--mt-text)] [&_svg]:text-[var(--mt-primary)]">
+                {socialRow}
+              </div>
+            </div>
+          </div>
+        ) : headerLayout === "side" ? (
+          <div
+            className={cn(
+              "relative overflow-hidden",
+              heroH,
+              th.heroVariant === "wave" && "rounded-b-[2.5rem]"
+            )}
+          >
+            <div
+              className="absolute inset-0 bg-cover bg-center scale-105"
+              style={{ backgroundImage: `url(${heroImageSrc})` }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(to right, rgba(0,0,0,${th.overlayPercent / 120}) 0%, rgba(0,0,0,${th.overlayPercent / 90}) 100%)`,
+              }}
+            />
+            {patternOverlay}
+            <div className="relative z-10 p-4 pt-safe flex flex-row gap-4 items-start">
+              <div className="shrink-0 flex flex-col items-center gap-3">
+                <div className="flex justify-end w-full md:hidden">{langSelect}</div>
+                <div
                   className={cn(
-                    "text-2xl sm:text-3xl tracking-tight drop-shadow-md",
-                    th.headingWeight
+                    "w-24 h-24 sm:w-28 sm:h-28 border-4 border-white/90 shadow-2xl overflow-hidden bg-[var(--mt-surface)] flex items-center justify-center",
+                    "rounded-2xl"
                   )}
+                >
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <Utensils className="w-10 h-10 opacity-70" aria-hidden />
+                  )}
+                </div>
+                <div className="hidden md:block w-full">{socialRow}</div>
+              </div>
+              <div className="flex-1 min-w-0 text-white pt-1">
+                <div className="flex justify-end mb-2 hidden md:flex">{langSelect}</div>
+                <h1
+                  className={cn("text-2xl sm:text-3xl tracking-tight drop-shadow-md", th.headingWeight)}
                   style={{ fontFamily: fonts.heading }}
                 >
                   {name}
                 </h1>
-                <p className="mt-1 text-sm text-white/85 max-w-md mx-auto drop-shadow line-clamp-2">
-                  {tagline}
-                </p>
+                <p className="mt-2 text-sm text-white/85 drop-shadow line-clamp-3">{tagline}</p>
+                <div className="md:hidden mt-4">{socialRow}</div>
               </div>
             </div>
-
-            <nav
-              aria-label="Quick actions"
-              className="flex flex-wrap justify-center gap-2 mt-4"
-            >
-              <ActionBtn href={mapsUrl} label="Location">
-                <MapPin size={20} />
-              </ActionBtn>
-              <ActionBtn href={phone ? `tel:${phone.replace(/\s/g, "")}` : ""} label="Call">
-                <Phone size={20} />
-              </ActionBtn>
-              <ActionBtn href={waOrderUrl} label="WhatsApp">
-                <MessageCircle size={20} />
-              </ActionBtn>
-              <ActionBtn href={allowRes ? reservationUrl : ""} label="Reservation">
-                <Calendar size={20} />
-              </ActionBtn>
-              <ActionBtn href={instagram} label="Instagram">
-                <Instagram size={20} />
-              </ActionBtn>
-              <ActionBtn href={tiktok} label="TikTok">
-                <Music2 size={20} />
-              </ActionBtn>
-            </nav>
           </div>
-        </div>
+        ) : headerLayout === "full-hero" ? (
+          <div className="relative">
+            <div className={cn("relative overflow-hidden min-h-[52vh]", th.heroVariant === "wave" && "rounded-b-[2.5rem]")}>
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: `url(${heroImageSrc})` }}
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: `linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 45%, rgba(0,0,0,${th.overlayPercent / 140}) 100%)`,
+                }}
+              />
+              {patternOverlay}
+              <div className="relative z-10 flex justify-end p-4 pt-safe">{langSelect}</div>
+              <div className="relative z-10 flex flex-col items-center justify-end min-h-[40vh] px-4 pb-6 text-center text-white">
+                <div
+                  className={cn(
+                    "-mb-10 w-28 h-28 sm:w-32 sm:h-32 border-4 border-white shadow-2xl overflow-hidden bg-[var(--mt-surface)] flex items-center justify-center rounded-full z-20"
+                  )}
+                >
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <Utensils className="w-12 h-12 opacity-70" aria-hidden />
+                  )}
+                </div>
+              </div>
+            </div>
+            <div
+              className="relative z-10 px-4 pt-14 pb-6 text-center border-b border-black/5"
+              style={{ backgroundColor: "var(--mt-bg)" }}
+            >
+              <h1
+                className={cn("text-2xl sm:text-3xl tracking-tight text-[var(--mt-text)]", th.headingWeight)}
+                style={{ fontFamily: fonts.heading }}
+              >
+                {name}
+              </h1>
+              <p className="mt-2 text-sm text-[var(--mt-muted)] line-clamp-2 max-w-lg mx-auto">{tagline}</p>
+              <div className="mt-5">{socialRow}</div>
+            </div>
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "relative overflow-hidden",
+              heroH,
+              th.heroVariant === "wave" && "rounded-b-[2.5rem]"
+            )}
+          >
+            <div
+              className="absolute inset-0 bg-cover bg-center scale-105"
+              style={{
+                backgroundImage: `url(${heroImageSrc})`,
+              }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(to bottom, rgba(0,0,0,${th.overlayPercent / 200}) 0%, rgba(0,0,0,${th.overlayPercent / 100}) 100%)`,
+              }}
+            />
+            {patternOverlay}
+
+            <div className="relative z-10 h-full flex flex-col justify-between p-4 pt-safe">
+              <div className="flex justify-end">{langSelect}</div>
+
+              <div
+                className={cn(
+                  "flex flex-col items-center text-center text-white",
+                  th.heroVariant === "split" && "sm:flex-row sm:text-center sm:justify-center sm:gap-6"
+                )}
+              >
+                <div
+                  className={cn(
+                    "w-24 h-24 sm:w-28 sm:h-28 border-4 border-white/90 shadow-2xl overflow-hidden bg-[var(--mt-surface)] flex items-center justify-center",
+                    "rounded-full"
+                  )}
+                >
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <Utensils className="w-10 h-10 opacity-70" aria-hidden />
+                  )}
+                </div>
+                <div className="mt-4 sm:mt-0">
+                  <h1
+                    className={cn(
+                      "text-2xl sm:text-3xl tracking-tight drop-shadow-md",
+                      th.headingWeight
+                    )}
+                    style={{ fontFamily: fonts.heading }}
+                  >
+                    {name}
+                  </h1>
+                  <p className="mt-1 text-sm text-white/85 max-w-md mx-auto drop-shadow line-clamp-2">
+                    {tagline}
+                  </p>
+                </div>
+              </div>
+
+              {socialRow}
+            </div>
+          </div>
+        )}
       </header>
 
       <main id="main-menu">
@@ -449,97 +800,28 @@ export function MenuTemplateView({
             )}
           >
             {categories.map((cat) => (
-              <CategoryButton
-                key={cat.id as number}
-                cat={cat}
-                active={Number(cat.id) === Number(activeCategory)}
-              />
+              <React.Fragment key={cat.id as number}>
+                <CategoryButton
+                  cat={cat}
+                  active={Number(cat.id) === Number(activeCategory)}
+                />
+              </React.Fragment>
             ))}
           </div>
         </nav>
 
-        <section aria-label="Menu items" className="px-3 sm:px-4 py-4 space-y-3">
-          {filteredProducts.map((prod) => {
-            const pname =
-              ((prod.translations as Record<string, { name?: string }> | undefined)?.[
-                currentLang
-              ]?.name) || String(prod.name);
-            const pdesc =
-              ((prod.translations as Record<string, { desc?: string }> | undefined)?.[
-                currentLang
-              ]?.desc) || String(prod.description ?? "");
-            const img = prod.image_url ? String(prod.image_url) : "";
-            return (
-              <motion.article
-                key={prod.id as number}
-                layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={cn(
-                  "flex gap-3 sm:gap-4",
-                  fixCard,
-                  densityPad,
-                  th.cardStyle === "glass" && "bg-[var(--mt-surface)]/80"
-                )}
-                style={
-                  th.cardStyle === "glass"
-                    ? undefined
-                    : { backgroundColor: "var(--mt-surface)" }
-                }
-              >
-                <div
-                  className={cn(
-                    "w-24 h-24 sm:w-28 sm:h-28 shrink-0 overflow-hidden bg-gradient-to-br from-[var(--mt-secondary)] to-[var(--mt-primary)]/30",
-                    pir
-                  )}
-                >
-                  {img ? (
-                    <img
-                      src={img}
-                      alt=""
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : null}
-                </div>
-                <div className="flex-1 flex flex-col justify-between min-w-0">
-                  <div>
-                    <h2
-                      className={cn("text-base sm:text-lg leading-tight", th.headingWeight)}
-                      style={{ fontFamily: fonts.heading }}
-                    >
-                      {pname}
-                    </h2>
-                    {pdesc ? (
-                      <p className="text-xs sm:text-sm mt-1 line-clamp-3" style={{ color: "var(--mt-muted)" }}>
-                        {pdesc}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="font-bold text-lg" style={{ color: "var(--mt-primary)" }}>
-                      ${prod.price}
-                    </span>
-                    {allowWa ? (
-                      <button
-                        type="button"
-                        onClick={() => addToCart(prod)}
-                        className={cn(
-                          "w-10 h-10 flex items-center justify-center text-white shadow-md active:scale-90 transition-transform",
-                          RADIUS_MAP.full
-                        )}
-                        style={{ backgroundColor: "var(--mt-primary)" }}
-                        aria-label={`${t("add_product")} ${pname}`}
-                      >
-                        <Plus size={20} />
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              </motion.article>
-            );
-          })}
+        <section
+          aria-label="Menu items"
+          className={cn(
+            "px-3 sm:px-4 py-4",
+            productLayout === "grid" && "grid grid-cols-1 sm:grid-cols-2 gap-3",
+            productLayout === "card" && "grid grid-cols-1 sm:grid-cols-2 gap-4",
+            productLayout === "slider" &&
+              "flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 -mx-1 px-1 scrollbar-hide scroll-smooth",
+            productLayout === "list" && "space-y-3"
+          )}
+        >
+          {filteredProducts.map((prod) => renderProductArticle(prod, productLayout))}
         </section>
       </main>
 

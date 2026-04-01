@@ -1,11 +1,14 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import { randomBytes } from "crypto";
+import multer from "multer";
 import QRCode from "qrcode";
 import { db, initDatabase, getUiTranslationsForApi, getDbDriver } from "./database.js";
 import { templateSelectionError } from "./planTemplatePolicy.js";
+import { DEMO_AZ_SLUG, seedDemoAzMenu } from "./demoMenuSeed.js";
 
 console.log("Server script started.");
 
@@ -133,7 +136,26 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
+  const uploadsDir = path.join(process.cwd(), "uploads");
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  const uploadStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadsDir),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname) || ".jpg";
+      cb(null, `${Date.now()}-${randomBytes(8).toString("hex")}${ext}`);
+    },
+  });
+  const upload = multer({
+    storage: uploadStorage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      const ok = /^image\/(jpeg|png|webp|gif)$/i.test(file.mimetype);
+      cb(null, ok);
+    },
+  });
+
   app.use(express.json());
+  app.use("/uploads", express.static(uploadsDir));
   console.log("Express middleware configured.");
 
   setInterval(() => {
@@ -177,7 +199,7 @@ async function startServer() {
     try {
       const rows = await db("settings")
         .select("key", "value")
-        .whereIn("key", ["default_language", "supported_languages"]);
+        .whereIn("key", ["default_language", "supported_languages", "seed_demo_on_create"]);
       const map: Record<string, string> = {};
       for (const r of rows as { key: string; value: string }[]) {
         map[r.key] = r.value;
@@ -185,6 +207,18 @@ async function startServer() {
       res.json(map);
     } catch (e) {
       res.status(500).json({ error: "Failed to load settings" });
+    }
+  });
+
+  app.get("/api/public/plans", async (_req, res) => {
+    try {
+      const rows = await db("subscription_plans")
+        .where({ is_active: true })
+        .orderBy("sort_order", "asc")
+        .select("*");
+      res.json(rows);
+    } catch (e) {
+      res.status(500).json({ error: "Failed to load plans" });
     }
   });
 
@@ -244,6 +278,20 @@ async function startServer() {
     res.json({ restaurant, username: s.username });
   });
 
+  app.post("/api/upload", upload.single("file"), (req, res) => {
+    const s = getSession(req);
+    if (!s) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    if (!req.file) {
+      res.status(400).json({ error: "Şəkil faylı tələb olunur (JPEG, PNG, WebP, GIF)" });
+      return;
+    }
+    const url = `/uploads/${req.file.filename}`;
+    res.json({ url });
+  });
+
   app.put("/api/admin/restaurants/:id/profile", async (req, res) => {
     const id = Number(req.params.id);
     if (!requireRestaurantOrSuper(req, res, id)) return;
@@ -259,6 +307,8 @@ async function startServer() {
       reservation_url,
       instagram,
       tiktok,
+      logo_url,
+      cover_image_url,
     } = req.body;
     const patch: Record<string, unknown> = {};
     if (typeof name === "string") patch.name = name;
@@ -271,6 +321,8 @@ async function startServer() {
     if (typeof reservation_url === "string") patch.reservation_url = reservation_url;
     if (typeof instagram === "string") patch.instagram = instagram;
     if (typeof tiktok === "string") patch.tiktok = tiktok;
+    if (typeof logo_url === "string") patch.logo_url = logo_url;
+    if (typeof cover_image_url === "string") patch.cover_image_url = cover_image_url;
     if (typeof menu_template === "string" && menu_template.trim()) {
       const tid = menu_template.trim();
       const { plan } = await getRestaurantWithPlan(id);
@@ -325,6 +377,8 @@ async function startServer() {
       reservation_url,
       instagram,
       tiktok,
+      logo_url,
+      cover_image_url,
     } = req.body;
     const patch: Record<string, unknown> = {};
     if (typeof name === "string") patch.name = name;
@@ -336,6 +390,8 @@ async function startServer() {
     if (typeof reservation_url === "string") patch.reservation_url = reservation_url;
     if (typeof instagram === "string") patch.instagram = instagram;
     if (typeof tiktok === "string") patch.tiktok = tiktok;
+    if (typeof logo_url === "string") patch.logo_url = logo_url;
+    if (typeof cover_image_url === "string") patch.cover_image_url = cover_image_url;
     if (typeof menu_template === "string" && menu_template.trim()) {
       const tid = menu_template.trim();
       const { plan } = await getRestaurantWithPlan(s.restaurantId);
@@ -478,6 +534,7 @@ async function startServer() {
       admin_username,
       admin_password,
       subscription_plan_id,
+      seed_demo,
     } = req.body;
     if (!admin_username || !admin_password) {
       res.status(400).json({
@@ -499,6 +556,11 @@ async function startServer() {
           return;
         }
       }
+      const seedRow = await db("settings").where({ key: "seed_demo_on_create" }).first();
+      const defaultSeed = (seedRow as { value?: string } | undefined)?.value !== "false";
+      const shouldSeed =
+        typeof seed_demo === "boolean" ? Boolean(seed_demo) : defaultSeed;
+
       await db.transaction(async (trx) => {
         const ids = await trx("restaurants").insert({
           name,
@@ -514,6 +576,20 @@ async function startServer() {
           password: admin_password,
         });
       });
+
+      if (shouldSeed && newId) {
+        const pl =
+          planId != null
+            ? await db("subscription_plans").where({ id: planId }).first()
+            : await db("subscription_plans").where({ slug: "free" }).first();
+        const mc = pl ? Number(pl.max_categories) : 5;
+        const mp = pl ? Number(pl.max_products) : 20;
+        await seedDemoAzMenu(db, newId, {
+          maxCategories: mc < 0 ? undefined : mc,
+          maxProducts: mp < 0 ? undefined : mp,
+        });
+      }
+
       res.json({ id: newId, name, slug });
     } catch {
       res.status(400).json({ error: "Slug exists or invalid user" });
@@ -718,7 +794,11 @@ async function startServer() {
       image_url,
       translations: translations ? JSON.stringify(translations) : null,
     });
-    res.json({ id: pid, name, translations });
+    const row = await db("products").where({ id: pid }).first();
+    res.json({
+      ...row,
+      translations: safeJsonParse((row as { translations?: string }).translations, {}),
+    });
   });
 
   app.delete("/api/admin/categories/:id", async (req, res) => {

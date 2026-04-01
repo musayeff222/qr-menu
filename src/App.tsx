@@ -24,12 +24,17 @@ import {
   LogIn,
   Sparkles,
   ArrowRight,
-  Store
+  Store,
+  Smartphone,
+  Layers,
+  ShoppingBag,
+  CircleCheck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { authRestaurantHeaders, authAnyStaffHeaders } from "./lib/headers";
+import { DEMO_MENU_PREVIEW_SLUG } from "./demoMenuSlug";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -82,6 +87,23 @@ const UI_TRANSLATIONS: any = {
     landing_feat2_d: "Avtomatik QR kodlar.",
     landing_feat3_t: "WhatsApp",
     landing_feat3_d: "Birbaşa telefonunuza sifariş.",
+    landing_sales_title: "Restoranınız üçün Rəqəmsal QR Menu yaradın",
+    landing_sales_sub:
+      "QR kod ilə qonaqlar menyuya bir saniyədə daxil olsun. WhatsApp sifariş, 50-dən çox şablon, tam mobil uyğunluq.",
+    landing_cta_free: "Pulsuz başla",
+    landing_cta_demo: "Demo bax",
+    landing_feat4_t: "50+ fərqli şablon",
+    landing_feat4_d: "Hər şablon fərqli layout, rəng və fontlarla.",
+    landing_how_title: "Necə işləyir?",
+    landing_how_1: "Qeydiyyat — hesab yaradın",
+    landing_how_2: "Menu — məhsul və şəkil əlavə edin",
+    landing_how_3: "QR — masada paylaşın",
+    landing_plans_title: "Tariflər",
+    landing_buy: "Satın al",
+    landing_demo_title: "Canlı demo menyusu",
+    landing_footer_contact: "Əlaqə",
+    landing_sticky: "Başla",
+    landing_plans_sub: "Super Admin panelindən idarə olunur — dəyişikliklər avtomatik burada görünür.",
     server_health: "Server və baza",
     server_online: "Qoşulub",
     server_error: "Xəta",
@@ -99,7 +121,7 @@ const UI_TRANSLATIONS: any = {
     slug_label: "URL (slug)",
     save_profile: "Yadda saxla",
     super_dashboard: "İdarə paneli",
-    demo_login: "Demo: burger_admin / burger123"
+    demo_login: "Demo: demo / demo123 (nümunə menyusu)"
   },
   en: {
     dashboard: "Dashboard",
@@ -146,6 +168,23 @@ const UI_TRANSLATIONS: any = {
     landing_feat2_d: "Auto-generated QR codes for every table.",
     landing_feat3_t: "WhatsApp Orders",
     landing_feat3_d: "Receive orders directly on your phone.",
+    landing_sales_title: "Build a digital QR menu for your restaurant",
+    landing_sales_sub:
+      "Guests open your menu in one scan. WhatsApp ordering, 50+ templates, mobile-first.",
+    landing_cta_free: "Start free",
+    landing_cta_demo: "View demo",
+    landing_feat4_t: "50+ unique templates",
+    landing_feat4_d: "Different layouts, colors, and typography.",
+    landing_how_title: "How it works",
+    landing_how_1: "Sign up — create your account",
+    landing_how_2: "Menu — add dishes and photos",
+    landing_how_3: "QR — share at tables",
+    landing_plans_title: "Plans",
+    landing_buy: "Subscribe",
+    landing_demo_title: "Live demo menu",
+    landing_footer_contact: "Contact",
+    landing_sticky: "Get started",
+    landing_plans_sub: "Managed from Super Admin — changes sync here automatically.",
     server_health: "Server & database",
     server_online: "Connected",
     server_error: "Error",
@@ -163,7 +202,7 @@ const UI_TRANSLATIONS: any = {
     slug_label: "URL (slug)",
     save_profile: "Save",
     super_dashboard: "Dashboard",
-    demo_login: "Demo: burger_admin / burger123"
+    demo_login: "Demo: demo / demo123 (nümunə menyusu)"
   },
   ru: {
     dashboard: "Панель",
@@ -210,6 +249,23 @@ const UI_TRANSLATIONS: any = {
     landing_feat2_d: "Автоматические QR для столов.",
     landing_feat3_t: "WhatsApp",
     landing_feat3_d: "Заказы прямо на телефон.",
+    landing_sales_title: "Создайте цифровое QR-меню для ресторана",
+    landing_sales_sub:
+      "Гости открывают меню за секунду. WhatsApp, 50+ шаблонов, мобильная вёрстка.",
+    landing_cta_free: "Начать бесплатно",
+    landing_cta_demo: "Демо",
+    landing_feat4_t: "50+ шаблонов",
+    landing_feat4_d: "Разные макеты, цвета и шрифты.",
+    landing_how_title: "Как это работает",
+    landing_how_1: "Регистрация",
+    landing_how_2: "Меню и фото",
+    landing_how_3: "QR на столах",
+    landing_plans_title: "Тарифы",
+    landing_buy: "Оформить",
+    landing_demo_title: "Живое демо",
+    landing_footer_contact: "Контакты",
+    landing_sticky: "Начать",
+    landing_plans_sub: "Тарифы из панели Super Admin — обновляются автоматически.",
     server_health: "Сервер и БД",
     server_online: "Подключено",
     server_error: "Ошибка",
@@ -227,7 +283,7 @@ const UI_TRANSLATIONS: any = {
     slug_label: "URL (slug)",
     save_profile: "Сохранить",
     super_dashboard: "Панель",
-    demo_login: "Демо: burger_admin / burger123"
+    demo_login: "Демо: demo / demo123 (пример меню)"
   },
   tr: {
     dashboard: "Panel",
@@ -274,6 +330,23 @@ const UI_TRANSLATIONS: any = {
     landing_feat2_d: "Otomatik QR kodlar.",
     landing_feat3_t: "WhatsApp sipariş",
     landing_feat3_d: "Siparişler doğrudan telefona.",
+    landing_sales_title: "Restoranınız için dijital QR menü oluşturun",
+    landing_sales_sub:
+      "Misafirler menüyü bir saniyede açar. WhatsApp, 50+ şablon, mobil uyum.",
+    landing_cta_free: "Ücretsiz başla",
+    landing_cta_demo: "Demoyu gör",
+    landing_feat4_t: "50+ şablon",
+    landing_feat4_d: "Farklı yerleşim ve renk paletleri.",
+    landing_how_title: "Nasıl çalışır?",
+    landing_how_1: "Kayıt",
+    landing_how_2: "Menü ve fotoğraf",
+    landing_how_3: "QR paylaş",
+    landing_plans_title: "Planlar",
+    landing_buy: "Satın al",
+    landing_demo_title: "Canlı demo",
+    landing_footer_contact: "İletişim",
+    landing_sticky: "Başla",
+    landing_plans_sub: "Super Admin panelinden yönetilir — değişiklikler otomatik senkron.",
     server_health: "Sunucu ve veritabanı",
     server_online: "Bağlı",
     server_error: "Hata",
@@ -291,7 +364,7 @@ const UI_TRANSLATIONS: any = {
     slug_label: "URL (slug)",
     save_profile: "Kaydet",
     super_dashboard: "Panel",
-    demo_login: "Demo: burger_admin / burger123"
+    demo_login: "Demo: demo / demo123 (nümunə menyusu)"
   }
 };
 
@@ -307,6 +380,7 @@ interface Restaurant {
   name: string;
   slug: string;
   logo_url: string;
+  cover_image_url?: string;
   primary_color: string;
   whatsapp_number: string;
   theme: string;
@@ -365,6 +439,22 @@ const Card = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivEle
 const LandingPage = () => {
   const bundle = useI18nBundle();
   const [lang, setLang] = useState("az");
+  const [plans, setPlans] = useState<
+    Array<{
+      id: number;
+      name: string;
+      slug: string;
+      price_monthly: string | number;
+      price_yearly: string | number;
+      max_products: number;
+      max_categories: number;
+      max_templates: number;
+      whatsapp_order_enabled: number | boolean;
+      reservation_enabled: number | boolean;
+      analytics_enabled: number | boolean;
+      premium_templates_enabled: number | boolean;
+    }>
+  >([]);
 
   useEffect(() => {
     fetch("/api/public/settings")
@@ -375,16 +465,26 @@ const LandingPage = () => {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    fetch("/api/public/plans")
+      .then((r) => r.json())
+      .then((rows) => setPlans(Array.isArray(rows) ? rows : []))
+      .catch(() => setPlans([]));
+  }, []);
+
   const t = (key: string) => bundle[lang]?.[key] || key;
 
   const feats = [
-    { titleKey: "landing_feat1_t", descKey: "landing_feat1_d", icon: Plus },
     { titleKey: "landing_feat2_t", descKey: "landing_feat2_d", icon: QrCode },
+    { titleKey: "landing_feat1_t", descKey: "landing_feat1_d", icon: Smartphone },
+    { titleKey: "landing_feat4_t", descKey: "landing_feat4_d", icon: Layers },
     { titleKey: "landing_feat3_t", descKey: "landing_feat3_d", icon: MessageSquare },
   ] as const;
 
+  const lim = (n: number) => (n < 0 ? "∞" : String(n));
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-red-950/80 to-slate-950 text-white overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-red-950/80 to-slate-950 text-white overflow-x-hidden pb-24">
       <motion.div
         className="absolute inset-0 opacity-40 pointer-events-none"
         animate={{ backgroundPosition: ["0% 0%", "100% 100%"] }}
@@ -431,7 +531,7 @@ const LandingPage = () => {
         </div>
       </nav>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-24">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 pb-24">
         <div className="text-center max-w-3xl mx-auto">
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
@@ -446,12 +546,9 @@ const LandingPage = () => {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight mb-6"
+            className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight mb-6"
           >
-            {t("landing_hero_1")}{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-300 to-amber-200">
-              {t("landing_hero_2")}
-            </span>
+            {t("landing_sales_title")}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 16 }}
@@ -459,7 +556,7 @@ const LandingPage = () => {
             transition={{ delay: 0.12 }}
             className="text-base sm:text-lg md:text-xl text-red-100/90 mb-10 max-w-2xl mx-auto"
           >
-            {t("landing_hero_sub")}
+            {t("landing_sales_sub")}
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -471,14 +568,16 @@ const LandingPage = () => {
               to="/panel"
               className="inline-flex items-center justify-center gap-2 bg-white text-red-900 px-6 py-3.5 rounded-xl text-base font-bold shadow-xl hover:shadow-red-500/20 active:scale-[0.98] transition-transform"
             >
-              {t("landing_cta")} <ArrowRight size={20} />
+              {t("landing_cta_free")} <ArrowRight size={20} />
             </Link>
-            <Link
-              to="/admin"
+            <a
+              href={`/r/${DEMO_MENU_PREVIEW_SLUG}?preview=true&previewTemplate=modern-01`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 border border-white/25 px-6 py-3.5 rounded-xl font-medium hover:bg-white/10 transition-colors"
             >
-              <ShieldCheck size={20} /> {t("landing_nav_admin")}
-            </Link>
+              <Globe size={20} /> {t("landing_cta_demo")}
+            </a>
           </motion.div>
         </div>
 
@@ -488,9 +587,9 @@ const LandingPage = () => {
           viewport={{ once: true, margin: "-40px" }}
           variants={{
             hidden: {},
-            show: { transition: { staggerChildren: 0.1 } },
+            show: { transition: { staggerChildren: 0.08 } },
           }}
-          className="mt-16 sm:mt-24 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6"
+          className="mt-16 sm:mt-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
         >
           {feats.map((feat, i) => (
             <motion.div
@@ -510,7 +609,127 @@ const LandingPage = () => {
             </motion.div>
           ))}
         </motion.div>
+
+        <section className="mt-20 sm:mt-28">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-6">{t("landing_demo_title")}</h2>
+          <p className="text-center text-red-100/80 text-sm mb-6 max-w-xl mx-auto">
+            {t("landing_cta_demo")} — login tələb olunmur.
+          </p>
+          <div className="relative rounded-2xl border border-white/15 overflow-hidden bg-black/40 shadow-2xl max-w-4xl mx-auto aspect-[10/16] sm:aspect-[16/10] md:h-[min(70vh,520px)] md:aspect-auto">
+            <iframe
+              title="Demo menu"
+              src={`/r/${DEMO_MENU_PREVIEW_SLUG}?preview=true&previewTemplate=modern-01`}
+              className="absolute inset-0 w-full h-full border-0"
+            />
+          </div>
+        </section>
+
+        <section className="mt-20 sm:mt-28 max-w-3xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10">{t("landing_how_title")}</h2>
+          <div className="grid gap-6 sm:grid-cols-3">
+            {[
+              { n: "1", text: t("landing_how_1") },
+              { n: "2", text: t("landing_how_2") },
+              { n: "3", text: t("landing_how_3") },
+            ].map((s) => (
+              <div
+                key={s.n}
+                className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center"
+              >
+                <div className="flex justify-center mb-3">
+                  <span className="w-12 h-12 rounded-full bg-red-600 text-white font-bold flex items-center justify-center text-lg">
+                    {s.n}
+                  </span>
+                </div>
+                <p className="text-sm text-red-100/90">{s.text}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-20 sm:mt-28">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">{t("landing_plans_title")}</h2>
+          <p className="text-center text-red-100/70 text-sm mb-10 max-w-2xl mx-auto">
+            {t("landing_plans_sub")}
+          </p>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {plans.map((p) => (
+              <Card
+                key={p.id}
+                className="p-6 sm:p-8 bg-white/5 border-white/10 backdrop-blur-md hover:border-red-400/30 transition-colors flex flex-col"
+              >
+                <h3 className="text-xl font-bold text-white mb-1">{p.name}</h3>
+                <p className="text-3xl font-extrabold text-red-300 mb-4">
+                  ₼{Number(p.price_monthly).toFixed(0)}
+                  <span className="text-sm font-normal text-red-100/60"> / ay</span>
+                </p>
+                <ul className="text-sm text-red-100/85 space-y-2 mb-4 flex-1">
+                  <li>
+                    ✓ {t("products")}: {lim(Number(p.max_products))}
+                  </li>
+                  <li>
+                    ✓ {t("categories")}: {lim(Number(p.max_categories))}
+                  </li>
+                  <li>
+                    ✓ Şablonlar: {lim(Number(p.max_templates))}
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CircleCheck
+                      size={16}
+                      className={p.whatsapp_order_enabled ? "text-green-400" : "text-white/30"}
+                    />{" "}
+                    WhatsApp
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CircleCheck
+                      size={16}
+                      className={p.reservation_enabled ? "text-green-400" : "text-white/30"}
+                    />{" "}
+                    Rezervasiya
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CircleCheck
+                      size={16}
+                      className={p.analytics_enabled ? "text-green-400" : "text-white/30"}
+                    />{" "}
+                    Statistikalar
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CircleCheck
+                      size={16}
+                      className={p.premium_templates_enabled ? "text-green-400" : "text-white/30"}
+                    />{" "}
+                    Premium şablonlar
+                  </li>
+                </ul>
+                <Link
+                  to="/panel"
+                  className="mt-auto inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white py-3 rounded-xl font-bold text-sm"
+                >
+                  <ShoppingBag size={18} /> {t("landing_buy")}
+                </Link>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <footer className="mt-24 pt-10 border-t border-white/10 text-center text-sm text-red-100/70">
+          <p className="font-semibold text-white mb-2">{t("landing_footer_contact")}</p>
+          <p>QRMenu · {t("landing_nav_start")}</p>
+        </footer>
       </main>
+
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-slate-950/95 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-sm text-red-100/90 hidden sm:inline line-clamp-1">{t("landing_sales_title")}</span>
+          <Link
+            to="/panel"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold"
+          >
+            {t("landing_sticky")} <ArrowRight size={18} />
+          </Link>
+        </div>
+      </div>
     </div>
   );
 };
@@ -616,7 +835,13 @@ const RestaurantPanel = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [newCat, setNewCat] = useState("");
-  const [newProd, setNewProd] = useState({ name: "", price: 0, category_id: 0, description: "" });
+  const [newProd, setNewProd] = useState({
+    name: "",
+    price: 0,
+    category_id: 0,
+    description: "",
+    image_url: "",
+  });
   const [qrCode, setQrCode] = useState("");
   const [profile, setProfile] = useState({
     name: "",
@@ -630,6 +855,8 @@ const RestaurantPanel = () => {
     reservation_url: "",
     instagram: "",
     tiktok: "",
+    logo_url: "",
+    cover_image_url: "",
   });
   const [editingTranslations, setEditingTranslations] = useState<{ type: 'category' | 'product', id: number, data: any } | null>(null);
   const [currentLang, setCurrentLang] = useState("az");
@@ -681,6 +908,8 @@ const RestaurantPanel = () => {
         reservation_url: r.reservation_url || "",
         instagram: r.instagram || "",
         tiktok: r.tiktok || "",
+        logo_url: r.logo_url || "",
+        cover_image_url: r.cover_image_url || "",
       });
       const menuUrl = `${window.location.origin}/r/${r.slug}`;
       const qr = await fetch(`/api/qrcode?url=${encodeURIComponent(menuUrl)}`).then((x) => x.json());
@@ -739,6 +968,22 @@ const RestaurantPanel = () => {
     navigate("/panel");
   };
 
+  const uploadAsset = async (file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const token =
+      localStorage.getItem("restaurantSession") || localStorage.getItem("adminSession");
+    if (!token) return null;
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: fd,
+    });
+    if (!res.ok) return null;
+    const j = (await res.json()) as { url?: string };
+    return j.url ?? null;
+  };
+
   const selectTemplate = async (tpl: MenuTemplateDef) => {
     const res = await fetch(`/api/admin/restaurants/${id}/profile`, {
       method: "PUT",
@@ -774,7 +1019,7 @@ const RestaurantPanel = () => {
     if (res.ok) {
       const data = await res.json();
       setProducts([...products, data]);
-      setNewProd({ name: "", price: 0, category_id: 0, description: "" });
+      setNewProd({ name: "", price: 0, category_id: 0, description: "", image_url: "" });
       if (productsNew) navigate(`${basePath}/products`);
     }
   };
@@ -991,6 +1236,66 @@ const RestaurantPanel = () => {
               value={profile.tagline}
               onChange={(e) => setProfile({ ...profile, tagline: e.target.value })}
             />
+            <div className="sm:col-span-2 grid sm:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Logo (profil şəkli)</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {profile.logo_url ? (
+                    <img
+                      src={profile.logo_url}
+                      alt=""
+                      className="w-16 h-16 rounded-xl object-cover border border-gray-200"
+                    />
+                  ) : null}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="text-xs max-w-[200px]"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      const url = await uploadAsset(f);
+                      if (url) setProfile((p) => ({ ...p, logo_url: url }));
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+                <input
+                  className="mt-2 w-full p-2 border rounded-lg text-xs font-mono"
+                  placeholder="Logo URL (ixtiyari)"
+                  value={profile.logo_url}
+                  onChange={(e) => setProfile({ ...profile, logo_url: e.target.value })}
+                />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Cover (yuxarı fon şəkli)</p>
+                {profile.cover_image_url ? (
+                  <img
+                    src={profile.cover_image_url}
+                    alt=""
+                    className="w-full h-20 object-cover rounded-lg border mb-2"
+                  />
+                ) : null}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="text-xs max-w-[200px]"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    const url = await uploadAsset(f);
+                    if (url) setProfile((p) => ({ ...p, cover_image_url: url }));
+                    e.target.value = "";
+                  }}
+                />
+                <input
+                  className="mt-2 w-full p-2 border rounded-lg text-xs font-mono"
+                  placeholder="Cover URL (ixtiyari)"
+                  value={profile.cover_image_url}
+                  onChange={(e) => setProfile({ ...profile, cover_image_url: e.target.value })}
+                />
+              </div>
+            </div>
             <input
               className="p-2 border rounded-lg text-sm"
               placeholder="Google Maps URL"
@@ -1136,11 +1441,19 @@ const RestaurantPanel = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {products.filter(p => p.category_id === cat.id).map(prod => (
                       <Card key={prod.id} className="p-4 flex gap-4">
-                        <div className="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0" />
+                        <div className="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
+                          {prod.image_url ? (
+                            <img
+                              src={prod.image_url}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          ) : null}
+                        </div>
                         <div className="flex-1">
                           <div className="flex justify-between gap-2">
                             <h5 className="font-bold">{prod.translations?.[currentLang]?.name || prod.name}</h5>
-                            <span className="font-bold text-red-600">${prod.price}</span>
+                            <span className="font-bold text-red-600">₼{Number(prod.price).toFixed(2)}</span>
                           </div>
                           <p className="text-sm text-gray-500 line-clamp-2">{prod.translations?.[currentLang]?.desc || prod.description}</p>
                           <div className="mt-2 flex justify-end gap-2">
@@ -1190,6 +1503,39 @@ const RestaurantPanel = () => {
                     <option key={cat.id} value={cat.id}>{cat.translations?.[currentLang] || cat.name}</option>
                   ))}
                 </select>
+                <textarea
+                  className="p-2 border rounded-lg sm:col-span-2 text-sm"
+                  placeholder={t("description")}
+                  rows={3}
+                  value={newProd.description}
+                  onChange={(e) => setNewProd({ ...newProd, description: e.target.value })}
+                />
+                <div className="sm:col-span-2">
+                  <p className="text-xs text-gray-500 mb-1">{t("description")} — şəkil</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {newProd.image_url ? (
+                      <img src={newProd.image_url} alt="" className="w-16 h-16 rounded-lg object-cover border" />
+                    ) : null}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="text-xs"
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        const url = await uploadAsset(f);
+                        if (url) setNewProd((p) => ({ ...p, image_url: url }));
+                        e.target.value = "";
+                      }}
+                    />
+                    <input
+                      className="flex-1 min-w-[180px] p-2 border rounded-lg text-xs font-mono"
+                      placeholder="image URL"
+                      value={newProd.image_url}
+                      onChange={(e) => setNewProd({ ...newProd, image_url: e.target.value })}
+                    />
+                  </div>
+                </div>
                 <Button type="button" onClick={() => navigate(`${basePath}/products`)} className="border">Geri</Button>
                 <Button type="button" onClick={addProduct} className="bg-red-600 text-white">{t("add_product")}</Button>
               </div>
@@ -1335,9 +1681,9 @@ const CustomerMenu = () => {
     const text = `Hello! I'd like to order:\n${cart
       .map(
         (p) =>
-          `- ${(p.translations as any)?.[currentLang]?.name || p.name} ($${p.price})`
+          `- ${(p.translations as any)?.[currentLang]?.name || p.name} (₼${Number(p.price).toFixed(2)})`
       )
-      .join("\n")}\nTotal: $${cart.reduce((s, p) => s + Number(p.price), 0)}`;
+      .join("\n")}\nTotal: ₼${cart.reduce((s, p) => s + Number(p.price), 0).toFixed(2)}`;
     window.open(`https://wa.me/${wa}?text=${encodeURIComponent(text)}`);
   };
 
