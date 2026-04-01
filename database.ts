@@ -550,6 +550,27 @@ export async function initDatabase() {
       });
     }
 
+    if (!(await db.schema.hasTable("plan_upgrade_requests"))) {
+      await db.schema.createTable("plan_upgrade_requests", (table) => {
+        table.increments("id");
+        table
+          .integer("restaurant_id")
+          .unsigned()
+          .notNullable()
+          .references("id")
+          .inTable("restaurants")
+          .onDelete("CASCADE");
+        table
+          .integer("subscription_plan_id")
+          .unsigned()
+          .notNullable()
+          .references("id")
+          .inTable("subscription_plans");
+        table.string("status", 32).notNullable().defaultTo("pending");
+        table.timestamps(true, true);
+      });
+    }
+
     if (await db.schema.hasTable("categories")) {
       await ensureColumn("categories", "translations", (table) => {
         table.text("translations");
@@ -603,6 +624,9 @@ export async function initDatabase() {
       });
       await ensureColumn("restaurants", "strict_opening_hours", (table) => {
         table.boolean("strict_opening_hours").defaultTo(false);
+      });
+      await ensureColumn("restaurants", "onboarding_completed", (table) => {
+        table.boolean("onboarding_completed").defaultTo(true);
       });
     }
 

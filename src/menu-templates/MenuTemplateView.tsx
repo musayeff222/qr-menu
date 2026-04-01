@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   MapPin,
@@ -98,6 +98,9 @@ export type MenuTemplateViewProps = {
     whatsapp_order?: boolean;
     reservation?: boolean;
   };
+  /** Full-screen cart vs inline peek (customer menu). */
+  menuView?: "browse" | "cart";
+  onMenuViewChange?: (v: "browse" | "cart") => void;
 };
 
 const RADIUS_MAP = {
@@ -136,9 +139,33 @@ export function MenuTemplateView({
   ordersClosedHint,
   t,
   planFeatures,
+  menuView = "browse",
+  onMenuViewChange,
 }: MenuTemplateViewProps) {
   const allowWa = planFeatures?.whatsapp_order !== false;
   const allowRes = planFeatures?.reservation !== false;
+  const fabRef = useRef<HTMLButtonElement | null>(null);
+  const navCartRef = useRef<HTMLButtonElement | null>(null);
+  const [fly, setFly] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(
+    null
+  );
+
+  useEffect(() => {
+    if (cart.length === 0 && menuView === "cart") onMenuViewChange?.("browse");
+  }, [cart.length, menuView, onMenuViewChange]);
+
+  const triggerFly = (clientX: number, clientY: number) => {
+    const el = fabRef.current || navCartRef.current;
+    let x1 = clientX;
+    let y1 = clientY - 80;
+    if (el) {
+      const r = el.getBoundingClientRect();
+      x1 = r.left + r.width / 2;
+      y1 = r.top + r.height / 2;
+    }
+    setFly({ x0: clientX, y0: clientY, x1, y1 });
+    window.setTimeout(() => setFly(null), 550);
+  };
   const th = template.theme;
   const r = RADIUS_MAP[th.radius];
   const pir = IMG_R_MAP[th.productImageRadius];
@@ -379,17 +406,26 @@ export function MenuTemplateView({
     return Math.min(base, ...v);
   };
 
-  const handleAddProduct = (prod: Record<string, unknown>) => {
+  const handleAddProduct = (
+    prod: Record<string, unknown>,
+    e?: React.MouseEvent | React.TouchEvent
+  ) => {
     if (!allowWa || !ordersAllowed) return;
     const vars = variantsOf(prod);
     if (vars.length > 0) {
       setVariantPick(prod);
       return;
     }
+    if ("clientX" in (e || {}) && e) triggerFly(e.clientX, e.clientY);
     addToCart({ product: prod, unitPrice: Number(prod.price) });
   };
 
-  const pickVariant = (prod: Record<string, unknown>, v: Record<string, unknown>) => {
+  const pickVariant = (
+    prod: Record<string, unknown>,
+    v: Record<string, unknown>,
+    e?: React.MouseEvent
+  ) => {
+    if (e) triggerFly(e.clientX, e.clientY);
     addToCart({
       product: prod,
       variantId: Number(v.id),
@@ -463,7 +499,7 @@ export function MenuTemplateView({
     const innerAdd = allowWa ? (
       <button
         type="button"
-        onClick={() => handleAddProduct(prod)}
+        onClick={(e) => handleAddProduct(prod, e)}
         disabled={!ordersAllowed}
         className={cn(
           "w-10 h-10 flex items-center justify-center text-white shadow-md active:scale-90 transition-transform shrink-0",
@@ -611,6 +647,48 @@ export function MenuTemplateView({
     );
   };
 
+  const showFullCart = allowWa && cart.length > 0 && menuView === "cart";
+  const showCompactCartDrawer = allowWa && cart.length > 0 && menuView !== "cart";
+
+  const cartLineBlocks = cart.map((line) => {
+    const tr = line.product.translations as Record<string, { name?: string }> | undefined;
+    const pn = tr?.[currentLang]?.name || String(line.product.name ?? "");
+    const label = line.variantLabel ? `${line.variantLabel} · ${pn}` : pn;
+    return (
+      <div key={line.lineId} className="p-3 text-sm space-y-2 border-b border-black/5">
+        <div className="flex justify-between gap-2">
+          <span className="font-medium line-clamp-2">{label}</span>
+          <span className="font-bold shrink-0">₼{Number(line.unitPrice).toFixed(2)}</span>
+        </div>
+        <div className="flex gap-1 flex-wrap">
+          {["az duzlu", "ədviyyatlı", "sos"].map((q) => (
+            <button
+              key={q}
+              type="button"
+              className="text-[10px] px-2 py-0.5 rounded-full border border-black/10"
+              onClick={() => updateCartLineNote(line.lineId, [line.note, q].filter(Boolean).join(", "))}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+        <input
+          className="w-full text-xs p-2 rounded-lg border border-black/10 bg-transparent"
+          placeholder={t("cart_note_placeholder")}
+          value={line.note || ""}
+          onChange={(e) => updateCartLineNote(line.lineId, e.target.value)}
+        />
+        <button
+          type="button"
+          className="text-xs text-red-600"
+          onClick={() => removeCartLine(line.lineId)}
+        >
+          {t("cart_remove_line")}
+        </button>
+      </div>
+    );
+  });
+
   return (
     <div
       id="menu-template-root"
@@ -629,6 +707,78 @@ export function MenuTemplateView({
         Skip to menu
       </a>
 
+      <AnimatePresence>
+        {fly ? (
+          <motion.div
+            key="fly"
+            className="pointer-events-none fixed z-[320] h-4 w-4 rounded-full bg-emerald-400 shadow-lg"
+            initial={{ left: fly.x0, top: fly.y0, opacity: 1, scale: 1.1 }}
+            animate={{ left: fly.x1, top: fly.y1, opacity: 0.15, scale: 0.35 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.52, ease: [0.25, 0.46, 0.45, 0.94] }}
+            style={{ position: "fixed" }}
+          />
+        ) : null}
+      </AnimatePresence>
+
+      {showFullCart ? (
+        <div
+          className="fixed inset-0 z-[55] flex flex-col pb-safe"
+          style={{ backgroundColor: "var(--mt-bg)", color: "var(--mt-text)" }}
+        >
+          <div
+            className="flex shrink-0 items-center gap-3 border-b border-black/10 px-4 py-3 pt-safe"
+            style={{ backgroundColor: "var(--mt-surface)" }}
+          >
+            <button
+              type="button"
+              className="rounded-lg px-2 py-1.5 text-sm font-semibold"
+              style={{ color: "var(--mt-primary)" }}
+              onClick={() => onMenuViewChange?.("browse")}
+            >
+              ← {t("cart_back_menu")}
+            </button>
+            <h2 className="text-lg font-bold">{t("cart_screen_title")}</h2>
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 py-2">
+            <div
+              className="rounded-2xl border border-black/10 bg-[var(--mt-surface)] shadow-lg"
+              style={{ color: "var(--mt-text)" }}
+            >
+              {cartLineBlocks}
+            </div>
+            {!ordersAllowed && ordersClosedHint ? (
+              <p className="rounded-lg bg-amber-100 px-2 py-2 text-center text-xs text-amber-800">
+                {ordersClosedHint}
+              </p>
+            ) : null}
+          </div>
+          <div className="shrink-0 border-t border-black/10 p-3" style={{ backgroundColor: "var(--mt-surface)" }}>
+            <button
+              type="button"
+              onClick={() => ordersAllowed && onCheckout()}
+              disabled={!ordersAllowed}
+              className="flex w-full items-center justify-between p-4 font-bold text-white shadow-xl active:scale-[0.99] disabled:opacity-50"
+              style={{
+                backgroundColor: "var(--mt-primary)",
+                borderRadius: th.radius === "full" ? "9999px" : "1rem",
+              }}
+            >
+              <span className="flex items-center gap-3">
+                <ShoppingCart size={22} />
+                {cart.length} · ₼{cart.reduce((s, l) => s + Number(l.unitPrice), 0).toFixed(2)}
+              </span>
+              <span className="flex items-center gap-1">
+                {t("order_via_whatsapp")}
+                <ChevronRight size={20} />
+              </span>
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {!showFullCart ? (
+        <>
       <header>
         {headerLayout === "split" ? (
           <div
@@ -886,15 +1036,19 @@ export function MenuTemplateView({
       {allowWa && th.showFab && waOrderUrl && (
         cart.length > 0 ? (
           <button
+            ref={fabRef}
             type="button"
-            onClick={() => ordersAllowed && onCheckout()}
+            onClick={() =>
+              ordersAllowed &&
+              (menuView === "browse" ? onMenuViewChange?.("cart") : onCheckout())
+            }
             className={cn(
               "fixed bottom-24 right-4 z-50 w-14 h-14 flex items-center justify-center text-white shadow-2xl active:scale-95 transition-transform",
               RADIUS_MAP.full,
               !ordersAllowed && "opacity-50"
             )}
             style={{ backgroundColor: "#22c55e" }}
-            aria-label="Checkout"
+            aria-label={t("nav_cart")}
           >
             <ShoppingCart size={26} />
           </button>
@@ -922,89 +1076,58 @@ export function MenuTemplateView({
         >
           <a href={`#main-menu`} className="flex flex-col items-center text-[10px] text-[var(--mt-muted)]">
             <Utensils size={22} style={{ color: "var(--mt-primary)" }} />
-            Menu
+            {t("nav_menu")}
           </a>
           <a href={mapsUrl || "#"} className="flex flex-col items-center text-[10px] text-[var(--mt-muted)]">
             <MapPin size={22} />
-            Map
+            {t("nav_map")}
           </a>
           <a
             href={allowWa ? waOrderUrl || "#" : "#main-menu"}
             className="flex flex-col items-center text-[10px] text-[var(--mt-muted)]"
           >
             <MessageCircle size={22} className="text-green-600" />
-            Order
+            {t("nav_order")}
           </a>
           <button
+            ref={navCartRef}
             type="button"
-            onClick={() => allowWa && ordersAllowed && onCheckout()}
+            onClick={() =>
+              allowWa &&
+              ordersAllowed &&
+              (cart.length > 0 ? onMenuViewChange?.("cart") : onCheckout())
+            }
             className="flex flex-col items-center text-[10px] text-[var(--mt-muted)]"
           >
             <ShoppingCart size={22} />
-            Cart
+            {t("nav_cart")}
           </button>
         </nav>
       )}
 
       <AnimatePresence>
-        {allowWa && cart.length > 0 && (
+        {showCompactCartDrawer && (
           <motion.div
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
             className={cn("fixed z-[60] left-3 right-3 max-h-[55vh] flex flex-col gap-2", th.showBottomNav ? "bottom-16" : "bottom-4")}
           >
+            <div className="flex justify-end px-1">
+              <button
+                type="button"
+                className="text-[11px] font-semibold underline opacity-80"
+                style={{ color: "var(--mt-primary)" }}
+                onClick={() => onMenuViewChange?.("cart")}
+              >
+                {t("cart_open_full")}
+              </button>
+            </div>
             <div
               className="rounded-2xl border border-black/10 overflow-hidden flex flex-col max-h-[40vh] bg-[var(--mt-surface)] shadow-xl"
               style={{ color: "var(--mt-text)" }}
             >
-              <div className="overflow-y-auto divide-y divide-black/5">
-                {cart.map((line) => {
-                  const tr = line.product.translations as Record<string, { name?: string }> | undefined;
-                  const pn =
-                    tr?. [currentLang]?.name ||
-                    String(line.product.name ?? "");
-                  const label = line.variantLabel ? `${line.variantLabel} · ${pn}` : pn;
-                  return (
-                    <div key={line.lineId} className="p-3 text-sm space-y-2">
-                      <div className="flex justify-between gap-2">
-                        <span className="font-medium line-clamp-2">{label}</span>
-                        <span className="font-bold shrink-0">₼{Number(line.unitPrice).toFixed(2)}</span>
-                      </div>
-                      <div className="flex gap-1 flex-wrap">
-                        {["az duzlu", "ədviyyatlı", "sos"].map((q) => (
-                          <button
-                            key={q}
-                            type="button"
-                            className="text-[10px] px-2 py-0.5 rounded-full border border-black/10"
-                            onClick={() =>
-                              updateCartLineNote(
-                                line.lineId,
-                                [line.note, q].filter(Boolean).join(", ")
-                              )
-                            }
-                          >
-                            {q}
-                          </button>
-                        ))}
-                      </div>
-                      <input
-                        className="w-full text-xs p-2 rounded-lg border border-black/10 bg-transparent"
-                        placeholder="Qeyd (istəsən yaz)"
-                        value={line.note || ""}
-                        onChange={(e) => updateCartLineNote(line.lineId, e.target.value)}
-                      />
-                      <button
-                        type="button"
-                        className="text-xs text-red-600"
-                        onClick={() => removeCartLine(line.lineId)}
-                      >
-                        Sil
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+              <div className="overflow-y-auto divide-y divide-black/5">{cartLineBlocks}</div>
             </div>
             {!ordersAllowed && ordersClosedHint ? (
               <p className="text-center text-xs px-2 text-amber-800 bg-amber-100 rounded-lg py-2">
@@ -1034,6 +1157,8 @@ export function MenuTemplateView({
           </motion.div>
         )}
       </AnimatePresence>
+        </>
+      ) : null}
 
       <AnimatePresence>
         {variantPick ? (
@@ -1059,7 +1184,7 @@ export function MenuTemplateView({
                     key={String(v.id)}
                     type="button"
                     className="w-full flex justify-between p-3 rounded-xl border border-black/10 text-left"
-                    onClick={() => pickVariant(variantPick, v)}
+                    onClick={(e) => pickVariant(variantPick, v, e)}
                   >
                     <span>{String(v.name)}</span>
                     <span className="font-bold">{formatPrice(v.price)}</span>

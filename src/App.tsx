@@ -31,12 +31,16 @@ import {
   Layers,
   ShoppingBag,
   CircleCheck,
+  Menu,
+  CreditCard,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { authRestaurantHeaders, authAnyStaffHeaders } from "./lib/headers";
 import { DEMO_MENU_PREVIEW_SLUG } from "./demoMenuSlug";
+import { I18nBundleContext, useI18nBundle } from "./i18n/bundleContext";
+import RestaurantOnboarding from "./RestaurantOnboarding";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -142,6 +146,61 @@ const UI_TRANSLATIONS: any = {
     checkout_send: "WhatsApp ilə göndər",
     checkout_address_required: "Ünvan yazın və ya konumu seçin",
     checkout_cancel: "Bağla",
+    nav_menu: "Menyu",
+    nav_map: "Xəritə",
+    nav_order: "Sifariş",
+    nav_cart: "Səbət",
+    cart_back_menu: "Menyuya qayıt",
+    cart_screen_title: "Səbət",
+    cart_note_placeholder: "Qeyd (istəsən yaz)",
+    cart_remove_line: "Sil",
+    cart_open_full: "Tam səbətə keç",
+    register_sub_profile:
+      "Profil adınızı yazın (restoran adı deyil). Restoran məlumatlarını sonradan təkmilləşdirə bilərsiniz.",
+    register_success_title: "Hesabınız uğurla yaradıldı",
+    btn_prepare_menu: "Menyu hazırla",
+    btn_continue: "Davam et",
+    onboarding_title: "Qoşulma",
+    onboarding_skip: "Sonra",
+    onboarding_step1_title: "Restoran məlumatları",
+    onboarding_step1_sub: "Qonaqlarınızın görməli olduğu əsas məlumatlar.",
+    restaurant_name_label: "Restoran adı",
+    onboarding_location: "Konum",
+    maps_url_placeholder: "Google Maps linki",
+    onboarding_next: "Növbəti",
+    onboarding_back: "Geri",
+    onboarding_step2_title: "Menyu linkiniz",
+    onboarding_step2_sub: "Qonaqlar bu ünvanla menyunuza daxil olacaq.",
+    onboarding_link_example_prefix: "Nümunə: ",
+    onboarding_step3_title: "Şablon seçimi",
+    onboarding_finish: "Bitir",
+    panel_plan: "Plan və limitlər",
+    plan_active_label: "Aktiv plan",
+    plan_limits_title: "Limitlər",
+    plan_max_products: "Məhsul",
+    plan_max_categories: "Kateqoriya",
+    plan_max_templates: "Şablon",
+    plan_upgrade_btn: "Planı yüksəlt",
+    plan_processing_badge: "İcradadır",
+    plan_upgrade_modal_title: "Plan seçin",
+    plan_request_submit: "Sorğu göndər",
+    plan_request_ok_title: "Sorğunuz uğurla göndərildi",
+    plan_request_ok_body:
+      "Ən qısa zamanda WhatsApp üzərindən sizinlə əlaqə saxlanılacaq.",
+    plan_back_panel: "Panelə qayıt",
+    panel_qr_title: "QR kodunuz",
+    panel_qr_scan_hint: "Menyuya baxmaq üçün skan edin",
+    panel_download: "Yüklə",
+    panel_copy_link: "Linki kopyala",
+    link_copied: "Link kopyalandı!",
+    templates_section_title: "Menyu şablonları",
+    templates_section_sub: "şablon. Canlı önizləmə menyunu açır.",
+    translation_cancel: "Ləğv et",
+    landing_hero_kicker: "Yeni nəsil restoran təcrübəsi",
+    landing_hero_headline: "Qonaqlar bir skanla menyuda — sifariş bir toxunuşla WhatsApp-da",
+    landing_hero_highlight: "Kənardan sifariş — içəridən nəzarət",
+    landing_value_line: "Mobil öncüllüklü · Çoxdilli · Anında yenilənən",
+    orders_section_title: "Sifarişlər",
     demo_login: "Demo: demo / demo123 (nümunə menyusu)"
   },
   en: {
@@ -242,6 +301,59 @@ const UI_TRANSLATIONS: any = {
     checkout_send: "Send via WhatsApp",
     checkout_address_required: "Enter an address or share your location",
     checkout_cancel: "Close",
+    nav_menu: "Menu",
+    nav_map: "Map",
+    nav_order: "Order",
+    nav_cart: "Cart",
+    cart_back_menu: "Back to menu",
+    cart_screen_title: "Cart",
+    cart_note_placeholder: "Note (optional)",
+    cart_remove_line: "Remove",
+    cart_open_full: "Open full cart",
+    register_sub_profile: "Your profile name (not the restaurant name). You can add restaurant details later.",
+    register_success_title: "Account created successfully",
+    btn_prepare_menu: "Set up menu",
+    btn_continue: "Continue",
+    onboarding_title: "Onboarding",
+    onboarding_skip: "Later",
+    onboarding_step1_title: "Restaurant details",
+    onboarding_step1_sub: "Information your guests will see.",
+    restaurant_name_label: "Restaurant name",
+    onboarding_location: "Location",
+    maps_url_placeholder: "Google Maps link",
+    onboarding_next: "Next",
+    onboarding_back: "Back",
+    onboarding_step2_title: "Your menu link",
+    onboarding_step2_sub: "Guests will open your menu at this URL.",
+    onboarding_link_example_prefix: "Example: ",
+    onboarding_step3_title: "Choose a template",
+    onboarding_finish: "Finish",
+    panel_plan: "Plan & limits",
+    plan_active_label: "Current plan",
+    plan_limits_title: "Limits",
+    plan_max_products: "Products",
+    plan_max_categories: "Categories",
+    plan_max_templates: "Templates",
+    plan_upgrade_btn: "Upgrade plan",
+    plan_processing_badge: "In progress",
+    plan_upgrade_modal_title: "Choose a plan",
+    plan_request_submit: "Send request",
+    plan_request_ok_title: "Request sent",
+    plan_request_ok_body: "We will contact you shortly via WhatsApp.",
+    plan_back_panel: "Back to panel",
+    panel_qr_title: "Your QR code",
+    panel_qr_scan_hint: "Scan to open your menu",
+    panel_download: "Download",
+    panel_copy_link: "Copy link",
+    link_copied: "Link copied!",
+    templates_section_title: "Menu templates",
+    templates_section_sub: "templates. Live preview opens your menu.",
+    translation_cancel: "Cancel",
+    landing_hero_kicker: "The modern restaurant stack",
+    landing_hero_headline: "Guests scan once — orders land in WhatsApp",
+    landing_hero_highlight: "sales-driven",
+    landing_value_line: "Mobile-first · Multilingual · Always up to date",
+    orders_section_title: "Orders",
     demo_login: "Demo: demo / demo123 (nümunə menyusu)"
   },
   ru: {
@@ -342,6 +454,59 @@ const UI_TRANSLATIONS: any = {
     checkout_send: "Отправить в WhatsApp",
     checkout_address_required: "Укажите адрес или геолокацию",
     checkout_cancel: "Закрыть",
+    nav_menu: "Меню",
+    nav_map: "Карта",
+    nav_order: "Заказ",
+    nav_cart: "Корзина",
+    cart_back_menu: "К меню",
+    cart_screen_title: "Корзина",
+    cart_note_placeholder: "Примечание",
+    cart_remove_line: "Удалить",
+    cart_open_full: "Открыть корзину",
+    register_sub_profile: "Имя профиля (не название ресторана). Данные ресторана добавите позже.",
+    register_success_title: "Аккаунт создан",
+    btn_prepare_menu: "Настроить меню",
+    btn_continue: "Продолжить",
+    onboarding_title: "Онбординг",
+    onboarding_skip: "Позже",
+    onboarding_step1_title: "Данные ресторана",
+    onboarding_step1_sub: "Что увидят гости.",
+    restaurant_name_label: "Название ресторана",
+    onboarding_location: "Локация",
+    maps_url_placeholder: "Ссылка Google Maps",
+    onboarding_next: "Далее",
+    onboarding_back: "Назад",
+    onboarding_step2_title: "Ссылка меню",
+    onboarding_step2_sub: "Гости откроют меню по этому адресу.",
+    onboarding_link_example_prefix: "Пример: ",
+    onboarding_step3_title: "Шаблон",
+    onboarding_finish: "Готово",
+    panel_plan: "План и лимиты",
+    plan_active_label: "Текущий план",
+    plan_limits_title: "Лимиты",
+    plan_max_products: "Товары",
+    plan_max_categories: "Категории",
+    plan_max_templates: "Шаблоны",
+    plan_upgrade_btn: "Сменить план",
+    plan_processing_badge: "В работе",
+    plan_upgrade_modal_title: "Выберите план",
+    plan_request_submit: "Отправить запрос",
+    plan_request_ok_title: "Запрос отправлен",
+    plan_request_ok_body: "Мы свяжемся с вами в WhatsApp.",
+    plan_back_panel: "В панель",
+    panel_qr_title: "QR-код",
+    panel_qr_scan_hint: "Сканируйте, чтобы открыть меню",
+    panel_download: "Скачать",
+    panel_copy_link: "Копировать ссылку",
+    link_copied: "Скопировано!",
+    templates_section_title: "Шаблоны меню",
+    templates_section_sub: "шаблонов. Живой предпросмотр.",
+    translation_cancel: "Отмена",
+    landing_hero_kicker: "Цифровое меню для гостей",
+    landing_hero_headline: "Гости сканируют один раз — заказы в WhatsApp",
+    landing_hero_highlight: "Больше заказов — меньше хаоса",
+    landing_value_line: "Мобильно · Мультиязычно · Всегда актуально",
+    orders_section_title: "Заказы",
     demo_login: "Демо: demo / demo123 (пример меню)"
   },
   tr: {
@@ -442,15 +607,62 @@ const UI_TRANSLATIONS: any = {
     checkout_send: "WhatsApp ile gönder",
     checkout_address_required: "Adres yazın veya konum seçin",
     checkout_cancel: "Kapat",
+    nav_menu: "Menü",
+    nav_map: "Harita",
+    nav_order: "Sipariş",
+    nav_cart: "Sepet",
+    cart_back_menu: "Menüye dön",
+    cart_screen_title: "Sepet",
+    cart_note_placeholder: "Not",
+    cart_remove_line: "Kaldır",
+    cart_open_full: "Tam sepet",
+    register_sub_profile: "Profil adınız (restoran adı değil). Restoranı sonra tamamlayın.",
+    register_success_title: "Hesap oluşturuldu",
+    btn_prepare_menu: "Menü kur",
+    btn_continue: "Devam",
+    onboarding_title: "Başlangıç",
+    onboarding_skip: "Sonra",
+    onboarding_step1_title: "Restoran bilgileri",
+    onboarding_step1_sub: "Misafirlerin göreceği temel bilgiler.",
+    restaurant_name_label: "Restoran adı",
+    onboarding_location: "Konum",
+    maps_url_placeholder: "Google Maps linki",
+    onboarding_next: "İleri",
+    onboarding_back: "Geri",
+    onboarding_step2_title: "Menü bağlantınız",
+    onboarding_step2_sub: "Misafirler bu URL ile menüye girer.",
+    onboarding_link_example_prefix: "Örnek: ",
+    onboarding_step3_title: "Şablon seçin",
+    onboarding_finish: "Bitir",
+    panel_plan: "Plan ve limitler",
+    plan_active_label: "Aktif plan",
+    plan_limits_title: "Limitler",
+    plan_max_products: "Ürün",
+    plan_max_categories: "Kategori",
+    plan_max_templates: "Şablon",
+    plan_upgrade_btn: "Planı yükselt",
+    plan_processing_badge: "İşlemde",
+    plan_upgrade_modal_title: "Plan seçin",
+    plan_request_submit: "Talep gönder",
+    plan_request_ok_title: "Talebiniz gönderildi",
+    plan_request_ok_body: "WhatsApp üzerinden en kısa sürede dönüş yapılacaktır.",
+    plan_back_panel: "Panele dön",
+    panel_qr_title: "QR kodunuz",
+    panel_qr_scan_hint: "Menüyü görmek için tarayın",
+    panel_download: "İndir",
+    panel_copy_link: "Linki kopyala",
+    link_copied: "Kopyalandı!",
+    templates_section_title: "Menü şablonları",
+    templates_section_sub: "şablon. Canlı önizleme.",
+    translation_cancel: "İptal",
+    landing_hero_kicker: "Modern restoran deneyimi",
+    landing_hero_headline: "Misafirler tek tarama — sipariş WhatsApp'ta",
+    landing_hero_highlight: "Daha çok sipariş · daha az karmaşa",
+    landing_value_line: "Mobil öncelikli · Çok dilli · Her zaman güncel",
+    orders_section_title: "Siparişler",
     demo_login: "Demo: demo / demo123 (nümunə menyusu)"
   }
 };
-
-const I18nBundleContext = React.createContext(UI_TRANSLATIONS);
-
-function useI18nBundle() {
-  return React.useContext(I18nBundleContext);
-}
 
 // --- Types ---
 interface Restaurant {
@@ -612,23 +824,39 @@ const LandingPage = () => {
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs sm:text-sm text-red-100 mb-6"
           >
             <Wifi size={14} className="text-red-300" />
-            QR · WhatsApp · Çoxdilli
+            {t("landing_hero_kicker")}
           </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight mb-6"
+            className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight mb-4"
           >
-            {t("landing_sales_title")}
+            {t("landing_hero_headline")}
           </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-lg sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-red-200 mb-4"
+          >
+            {t("landing_hero_highlight")}
+          </motion.p>
           <motion.p
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.12 }}
-            className="text-base sm:text-lg md:text-xl text-red-100/90 mb-10 max-w-2xl mx-auto"
+            className="text-base sm:text-lg md:text-xl text-red-100/90 mb-4 max-w-2xl mx-auto"
           >
             {t("landing_sales_sub")}
+          </motion.p>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.16 }}
+            className="text-sm text-red-200/80 mb-10 font-medium tracking-wide"
+          >
+            {t("landing_value_line")}
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -636,12 +864,18 @@ const LandingPage = () => {
             transition={{ delay: 0.18 }}
             className="flex flex-col sm:flex-row gap-3 justify-center items-stretch sm:items-center"
           >
-            <Link
-              to="/register"
-              className="inline-flex items-center justify-center gap-2 bg-white text-red-900 px-6 py-3.5 rounded-xl text-base font-bold shadow-xl hover:shadow-red-500/20 active:scale-[0.98] transition-transform"
+            <motion.div
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              className="inline-flex rounded-xl"
             >
-              {t("landing_cta_free")} <ArrowRight size={20} />
-            </Link>
+              <Link
+                to="/register"
+                className="inline-flex items-center justify-center gap-2 bg-white text-red-900 px-8 py-4 rounded-xl text-base font-bold shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_20px_50px_-12px_rgba(239,68,68,0.65)] ring-2 ring-red-400/40"
+              >
+                {t("landing_cta_free")} <ArrowRight size={20} />
+              </Link>
+            </motion.div>
             <a
               href={`/r/${DEMO_MENU_PREVIEW_SLUG}?preview=true&previewTemplate=modern-01`}
               target="_blank"
@@ -816,6 +1050,7 @@ const RegisterPage = () => {
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [doneUsername, setDoneUsername] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/public/settings")
@@ -848,16 +1083,48 @@ const RegisterPage = () => {
         setError(data.error || t("server_error"));
         return;
       }
-      navigate("/panel", {
-        replace: true,
-        state: { registered: true, username: String(username).trim().toLowerCase() },
-      });
+      setDoneUsername(String(username).trim().toLowerCase());
     } catch {
       setError(t("server_error"));
     } finally {
       setBusy(false);
     }
   };
+
+  if (doneUsername) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-red-950 flex items-center justify-center p-4">
+        <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
+          <Card className="p-6 sm:p-8 border border-white/10 bg-white/95 backdrop-blur shadow-2xl text-center space-y-6">
+            <div className="text-4xl">✓</div>
+            <h1 className="text-xl font-bold text-gray-900">{t("register_success_title")}</h1>
+            <p className="text-sm text-gray-600">{t("register_success_note")}</p>
+            <div className="flex flex-col gap-3">
+              <Button
+                type="button"
+                className="w-full bg-red-600 text-white py-3 font-bold"
+                onClick={() =>
+                  navigate("/panel", { replace: true, state: { username: doneUsername, startOnboarding: true } })
+                }
+              >
+                {t("btn_prepare_menu")}
+              </Button>
+              <Button
+                type="button"
+                className="w-full border border-gray-200 bg-white py-3 font-semibold text-gray-800"
+                onClick={() => navigate("/panel", { replace: true, state: { username: doneUsername } })}
+              >
+                {t("btn_continue")}
+              </Button>
+            </div>
+            <Link to="/" className="inline-block text-sm text-red-600 hover:underline">
+              ← {t("landing_nav_start")}
+            </Link>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-red-950 flex items-center justify-center p-4">
@@ -866,7 +1133,7 @@ const RegisterPage = () => {
           <div className="flex items-center gap-2 text-red-600 font-bold text-xl mb-2 justify-center">
             <Store /> {t("register_title")}
           </div>
-          <p className="text-center text-gray-500 text-sm mb-6">{t("register_sub")}</p>
+          <p className="text-center text-gray-500 text-sm mb-6">{t("register_sub_profile")}</p>
           <form onSubmit={submit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t("full_name_label")}</label>
@@ -971,6 +1238,23 @@ const RestaurantLoginPage = () => {
     if (data.success && data.token) {
       localStorage.setItem("restaurantSession", data.token);
       localStorage.setItem("restaurantId", String(data.restaurantId));
+      const st = location.state as { startOnboarding?: boolean } | undefined;
+      try {
+        const menuRes = await fetch(`/api/admin/restaurants/${data.restaurantId}/menu`, {
+          headers: authAnyStaffHeaders(),
+        });
+        if (menuRes.ok) {
+          const menuData = await menuRes.json();
+          const ob = menuData.restaurant?.onboarding_completed;
+          const completed = ob === true || ob === 1 || ob === "1";
+          if (st?.startOnboarding === true || !completed) {
+            navigate(`/restaurant/${data.restaurantId}/onboarding`, { replace: true });
+            return;
+          }
+        }
+      } catch {
+        /* ignore */
+      }
       navigate(from || `/restaurant/${data.restaurantId}`, { replace: true });
     } else {
       setError(data.error || "Login failed");
@@ -990,9 +1274,6 @@ const RestaurantLoginPage = () => {
           </div>
           <p className="text-center text-gray-500 text-sm mb-6">{t("rest_login_sub")}</p>
           <p className="text-xs text-center text-amber-700 bg-amber-50 rounded-lg p-2 mb-4">{t("demo_login")}</p>
-          {regState?.registered ? (
-            <p className="text-xs text-center text-green-800 bg-green-50 rounded-lg p-2 mb-4">{t("register_success_note")}</p>
-          ) : null}
           <form onSubmit={submit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t("username")}</label>
@@ -1071,11 +1352,36 @@ const RestaurantPanel = () => {
     cover_image_url: "",
   });
   const [editingTranslations, setEditingTranslations] = useState<{ type: 'category' | 'product', id: number, data: any } | null>(null);
-  const [currentLang, setCurrentLang] = useState("az");
+  const [currentLang, setCurrentLang] = useState(() => {
+    if (typeof navigator === "undefined") return "az";
+    const n = navigator.language?.slice(0, 2).toLowerCase();
+    return ["az", "en", "ru", "tr"].includes(n) ? n : "az";
+  });
   const [loadError, setLoadError] = useState("");
   const [extraTemplates, setExtraTemplates] = useState<MenuTemplateDef[]>([]);
   const [dashStats, setDashStats] = useState<{ scans: number; pageViews: number; topProducts: any[] } | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
+  const [planRow, setPlanRow] = useState<Record<string, unknown> | null>(null);
+  const [pendingPlanRequest, setPendingPlanRequest] = useState<{
+    id: number;
+    status: string;
+    plan_name: string;
+  } | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [planUpgradeOpen, setPlanUpgradeOpen] = useState(false);
+  const [planSuccessOpen, setPlanSuccessOpen] = useState(false);
+  const [selectedUpgradePlanId, setSelectedUpgradePlanId] = useState<number | null>(null);
+  const [catalogPlans, setCatalogPlans] = useState<
+    Array<{
+      id: number;
+      name: string;
+      slug: string;
+      max_products: number;
+      max_categories: number;
+      max_templates: number;
+      price_monthly: string | number;
+    }>
+  >([]);
 
   const isSuper = typeof window !== "undefined" && !!localStorage.getItem("adminSession");
 
@@ -1107,6 +1413,8 @@ const RestaurantPanel = () => {
       setRestaurant(data.restaurant);
       setCategories(data.categories);
       setProducts(data.products);
+      setPlanRow((data.plan as Record<string, unknown>) ?? null);
+      setPendingPlanRequest(data.pendingPlanRequest ?? null);
       const r = data.restaurant;
       setProfile({
         name: r.name || "",
@@ -1153,7 +1461,48 @@ const RestaurantPanel = () => {
       .then(setOrders);
   }, [id, section]);
 
+  useEffect(() => {
+    fetch("/api/public/settings")
+      .then((r) => r.json())
+      .then((s: { default_language?: string }) => {
+        const d = s?.default_language;
+        if (d && ["az", "en", "ru", "tr"].includes(d)) setCurrentLang(d);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (section !== "plan" && !planUpgradeOpen) return;
+    fetch("/api/public/plans")
+      .then((r) => r.json())
+      .then((rows) => setCatalogPlans(Array.isArray(rows) ? rows : []))
+      .catch(() => setCatalogPlans([]));
+  }, [section, planUpgradeOpen]);
+
   const t = (key: string) => bundle[currentLang]?.[key] || key;
+
+  const closeMobileNav = () => setMobileNavOpen(false);
+
+  const lim = (n: number) => (n < 0 ? "∞" : String(n));
+
+  const submitPlanRequest = async () => {
+    if (!selectedUpgradePlanId) return;
+    const res = await fetch(`/api/admin/restaurants/${id}/plan-request`, {
+      method: "POST",
+      headers: authAnyStaffHeaders(),
+      body: JSON.stringify({ subscription_plan_id: selectedUpgradePlanId }),
+    });
+    if (res.ok) {
+      setPlanUpgradeOpen(false);
+      setPlanSuccessOpen(true);
+      const reload = await fetch(`/api/admin/restaurants/${id}/menu`, { headers: authAnyStaffHeaders() });
+      const d = await reload.json();
+      setPendingPlanRequest(d.pendingPlanRequest ?? null);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert((err as { error?: string }).error || "Xəta");
+    }
+  };
 
   const saveProfile = async () => {
     const res = await fetch(`/api/admin/restaurants/${id}/profile`, {
@@ -1290,54 +1639,116 @@ const RestaurantPanel = () => {
   if (loadError) return <div className="p-10 text-center text-red-600">{loadError}</div>;
   if (!restaurant) return <div className="p-10">{t("loading")}</div>;
 
+  const navLinks = (
+    <>
+      <NavLink to={basePath} end className={sidebarCls} onClick={closeMobileNav}>
+        <LayoutDashboard size={18} /> {t("dashboard")}
+      </NavLink>
+      <NavLink to={`${basePath}/categories`} className={sidebarCls} onClick={closeMobileNav}>
+        <Utensils size={18} /> {t("categories")}
+      </NavLink>
+      <NavLink to={`${basePath}/products`} className={sidebarCls} onClick={closeMobileNav}>
+        <Plus size={18} /> {t("products")}
+      </NavLink>
+      <NavLink to={`${basePath}/templates`} className={sidebarCls} onClick={closeMobileNav}>
+        <QrCode size={18} /> {t("templates_section_title")}
+      </NavLink>
+      <NavLink to={`${basePath}/plan`} className={sidebarCls} onClick={closeMobileNav}>
+        <CreditCard size={18} /> {t("panel_plan")}
+      </NavLink>
+      <NavLink to={`${basePath}/orders`} className={sidebarCls} onClick={closeMobileNav}>
+        <ShoppingCart size={18} /> {t("orders_section_title")}
+      </NavLink>
+      <NavLink to={`${basePath}/settings`} className={sidebarCls} onClick={closeMobileNav}>
+        <Globe size={18} /> {t("settings")}
+      </NavLink>
+      <a
+        href={`/r/${restaurant.slug}`}
+        target="_blank"
+        rel="noreferrer"
+        onClick={closeMobileNav}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 text-sm whitespace-nowrap"
+      >
+        <Globe size={18} /> {t("view_live")}
+      </a>
+      {isSuper && (
+        <Link to="/admin" className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 whitespace-nowrap" onClick={closeMobileNav}>
+          ← Admin
+        </Link>
+      )}
+      {!isSuper && (
+        <button
+          type="button"
+          onClick={() => {
+            closeMobileNav();
+            staffLogout();
+          }}
+          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-red-600 whitespace-nowrap"
+        >
+          <X size={18} /> {t("logout")}
+        </button>
+      )}
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row pb-safe">
-      <aside className="w-full md:w-56 shrink-0 bg-white border-b md:border-b-0 md:border-r border-gray-200 flex md:flex-col flex-row gap-1 p-3 md:p-4 overflow-x-auto md:overflow-visible">
-        <div className="hidden md:flex text-lg font-bold text-red-600 mb-4 items-center gap-2 px-1 whitespace-nowrap">
+      <div className="md:hidden sticky top-0 z-30 flex items-center gap-2 border-b border-gray-200 bg-white/95 px-3 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+        <button
+          type="button"
+          aria-label="Menyu"
+          onClick={() => setMobileNavOpen(true)}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-800 shadow-sm active:scale-95"
+        >
+          <Menu size={22} />
+        </button>
+        <span className="min-w-0 flex-1 truncate text-center text-sm font-bold text-red-600">{restaurant.name}</span>
+        <span className="w-11 shrink-0" />
+      </div>
+
+      <AnimatePresence>
+        {mobileNavOpen ? (
+          <>
+            <motion.button
+              type="button"
+              aria-label="Bağla"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/45 md:hidden"
+              onClick={closeMobileNav}
+            />
+            <motion.aside
+              initial={{ x: "-105%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-105%" }}
+              transition={{ type: "spring", stiffness: 320, damping: 32 }}
+              className="fixed left-0 top-0 bottom-0 z-50 flex w-[min(88vw,300px)] flex-col overflow-y-auto border-r border-gray-200 bg-white shadow-2xl md:hidden"
+            >
+              <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                <span className="flex items-center gap-2 font-bold text-red-600">
+                  <Utensils size={20} />
+                  <span className="truncate max-w-[11rem]">{restaurant.name}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={closeMobileNav}
+                  className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="flex flex-col gap-1 p-3">{navLinks}</div>
+            </motion.aside>
+          </>
+        ) : null}
+      </AnimatePresence>
+
+      <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-gray-200 bg-white p-4">
+        <div className="mb-4 flex items-center gap-2 px-1 text-lg font-bold text-red-600">
           <Utensils /> <span className="truncate max-w-[10rem]">{restaurant.name}</span>
         </div>
-        <div className="flex md:flex-col flex-row gap-1 min-w-0 md:space-y-1">
-          <NavLink to={basePath} end className={sidebarCls}>
-            <LayoutDashboard size={18} /> {t("dashboard")}
-          </NavLink>
-          <NavLink to={`${basePath}/categories`} className={sidebarCls}>
-            <Utensils size={18} /> {t("categories")}
-          </NavLink>
-          <NavLink to={`${basePath}/products`} className={sidebarCls}>
-            <Plus size={18} /> {t("products")}
-          </NavLink>
-          <NavLink to={`${basePath}/templates`} className={sidebarCls}>
-            <QrCode size={18} /> Şablonlar
-          </NavLink>
-          <NavLink to={`${basePath}/orders`} className={sidebarCls}>
-            <ShoppingCart size={18} /> Sifarişlər
-          </NavLink>
-          <NavLink to={`${basePath}/settings`} className={sidebarCls}>
-            <Globe size={18} /> {t("settings")}
-          </NavLink>
-          <a
-            href={`/r/${restaurant.slug}`}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 text-sm whitespace-nowrap"
-          >
-            <Globe size={18} /> {t("view_live")}
-          </a>
-          {isSuper && (
-            <Link to="/admin" className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 whitespace-nowrap">
-              ← Admin
-            </Link>
-          )}
-          {!isSuper && (
-            <button
-              type="button"
-              onClick={staffLogout}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-red-600 whitespace-nowrap"
-            >
-              <X size={18} /> {t("logout")}
-            </button>
-          )}
-        </div>
+        <div className="flex flex-col gap-1">{navLinks}</div>
       </aside>
 
       <main className="flex-1 p-4 sm:p-6 md:p-8 w-full min-w-0">
@@ -1347,8 +1758,9 @@ const RestaurantPanel = () => {
             {section === "settings" && t("settings")}
             {section === "categories" && t("categories")}
             {section === "products" && (productsNew ? t("add_product") : t("products"))}
-            {section === "templates" && "Şablonlar"}
-            {section === "orders" && "Sifarişlər"}
+            {section === "templates" && t("templates_section_title")}
+            {section === "plan" && t("panel_plan")}
+            {section === "orders" && t("orders_section_title")}
           </h1>
           <div className="flex flex-wrap items-center gap-3">
             <select 
@@ -1413,6 +1825,136 @@ const RestaurantPanel = () => {
             )}
           </Card>
         )}
+
+        {section === "plan" && planRow ? (
+          <>
+            <Card className="p-6 mb-6 shadow-md">
+              <div className="mb-6 flex flex-wrap items-center gap-3">
+                <h2 className="text-lg font-bold text-gray-900">{t("plan_active_label")}</h2>
+                <span className="rounded-full bg-red-50 px-3 py-1 text-sm font-semibold text-red-700">
+                  {String(planRow.name ?? "")}
+                </span>
+                {pendingPlanRequest ? (
+                  <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-bold uppercase text-amber-900">
+                    {t("plan_processing_badge")}
+                  </span>
+                ) : null}
+              </div>
+              <h3 className="mb-3 font-semibold text-gray-800">{t("plan_limits_title")}</h3>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>
+                  {t("plan_max_categories")}: <strong>{lim(Number(planRow.max_categories))}</strong>
+                </li>
+                <li>
+                  {t("plan_max_products")}: <strong>{lim(Number(planRow.max_products))}</strong>
+                </li>
+                <li>
+                  {t("plan_max_templates")}: <strong>{lim(Number(planRow.max_templates))}</strong>
+                </li>
+              </ul>
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <Button
+                  type="button"
+                  className="bg-red-600 text-white shadow-lg hover:bg-red-500"
+                  onClick={() => {
+                    setSelectedUpgradePlanId(null);
+                    setPlanUpgradeOpen(true);
+                  }}
+                >
+                  {t("plan_upgrade_btn")}
+                </Button>
+              </div>
+            </Card>
+
+            <AnimatePresence>
+              {planUpgradeOpen ? (
+                <motion.div
+                  className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setPlanUpgradeOpen(false)}
+                >
+                  <motion.div
+                    initial={{ scale: 0.94, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.94, opacity: 0 }}
+                    className="max-h-[88vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <h3 className="mb-4 text-lg font-bold">{t("plan_upgrade_modal_title")}</h3>
+                    <div className="mb-6 space-y-2">
+                      {catalogPlans.map((p) => (
+                        <label
+                          key={p.id}
+                          className={cn(
+                            "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors",
+                            selectedUpgradePlanId === p.id ? "border-red-500 bg-red-50" : "border-gray-200"
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="plan-upgrade"
+                            checked={selectedUpgradePlanId === p.id}
+                            onChange={() => setSelectedUpgradePlanId(p.id)}
+                          />
+                          <div>
+                            <div className="font-bold">{p.name}</div>
+                            <div className="text-xs text-gray-500">
+                              ₼{p.price_monthly} / ay · {t("plan_max_products")}: {lim(p.max_products)}
+                            </div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="button" className="flex-1 border border-gray-200 bg-white" onClick={() => setPlanUpgradeOpen(false)}>
+                        {t("checkout_cancel")}
+                      </Button>
+                      <Button
+                        type="button"
+                        disabled={!selectedUpgradePlanId}
+                        className="flex-1 bg-red-600 text-white disabled:opacity-50"
+                        onClick={() => void submitPlanRequest()}
+                      >
+                        {t("plan_request_submit")}
+                      </Button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {planSuccessOpen ? (
+                <motion.div
+                  className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                >
+                  <motion.div
+                    initial={{ scale: 0.95 }}
+                    animate={{ scale: 1 }}
+                    className="max-w-md space-y-4 rounded-2xl bg-white p-8 text-center shadow-2xl"
+                  >
+                    <p className="text-xl font-bold text-green-700">{t("plan_request_ok_title")}</p>
+                    <p className="text-sm text-gray-600">{t("plan_request_ok_body")}</p>
+                    <Button
+                      type="button"
+                      className="w-full bg-red-600 text-white"
+                      onClick={() => {
+                        setPlanSuccessOpen(false);
+                        navigate(`${basePath}/plan`);
+                      }}
+                    >
+                      {t("plan_back_panel")}
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </>
+        ) : null}
 
         {section === "settings" && (
         <Card className="p-4 sm:p-6 mb-8 border-red-100">
@@ -1555,14 +2097,14 @@ const RestaurantPanel = () => {
 
         {section === "settings" && (
         <Card className="p-6 mb-8 max-w-md">
-              <h3 className="font-bold mb-4">Your QR Code</h3>
+              <h3 className="font-bold mb-4">{t("panel_qr_title")}</h3>
               <div className="bg-white border rounded-xl flex flex-col items-center justify-center p-6 text-center">
                 {qrCode ? (
                   <img src={qrCode} alt="QR Code" className="w-48 h-48 mb-4" />
                 ) : (
                   <div className="w-48 h-48 bg-gray-100 animate-pulse mb-4 rounded-lg"></div>
                 )}
-                <p className="text-sm text-gray-500 mb-4">Scan this to view your menu</p>
+                <p className="text-sm text-gray-500 mb-4">{t("panel_qr_scan_hint")}</p>
                 <div className="flex gap-2 w-full">
                   <Button 
                     onClick={() => {
@@ -1573,16 +2115,16 @@ const RestaurantPanel = () => {
                     }}
                     className="flex-1 bg-red-600 text-white text-sm"
                   >
-                    Download
+                    {t("panel_download")}
                   </Button>
                   <Button 
                     onClick={() => {
                       navigator.clipboard.writeText(`${window.location.origin}/r/${restaurant.slug}`);
-                      alert("Link copied!");
+                      alert(t("link_copied"));
                     }}
                     className="flex-1 bg-gray-100 text-gray-600 text-sm"
                   >
-                    Copy Link
+                    {t("panel_copy_link")}
                   </Button>
                 </div>
               </div>
@@ -1591,9 +2133,9 @@ const RestaurantPanel = () => {
 
         {section === "templates" && (
         <Card className="p-4 sm:p-6 mb-8">
-          <h3 className="font-bold text-lg mb-1">Menu templates</h3>
+          <h3 className="font-bold text-lg mb-1">{t("templates_section_title")}</h3>
           <p className="text-sm text-gray-500 mb-4">
-            {MENU_TEMPLATE_COUNT}+ şablon. Canlı baxış menyunu açır.
+            {MENU_TEMPLATE_COUNT}+ {t("templates_section_sub")}
           </p>
           <TemplatePicker
             restaurantSlug={restaurant.slug}
@@ -1821,7 +2363,7 @@ const RestaurantPanel = () => {
                 ))}
               </div>
               <div className="p-6 border-t bg-gray-50 flex gap-3">
-                <Button onClick={() => setEditingTranslations(null)} className="flex-1 bg-white border">Cancel</Button>
+                <Button onClick={() => setEditingTranslations(null)} className="flex-1 bg-white border">{t("translation_cancel")}</Button>
                 <Button onClick={saveTranslations} className="flex-1 bg-red-600 text-white">{t("save")}</Button>
               </div>
             </motion.div>
@@ -1849,6 +2391,7 @@ const CustomerMenu = () => {
   const [payment, setPayment] = useState<"cash" | "card">("cash");
   const [geoBusy, setGeoBusy] = useState(false);
   const [checkoutErr, setCheckoutErr] = useState("");
+  const [menuView, setMenuView] = useState<"browse" | "cart">("browse");
 
   useEffect(() => {
     fetch("/api/public/settings")
@@ -1916,6 +2459,7 @@ const CustomerMenu = () => {
         note: "",
       },
     ]);
+    setMenuView("cart");
   };
 
   const updateCartLineNote = (lineId: string, note: string) => {
@@ -1981,6 +2525,7 @@ const CustomerMenu = () => {
     setGeoUrl("");
     setCheckoutErr("");
     setCart([]);
+    setMenuView("browse");
   };
 
   return (
@@ -2001,6 +2546,8 @@ const CustomerMenu = () => {
         onCheckout={openCheckout}
         ordersAllowed={ordersAllowed}
         ordersClosedHint={ordersClosedHint}
+        menuView={menuView}
+        onMenuViewChange={setMenuView}
         t={t}
         planFeatures={{
           whatsapp_order: plan_features?.whatsapp_order !== false,
@@ -2129,6 +2676,7 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/admin/*" element={<AdminApp />} />
           <Route path="/panel" element={<RestaurantLoginPage />} />
+          <Route path="/restaurant/:id/onboarding" element={<RestaurantOnboarding />} />
           <Route path="/restaurant/:id/*" element={<RestaurantPanel />} />
           <Route path="/r/:slug" element={<CustomerMenu />} />
           <Route path="/menu/:slug" element={<CustomerMenu />} />

@@ -293,12 +293,13 @@ async function startServer() {
       let newId = 0;
       await db.transaction(async (trx) => {
         const ids = await trx("restaurants").insert({
-          name: String(full_name).slice(0, 200),
+          name: "Yeni restoran",
           slug,
           whatsapp_number: wa || null,
           phone: String(phone).slice(0, 64),
           menu_template: "modern-01",
           subscription_plan_id: planId,
+          onboarding_completed: false,
         });
         newId = Number(Array.isArray(ids) ? ids[0] : ids);
         await trx("restaurant_users").insert({
@@ -447,6 +448,7 @@ async function startServer() {
       cover_image_url,
       opening_hours,
       strict_opening_hours,
+      onboarding_completed,
     } = req.body;
     const patch: Record<string, unknown> = {};
     if (typeof name === "string") patch.name = name;
@@ -464,6 +466,8 @@ async function startServer() {
     if (typeof opening_hours === "string") patch.opening_hours = opening_hours;
     if (typeof strict_opening_hours === "boolean")
       patch.strict_opening_hours = strict_opening_hours;
+    if (typeof onboarding_completed === "boolean")
+      patch.onboarding_completed = onboarding_completed;
     if (typeof menu_template === "string" && menu_template.trim()) {
       const tid = menu_template.trim();
       const { plan } = await getRestaurantWithPlan(id);
@@ -871,13 +875,111 @@ async function startServer() {
       .where({ is_active: true })
       .orderBy("id", "desc");
 
+    const pendingRow = await db("plan_upgrade_requests")
+      .where({ restaurant_id: id })
+      .whereIn("status", ["pending", "processing"])
+      .orderBy("created_at", "desc")
+      .first();
+    let pendingPlanRequest: {
+      id: number;
+      status: string;
+      plan_id: number;
+      plan_name: string;
+    } | null = null;
+    if (pendingRow) {
+      const pl = await db("subscription_plans")
+        .where({ id: (pendingRow as { subscription_plan_id: number }).subscription_plan_id })
+        .first();
+      pendingPlanRequest = {
+        id: Number((pendingRow as { id: number }).id),
+        status: String((pendingRow as { status: string }).status),
+        plan_id: Number((pendingRow as { subscription_plan_id: number }).subscription_plan_id),
+        plan_name: pl ? String((pl as { name: string }).name) : "",
+      };
+    }
+
     res.json({
       restaurant,
       categories: parsedCategories,
       products: parsedProducts,
       plan,
       customTemplates,
+      pendingPlanRequest,
     });
+  });
+
+  app.post("/api/admin/restaurants/:id/plan-request", async (req, res) => {
+    const id = Number(req.params.id);
+    if (!requireRestaurantOrSuper(req, res, id)) return;
+    const subscription_plan_id = Number(req.body.subscription_plan_id);
+    if (!subscription_plan_id) {
+      res.status(400).json({ error: "Plan seçilməlidir" });
+      return;
+    }
+    const planRow = await db("subscription_plans")
+      .where({ id: subscription_plan_id, is_active: true })
+      .first();
+    if (!planRow) {
+      res.status(400).json({ error: "Plan tapılmadı" });
+      return;
+    }
+    const existing = await db("plan_upgrade_requests")
+      .where({ restaurant_id: id })
+      .whereIn("status", ["pending", "processing"])
+      .first();
+    if (existing) {
+      res.status(400).json({ error: "Artıq gözləyən sorğunuz var" });
+      return;
+    }
+    await db("plan_upgrade_requests").insert({
+      restaurant_id: id,
+      subscription_plan_id,
+      status: "pending",
+    });
+    res.json({ success: true });
+  });
+
+  app.get("/api/admin/plan-requests", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    const rows = await db("plan_upgrade_requests as pr")
+      .join("restaurants as r", "pr.restaurant_id", "r.id")
+      .join("subscription_plans as sp", "pr.subscription_plan_id", "sp.id")
+      .select(
+        "pr.id",
+        "pr.restaurant_id",
+        "pr.subscription_plan_id",
+        "pr.status",
+        "pr.created_at",
+        "r.name as restaurant_name",
+        "r.slug as restaurant_slug",
+        "r.whatsapp_number",
+        "sp.name as plan_name",
+        "sp.slug as plan_slug"
+      )
+      .orderBy("pr.created_at", "desc");
+    res.json(rows);
+  });
+
+  app.patch("/api/admin/plan-requests/:prid", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    const prid = Number(req.params.prid);
+    const { status, apply_plan } = req.body as { status?: string; apply_plan?: boolean };
+    const row = await db("plan_upgrade_requests").where({ id: prid }).first();
+    if (!row) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    const allowed = ["pending", "processing", "completed", "cancelled"];
+    if (typeof status === "string" && allowed.includes(status)) {
+      await db("plan_upgrade_requests").where({ id: prid }).update({ status });
+    }
+    const rid = Number((row as { restaurant_id: number }).restaurant_id);
+    const pid = Number((row as { subscription_plan_id: number }).subscription_plan_id);
+    if (apply_plan === true && status === "completed") {
+      await db("restaurants").where({ id: rid }).update({ subscription_plan_id: pid });
+    }
+    const updated = await db("plan_upgrade_requests").where({ id: prid }).first();
+    res.json({ success: true, request: updated });
   });
 
   app.get("/api/admin/restaurants/:id/dashboard", async (req, res) => {

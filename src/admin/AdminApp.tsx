@@ -32,6 +32,7 @@ import {
   Search,
   Ticket,
   Users,
+  Inbox,
 } from "lucide-react";
 import { motion } from "motion/react";
 import clsx from "clsx";
@@ -159,6 +160,9 @@ function AdminLayoutShell() {
           </NavLink>
           <NavLink to="/admin/plans" className={navCls}>
             <CreditCard size={20} /> {itemLabel("Planlar")}
+          </NavLink>
+          <NavLink to="/admin/plan-requests" className={navCls}>
+            <Inbox size={20} /> {itemLabel("Plan sorğuları")}
           </NavLink>
           <NavLink to="/admin/restaurants" className={navCls}>
             <Store size={20} /> {itemLabel("Restoranlar")}
@@ -1363,6 +1367,94 @@ function SettingsPage() {
   );
 }
 
+function PlanRequestsPage() {
+  const [rows, setRows] = React.useState<any[]>([]);
+
+  const load = () =>
+    fetch("/api/admin/plan-requests", { headers: authSuperHeaders() })
+      .then((r) => r.json())
+      .then(setRows);
+
+  React.useEffect(() => {
+    load();
+  }, []);
+
+  const digits = (s: string) => String(s || "").replace(/\D/g, "");
+
+  return (
+    <div className="space-y-6">
+      <header>
+        <h1 className="text-2xl sm:text-3xl font-bold">Plan sorğuları</h1>
+        <p className="text-gray-500 dark:text-slate-400 text-sm mt-1">
+          Restoranların plan yüksəltmə sorğuları — WhatsApp ilə əlaqə, ödəniş, sonra planı aktiv edin.
+        </p>
+      </header>
+      <div className="grid gap-4">
+        {rows.length === 0 ? (
+          <Card className="p-8 text-center text-gray-500">Hələ sorğu yoxdur.</Card>
+        ) : (
+          rows.map((r) => (
+            <Card key={r.id} className="p-4 sm:p-6 space-y-3">
+              <div className="flex flex-wrap justify-between gap-3">
+                <div>
+                  <p className="font-bold text-lg">{r.restaurant_name}</p>
+                  <p className="text-sm text-gray-500 font-mono">/{r.restaurant_slug}</p>
+                </div>
+                <span className="text-xs font-semibold uppercase px-2 py-1 rounded-full bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100 h-fit">
+                  {r.status}
+                </span>
+              </div>
+              <p className="text-sm">
+                İstənən plan: <strong>{r.plan_name}</strong>
+              </p>
+              <div className="flex flex-wrap gap-2 pt-2">
+                {r.whatsapp_number ? (
+                  <a
+                    href={`https://wa.me/${digits(r.whatsapp_number)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-600 text-white text-sm font-medium"
+                  >
+                    WhatsApp
+                  </a>
+                ) : null}
+                <Button
+                  type="button"
+                  className="rounded-xl bg-gray-100 dark:bg-slate-800"
+                  onClick={async () => {
+                    await fetch(`/api/admin/plan-requests/${r.id}`, {
+                      method: "PATCH",
+                      headers: authSuperHeaders(),
+                      body: JSON.stringify({ status: "processing" }),
+                    });
+                    load();
+                  }}
+                >
+                  İcradadır
+                </Button>
+                <Button
+                  type="button"
+                  className="rounded-xl bg-red-600 text-white"
+                  onClick={async () => {
+                    await fetch(`/api/admin/plan-requests/${r.id}`, {
+                      method: "PATCH",
+                      headers: authSuperHeaders(),
+                      body: JSON.stringify({ status: "completed", apply_plan: true }),
+                    });
+                    load();
+                  }}
+                >
+                  Ödənişi qəbul et · Planı aktiv et
+                </Button>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 /** Super admin marşrutları — App içində `/admin/*` altında mount olunur */
 export default function AdminApp() {
   return (
@@ -1373,6 +1465,7 @@ export default function AdminApp() {
         <Route path="users" element={<OwnerAccountsPage />} />
         <Route path="coupons" element={<CouponsAdminPage />} />
         <Route path="plans" element={<PlansPage />} />
+        <Route path="plan-requests" element={<PlanRequestsPage />} />
         <Route path="restaurants" element={<RestaurantsAdminPage />} />
         <Route path="templates" element={<AdminTemplatesPage />} />
         <Route path="statistics" element={<StatisticsPage />} />
