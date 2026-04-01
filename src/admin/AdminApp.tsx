@@ -21,7 +21,6 @@ import {
   Sun,
   PanelLeftClose,
   PanelLeft,
-  ShieldCheck,
   Server,
   Utensils,
   QrCode,
@@ -31,6 +30,8 @@ import {
   Trash2,
   Eye,
   Search,
+  Ticket,
+  Users,
 } from "lucide-react";
 import { motion } from "motion/react";
 import clsx from "clsx";
@@ -75,63 +76,6 @@ function Button({
   );
 }
 
-function AdminLoginRoute() {
-  const nav = useNavigate();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = await fetch("/api/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-    const data = await res.json();
-    if (data.success && data.token) {
-      localStorage.setItem("adminSession", data.token);
-      localStorage.setItem("adminUser", JSON.stringify(data.user));
-      nav("/admin", { replace: true });
-    } else setError(data.error || "Login failed");
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-red-50 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-6">
-      <Card className="w-full max-w-md p-8 dark:bg-slate-900">
-        <div className="text-2xl font-bold text-red-600 mb-6 flex items-center gap-2 justify-center">
-          <ShieldCheck size={28} /> Super Admin
-        </div>
-        <form onSubmit={submit} className="space-y-4">
-          <input
-            className="w-full p-3 border dark:border-slate-600 rounded-lg dark:bg-slate-800"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="İstifadəçi"
-            required
-          />
-          <input
-            type="password"
-            className="w-full p-3 border dark:border-slate-600 rounded-lg dark:bg-slate-800"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Şifrə"
-            required
-          />
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <Button
-            type="submit"
-            className="w-full bg-red-600 text-white py-3"
-          >
-            Daxil ol
-          </Button>
-        </form>
-        <p className="text-center text-xs text-gray-500 mt-4">Demo: admin / admin123</p>
-      </Card>
-    </div>
-  );
-}
-
 function AdminLayoutShell() {
   const nav = useNavigate();
   const [collapsed, setCollapsed] = useState(() =>
@@ -150,7 +94,7 @@ function AdminLayoutShell() {
     typeof window !== "undefined" ? localStorage.getItem("adminSession") : null;
 
   useEffect(() => {
-    if (!tok) nav("/admin/login", { replace: true });
+    if (!tok) nav("/admin-login-page", { replace: true });
   }, [tok, nav]);
 
   if (!tok) return null;
@@ -207,6 +151,12 @@ function AdminLayoutShell() {
           <NavLink to="/admin" end className={navCls}>
             <LayoutDashboard size={20} /> {itemLabel("İdarə paneli")}
           </NavLink>
+          <NavLink to="/admin/users" className={navCls}>
+            <Users size={20} /> {itemLabel("İstifadəçilər")}
+          </NavLink>
+          <NavLink to="/admin/coupons" className={navCls}>
+            <Ticket size={20} /> {itemLabel("Kuponlar")}
+          </NavLink>
           <NavLink to="/admin/plans" className={navCls}>
             <CreditCard size={20} /> {itemLabel("Planlar")}
           </NavLink>
@@ -240,7 +190,7 @@ function AdminLayoutShell() {
             onClick={() => {
               localStorage.removeItem("adminSession");
               localStorage.removeItem("adminUser");
-              nav("/admin/login", { replace: true });
+              nav("/admin-login-page", { replace: true });
             }}
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm w-full text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
           >
@@ -280,47 +230,50 @@ function DashboardPage() {
         </p>
       </header>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <Card className="p-4 flex gap-3 items-center">
-          <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 flex items-center justify-center">
-            <Utensils />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 dark:text-slate-400">Ümumi restoran</p>
-            <p className="text-2xl font-bold">{d.totalRestaurants}</p>
-          </div>
-        </Card>
-        <Card className="p-4 flex gap-3 items-center">
-          <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center">
-            <Server />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Aktiv / deaktiv</p>
-            <p className="text-2xl font-bold">
-              {d.activeRestaurants}{" "}
-              <span className="text-sm font-normal text-gray-400">
-                / {d.inactiveRestaurants}
-              </span>
-            </p>
-          </div>
-        </Card>
-        <Card className="p-4 flex gap-3 items-center">
-          <div className="w-12 h-12 rounded-xl bg-violet-100 dark:bg-violet-900/40 text-violet-600 flex items-center justify-center">
-            <QrCode />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">QR skanları</p>
-            <p className="text-2xl font-bold">{d.totalScans}</p>
-          </div>
-        </Card>
-        <Card className="p-4 flex gap-3 items-center">
-          <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-700 flex items-center justify-center">
-            <CreditCard />
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Təxmini aylıq gəlir (plan)</p>
-            <p className="text-2xl font-bold">${Number(d.estimatedMonthlyRevenue).toFixed(0)}</p>
-          </div>
-        </Card>
+        {[
+          {
+            icon: Utensils,
+            label: "Ümumi restoran",
+            val: d.totalRestaurants,
+            bg: "bg-blue-100 dark:bg-blue-900/40 text-blue-600",
+          },
+          {
+            icon: Server,
+            label: "Aktiv / deaktiv",
+            val: `${d.activeRestaurants} / ${d.inactiveRestaurants}`,
+            bg: "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600",
+          },
+          {
+            icon: QrCode,
+            label: "QR skanları",
+            val: d.totalScans,
+            bg: "bg-violet-100 dark:bg-violet-900/40 text-violet-600",
+          },
+          {
+            icon: CreditCard,
+            label: "Təxmini aylıq gəlir",
+            val: `₼${Number(d.estimatedMonthlyRevenue).toFixed(0)}`,
+            bg: "bg-amber-100 dark:bg-amber-900/40 text-amber-700",
+          },
+        ].map((item, i) => (
+          <motion.div
+            key={item.label}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.06, type: "spring", stiffness: 320 }}
+            whileHover={{ y: -6, transition: { duration: 0.2 } }}
+          >
+            <Card className="p-4 flex gap-3 items-center shadow-md hover:shadow-xl transition-shadow border-red-100/80 dark:border-red-900/30">
+              <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", item.bg)}>
+                <item.icon />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-slate-400">{item.label}</p>
+                <p className="text-2xl font-bold">{item.val}</p>
+              </div>
+            </Card>
+          </motion.div>
+        ))}
       </div>
       <Card className="p-4">
         <p className="text-sm font-medium mb-2">Server</p>
@@ -1082,6 +1035,276 @@ function NotificationsPage() {
   );
 }
 
+function OwnerAccountsPage() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [plans, setPlans] = useState<any[]>([]);
+
+  const load = () =>
+    fetch("/api/admin/owner-accounts", { headers: authSuperHeaders() }).then((r) =>
+      r.json()
+    ).then(setRows);
+
+  useEffect(() => {
+    load();
+    fetch("/api/admin/plans", { headers: authSuperHeaders() })
+      .then((r) => r.json())
+      .then(setPlans);
+  }, []);
+
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+
+  const notify = async (rid: number) => {
+    const title = prompt("Bildiriş başlığı");
+    if (!title) return;
+    const body = prompt("Mətn (ixtiyari)") || "";
+    await fetch(`/api/admin/restaurants/${rid}/owner-notify`, {
+      method: "POST",
+      headers: { ...authSuperHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ title, body }),
+    });
+    alert("Göndərildi");
+  };
+
+  const planOffer = async (rid: number) => {
+    const pid = prompt(`Plan ID (mövcud: ${plans.map((p) => `${p.id}=${p.name}`).join(", ")})`);
+    if (!pid) return;
+    const message = prompt("Əlavə mesaj (ixtiyari)") || "";
+    await fetch(`/api/admin/restaurants/${rid}/plan-offer`, {
+      method: "POST",
+      headers: { ...authSuperHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ plan_id: Number(pid), message }),
+    });
+    alert("Təklif bildirişi yaradıldı");
+  };
+
+  const toggleBlock = async (r: any) => {
+    await fetch(`/api/admin/restaurants/${r.id}`, {
+      method: "PATCH",
+      headers: { ...authSuperHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ is_active: !r.is_active }),
+    });
+    load();
+  };
+
+  const newOnes = rows.filter(
+    (x) =>
+      x.restaurant?.created_at &&
+      new Date(x.restaurant.created_at).getTime() > weekAgo
+  );
+  const oldOnes = rows.filter(
+    (x) =>
+      !x.restaurant?.created_at ||
+      new Date(x.restaurant.created_at).getTime() <= weekAgo
+  );
+
+  return (
+    <div className="space-y-8">
+      <header>
+        <motion.h1
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-red-600 to-amber-600 bg-clip-text text-transparent"
+        >
+          Restoran sahibləri
+        </motion.h1>
+        <p className="text-gray-500 dark:text-slate-400 text-sm mt-1">
+          Yeni qeydiyyatlar, aktiv/bloklu, bildiriş və plan təklifi
+        </p>
+      </header>
+
+      <section>
+        <h2 className="font-bold mb-3 flex items-center gap-2">
+          <span className="w-2 h-8 rounded-full bg-red-500" />
+          Son 7 gün — yeni
+        </h2>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {newOnes.map(({ restaurant: r, user: u, plan: pl }) => (
+            <motion.div
+              key={r.id}
+              layout
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ y: -4 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            >
+              <Card className="p-5 border-2 border-red-200/80 dark:border-red-900/50 shadow-lg shadow-red-900/10">
+                <p className="font-bold text-lg">{r.name}</p>
+                <p className="text-xs font-mono text-gray-500">/r/{r.slug}</p>
+                <p className="text-sm mt-2">
+                  <span className="text-gray-500">Login:</span> {u?.username}
+                </p>
+                <p className="text-sm">{u?.full_name}</p>
+                <p className="text-xs text-gray-500">
+                  Son giriş: {u?.last_login_at ? new Date(u.last_login_at).toLocaleString() : "—"}
+                </p>
+                <p className="text-xs mt-1">
+                  Plan: {pl?.name ?? "—"} ·{" "}
+                  <span className={r.is_active ? "text-emerald-600" : "text-red-600"}>
+                    {r.is_active ? "Aktiv" : "Bloklu"}
+                  </span>
+                </p>
+                <div className="flex flex-wrap gap-2 mt-4">
+                  <Button
+                    className="text-xs bg-red-600 text-white"
+                    onClick={() => notify(r.id)}
+                  >
+                    Bildiriş
+                  </Button>
+                  <Button className="text-xs border dark:border-slate-600" onClick={() => planOffer(r.id)}>
+                    Plan təklifi
+                  </Button>
+                  <Button className="text-xs border dark:border-slate-600" onClick={() => toggleBlock(r)}>
+                    {r.is_active ? "Blokla" : "Aktiv et"}
+                  </Button>
+                  <Link
+                    to={`/restaurant/${r.id}`}
+                    className="text-xs font-semibold text-red-600 px-3 py-2 rounded-lg hover:bg-red-50"
+                  >
+                    Panel
+                  </Link>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+          {newOnes.length === 0 && (
+            <p className="text-gray-500 text-sm">Bu həftə yeni hesab yoxdur.</p>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="font-bold mb-3 flex items-center gap-2">
+          <span className="w-2 h-8 rounded-full bg-slate-400" />
+          Əvvəlki qeydiyyatlar
+        </h2>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {oldOnes.map(({ restaurant: r, user: u, plan: pl }) => (
+            <motion.div
+              key={r.id}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -3 }}
+            >
+              <Card className="p-4 dark:bg-slate-900/90">
+                <p className="font-semibold">{r.name}</p>
+                <p className="text-xs font-mono text-gray-500">{u?.username}</p>
+                <p className="text-xs mt-1">{pl?.name}</p>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <Button className="text-xs border" onClick={() => notify(r.id)}>
+                    Bildiriş
+                  </Button>
+                  <Button className="text-xs border" onClick={() => planOffer(r.id)}>
+                    Plan
+                  </Button>
+                  <Button className="text-xs border" onClick={() => toggleBlock(r)}>
+                    {r.is_active ? "Blokla" : "Aktiv"}
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function CouponsAdminPage() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [form, setForm] = useState({
+    code: "",
+    max_uses: 1,
+    active_hours: "" as string,
+    notes: "",
+  });
+
+  const load = () =>
+    fetch("/api/admin/coupons", { headers: authSuperHeaders() }).then((r) => r.json()).then(setRows);
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const create = async () => {
+    const res = await fetch("/api/admin/coupons", {
+      method: "POST",
+      headers: { ...authSuperHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code: form.code,
+        max_uses: Number(form.max_uses),
+        active_hours: form.active_hours ? Number(form.active_hours) : null,
+        notes: form.notes || null,
+      }),
+    });
+    if (res.ok) {
+      setForm({ code: "", max_uses: 1, active_hours: "", notes: "" });
+      load();
+    } else alert(await res.text());
+  };
+
+  return (
+    <div className="space-y-8">
+      <motion.h1
+        initial={{ opacity: 0, x: -12 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="text-2xl font-bold"
+      >
+        Promo kuponlar
+      </motion.h1>
+      <Card className="p-6 max-w-xl space-y-3">
+        <input
+          className="w-full p-2 border rounded-lg dark:bg-slate-800"
+          placeholder="Kod (məs: YAZ2026)"
+          value={form.code}
+          onChange={(e) => setForm({ ...form, code: e.target.value })}
+        />
+        <input
+          type="number"
+          className="w-full p-2 border rounded-lg dark:bg-slate-800"
+          placeholder="Max istifadə sayı"
+          value={form.max_uses}
+          onChange={(e) => setForm({ ...form, max_uses: Number(e.target.value) })}
+        />
+        <input
+          className="w-full p-2 border rounded-lg dark:bg-slate-800"
+          placeholder="Aktiv qalma (saat) — opsional"
+          value={form.active_hours}
+          onChange={(e) => setForm({ ...form, active_hours: e.target.value })}
+        />
+        <input
+          className="w-full p-2 border rounded-lg dark:bg-slate-800"
+          placeholder="Qeyd"
+          value={form.notes}
+          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+        />
+        <Button className="bg-red-600 text-white" onClick={create}>
+          Yarat
+        </Button>
+      </Card>
+      <div className="grid gap-4 md:grid-cols-2">
+        {rows.map((c) => (
+          <motion.div key={c.id} whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+            <Card className="p-5 border-l-4 border-amber-500">
+              <p className="font-mono font-bold text-lg">{c.code}</p>
+              <p className="text-sm text-gray-600 dark:text-slate-300">
+                İstifadə: {c.used_count} / {c.max_uses}
+              </p>
+              <p className="text-xs">
+                Aktiv: {c.is_active ? "bəli" : "xeyr"} · Saat limiti: {c.active_hours ?? "—"}
+              </p>
+              <p className="text-xs text-gray-500">
+                {c.valid_from || "—"} → {c.valid_until || "—"}
+              </p>
+              <p className="text-xs mt-2">{c.notes}</p>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SettingsPage() {
   const [settings, setSettings] = useState<any>({});
   useEffect(() => {
@@ -1144,9 +1367,11 @@ function SettingsPage() {
 export default function AdminApp() {
   return (
     <Routes>
-      <Route path="login" element={<AdminLoginRoute />} />
+      <Route path="login" element={<Navigate to="/admin-login-page" replace />} />
       <Route element={<AdminLayoutShell />}>
         <Route index element={<DashboardPage />} />
+        <Route path="users" element={<OwnerAccountsPage />} />
+        <Route path="coupons" element={<CouponsAdminPage />} />
         <Route path="plans" element={<PlansPage />} />
         <Route path="restaurants" element={<RestaurantsAdminPage />} />
         <Route path="templates" element={<AdminTemplatesPage />} />

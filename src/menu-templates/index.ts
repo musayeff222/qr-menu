@@ -11,6 +11,6 @@ export {
   templatesByCategory,
 } from "./registry";
 export { MenuTemplateView } from "./MenuTemplateView";
-export type { MenuTemplateViewProps } from "./MenuTemplateView";
+export type { MenuTemplateViewProps, CartLine } from "./MenuTemplateView";
 export { TemplatePicker } from "./TemplatePicker";
 export { resolveMenuTemplate, type CustomTemplateRow } from "./resolveMenuTemplate";

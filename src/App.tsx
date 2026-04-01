@@ -6,7 +6,9 @@ import {
   TemplatePicker,
   MENU_TEMPLATE_COUNT,
   type MenuTemplateDef,
+  type CartLine,
 } from "./menu-templates";
+import AdminLoginPage from "./admin/AdminLoginPage";
 import AdminApp from "./admin/AdminApp";
 import { 
   LayoutDashboard, 
@@ -121,6 +123,25 @@ const UI_TRANSLATIONS: any = {
     slug_label: "URL (slug)",
     save_profile: "Yadda saxla",
     super_dashboard: "İdarə paneli",
+    full_name_label: "Ad soyad",
+    phone_label: "Telefon nömrəsi",
+    register_title: "Hesab yaradın",
+    register_sub: "Pulsuz başlayın — restoran və demo menyu avtomatik yaradılır",
+    register_submit: "Qeydiyyat",
+    register_success_note: "Hesab hazırdır. Aşağıdan daxil olun.",
+    register_have_account: "Artıq hesabınız var?",
+    orders_closed_hint: "Hal-hazırda sifariş qəbul edilmir (iş saatları).",
+    checkout_title: "Sifarişi tamamla",
+    checkout_address_placeholder: "Ünvanı yazın",
+    checkout_location_btn: "Konumumu göndər",
+    checkout_location_busy: "Konum alınır…",
+    checkout_geo_prefix: "Konum",
+    checkout_payment: "Ödəniş üsulu",
+    checkout_cash: "Nağd",
+    checkout_card: "Kart",
+    checkout_send: "WhatsApp ilə göndər",
+    checkout_address_required: "Ünvan yazın və ya konumu seçin",
+    checkout_cancel: "Bağla",
     demo_login: "Demo: demo / demo123 (nümunə menyusu)"
   },
   en: {
@@ -202,6 +223,25 @@ const UI_TRANSLATIONS: any = {
     slug_label: "URL (slug)",
     save_profile: "Save",
     super_dashboard: "Dashboard",
+    full_name_label: "Full name",
+    phone_label: "Phone",
+    register_title: "Create account",
+    register_sub: "Start free — your restaurant and demo menu are created automatically",
+    register_submit: "Sign up",
+    register_success_note: "You're all set. Sign in below.",
+    register_have_account: "Already have an account?",
+    orders_closed_hint: "Orders are closed right now (outside opening hours).",
+    checkout_title: "Complete order",
+    checkout_address_placeholder: "Delivery address",
+    checkout_location_btn: "Share my location",
+    checkout_location_busy: "Getting location…",
+    checkout_geo_prefix: "Location",
+    checkout_payment: "Payment",
+    checkout_cash: "Cash",
+    checkout_card: "Card",
+    checkout_send: "Send via WhatsApp",
+    checkout_address_required: "Enter an address or share your location",
+    checkout_cancel: "Close",
     demo_login: "Demo: demo / demo123 (nümunə menyusu)"
   },
   ru: {
@@ -283,6 +323,25 @@ const UI_TRANSLATIONS: any = {
     slug_label: "URL (slug)",
     save_profile: "Сохранить",
     super_dashboard: "Панель",
+    full_name_label: "ФИО",
+    phone_label: "Телефон",
+    register_title: "Регистрация",
+    register_sub: "Бесплатно — ресторан и демо-меню создаются автоматически",
+    register_submit: "Зарегистрироваться",
+    register_success_note: "Готово. Войдите ниже.",
+    register_have_account: "Уже есть аккаунт?",
+    orders_closed_hint: "Сейчас заказы не принимаются (не рабочее время).",
+    checkout_title: "Оформить заказ",
+    checkout_address_placeholder: "Адрес",
+    checkout_location_btn: "Отправить геолокацию",
+    checkout_location_busy: "Определение…",
+    checkout_geo_prefix: "Локация",
+    checkout_payment: "Оплата",
+    checkout_cash: "Наличные",
+    checkout_card: "Карта",
+    checkout_send: "Отправить в WhatsApp",
+    checkout_address_required: "Укажите адрес или геолокацию",
+    checkout_cancel: "Закрыть",
     demo_login: "Демо: demo / demo123 (пример меню)"
   },
   tr: {
@@ -364,6 +423,25 @@ const UI_TRANSLATIONS: any = {
     slug_label: "URL (slug)",
     save_profile: "Kaydet",
     super_dashboard: "Panel",
+    full_name_label: "Ad soyad",
+    phone_label: "Telefon",
+    register_title: "Hesap oluştur",
+    register_sub: "Ücretsiz başlayın — restoran ve demo menü otomatik oluşturulur",
+    register_submit: "Kayıt ol",
+    register_success_note: "Hesabınız hazır. Aşağıdan giriş yapın.",
+    register_have_account: "Zaten hesabınız var mı?",
+    orders_closed_hint: "Şu an sipariş alınmıyor (çalışma saatleri dışında).",
+    checkout_title: "Siparişi tamamla",
+    checkout_address_placeholder: "Adres yazın",
+    checkout_location_btn: "Konumumu gönder",
+    checkout_location_busy: "Konum alınıyor…",
+    checkout_geo_prefix: "Konum",
+    checkout_payment: "Ödeme",
+    checkout_cash: "Nakit",
+    checkout_card: "Kart",
+    checkout_send: "WhatsApp ile gönder",
+    checkout_address_required: "Adres yazın veya konum seçin",
+    checkout_cancel: "Kapat",
     demo_login: "Demo: demo / demo123 (nümunə menyusu)"
   }
 };
@@ -522,12 +600,6 @@ const LandingPage = () => {
           >
             <Store size={18} /> {t("restaurant_staff_login")}
           </Link>
-          <Link
-            to="/admin"
-            className="text-sm px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 transition-colors font-medium"
-          >
-            {t("landing_nav_admin")}
-          </Link>
         </div>
       </nav>
 
@@ -565,7 +637,7 @@ const LandingPage = () => {
             className="flex flex-col sm:flex-row gap-3 justify-center items-stretch sm:items-center"
           >
             <Link
-              to="/panel"
+              to="/register"
               className="inline-flex items-center justify-center gap-2 bg-white text-red-900 px-6 py-3.5 rounded-xl text-base font-bold shadow-xl hover:shadow-red-500/20 active:scale-[0.98] transition-transform"
             >
               {t("landing_cta_free")} <ArrowRight size={20} />
@@ -703,7 +775,7 @@ const LandingPage = () => {
                   </li>
                 </ul>
                 <Link
-                  to="/panel"
+                  to="/register"
                   className="mt-auto inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white py-3 rounded-xl font-bold text-sm"
                 >
                   <ShoppingBag size={18} /> {t("landing_buy")}
@@ -723,7 +795,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm text-red-100/90 hidden sm:inline line-clamp-1">{t("landing_sales_title")}</span>
           <Link
-            to="/panel"
+            to="/register"
             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold"
           >
             {t("landing_sticky")} <ArrowRight size={18} />
@@ -734,11 +806,138 @@ const LandingPage = () => {
   );
 };
 
+const RegisterPage = () => {
+  const bundle = useI18nBundle();
+  const navigate = useNavigate();
+  const [lang, setLang] = useState("az");
+  const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/public/settings")
+      .then((r) => r.json())
+      .then((s: { default_language?: string }) => {
+        if (s.default_language) setLang(s.default_language);
+      })
+      .catch(() => {});
+  }, []);
+
+  const t = (key: string) => bundle[lang]?.[key] || key;
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      const res = await fetch("/api/public/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: fullName,
+          username: username.trim().toLowerCase(),
+          password,
+          phone,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || t("server_error"));
+        return;
+      }
+      navigate("/panel", {
+        replace: true,
+        state: { registered: true, username: String(username).trim().toLowerCase() },
+      });
+    } catch {
+      setError(t("server_error"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-red-950 flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
+        <Card className="p-6 sm:p-8 border border-white/10 bg-white/95 backdrop-blur shadow-2xl">
+          <div className="flex items-center gap-2 text-red-600 font-bold text-xl mb-2 justify-center">
+            <Store /> {t("register_title")}
+          </div>
+          <p className="text-center text-gray-500 text-sm mb-6">{t("register_sub")}</p>
+          <form onSubmit={submit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("full_name_label")}</label>
+              <input
+                className="w-full p-3 border rounded-lg"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                autoComplete="name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("username")}</label>
+              <input
+                className="w-full p-3 border rounded-lg"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                autoComplete="username"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("password")}</label>
+              <input
+                type="password"
+                className="w-full p-3 border rounded-lg"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("phone_label")}</label>
+              <input
+                className="w-full p-3 border rounded-lg"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                inputMode="tel"
+                autoComplete="tel"
+              />
+            </div>
+            {error && <p className="text-red-600 text-sm">{error}</p>}
+            <Button type="submit" disabled={busy} className="w-full bg-red-600 text-white py-3 disabled:opacity-60">
+              {busy ? "…" : t("register_submit")}
+            </Button>
+          </form>
+          <div className="mt-6 text-center text-sm text-gray-600 space-y-2">
+            <p>
+              {t("register_have_account")}{" "}
+              <Link to="/panel" className="text-red-600 font-medium hover:underline">
+                {t("login")}
+              </Link>
+            </p>
+            <Link to="/" className="block text-red-600 hover:underline">
+              ← {t("landing_nav_start")}
+            </Link>
+          </div>
+        </Card>
+      </motion.div>
+    </div>
+  );
+};
+
 const RestaurantLoginPage = () => {
   const bundle = useI18nBundle();
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string })?.from;
+  const regState = location.state as { registered?: boolean; username?: string } | undefined;
   const [lang, setLang] = useState("az");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -752,6 +951,11 @@ const RestaurantLoginPage = () => {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const u = regState?.username;
+    if (u) setUsername(u);
+  }, [regState?.username]);
 
   const t = (key: string) => bundle[lang]?.[key] || key;
 
@@ -786,6 +990,9 @@ const RestaurantLoginPage = () => {
           </div>
           <p className="text-center text-gray-500 text-sm mb-6">{t("rest_login_sub")}</p>
           <p className="text-xs text-center text-amber-700 bg-amber-50 rounded-lg p-2 mb-4">{t("demo_login")}</p>
+          {regState?.registered ? (
+            <p className="text-xs text-center text-green-800 bg-green-50 rounded-lg p-2 mb-4">{t("register_success_note")}</p>
+          ) : null}
           <form onSubmit={submit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t("username")}</label>
@@ -811,7 +1018,12 @@ const RestaurantLoginPage = () => {
               {t("login")}
             </Button>
           </form>
-          <div className="mt-6 text-center text-sm text-gray-500">
+          <div className="mt-6 text-center text-sm text-gray-500 space-y-2">
+            <p>
+              <Link to="/register" className="text-red-600 font-medium hover:underline">
+                {t("register_title")}
+              </Link>
+            </p>
             <Link to="/" className="text-red-600 hover:underline">
               ← {t("landing_nav_start")}
             </Link>
@@ -1629,8 +1841,14 @@ const CustomerMenu = () => {
 
   const [data, setData] = useState<any>(null);
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
-  const [cart, setCart] = useState<any[]>([]);
+  const [cart, setCart] = useState<CartLine[]>([]);
   const [currentLang, setCurrentLang] = useState("az");
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [addressText, setAddressText] = useState("");
+  const [geoUrl, setGeoUrl] = useState("");
+  const [payment, setPayment] = useState<"cash" | "card">("cash");
+  const [geoBusy, setGeoBusy] = useState(false);
+  const [checkoutErr, setCheckoutErr] = useState("");
 
   useEffect(() => {
     fetch("/api/public/settings")
@@ -1665,47 +1883,217 @@ const CustomerMenu = () => {
 
   if (!data) return <div className="p-10 text-center">{t("loading")}</div>;
 
-  const { categories, products, custom_templates, plan_features, ...restaurantRow } = data;
+  const { categories, products, custom_templates, plan_features, orders_allowed, ...restaurantRow } = data;
   const template = resolveMenuTemplate(
     previewTemplateId || data.menu_template || "modern-01",
     custom_templates
   );
 
-  const addToCart = (product: Record<string, unknown>) => {
-    setCart((c) => [...c, product]);
+  const ordersAllowed = orders_allowed !== false;
+  const ordersClosedHint = t("orders_closed_hint");
+
+  const newLineId = () =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `l-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  const addToCart = (item: {
+    product: Record<string, unknown>;
+    variantId?: number;
+    variantLabel?: string;
+    unitPrice: number;
+  }) => {
+    const lineId = newLineId();
+    setCart((c) => [
+      ...c,
+      {
+        lineId,
+        productId: Number(item.product.id),
+        product: item.product,
+        variantId: item.variantId,
+        variantLabel: item.variantLabel,
+        unitPrice: item.unitPrice,
+        note: "",
+      },
+    ]);
   };
 
-  const sendWhatsApp = () => {
+  const updateCartLineNote = (lineId: string, note: string) => {
+    setCart((c) => c.map((l) => (l.lineId === lineId ? { ...l, note } : l)));
+  };
+
+  const removeCartLine = (lineId: string) => {
+    setCart((c) => c.filter((l) => l.lineId !== lineId));
+  };
+
+  const openCheckout = () => {
+    setCheckoutErr("");
+    setCheckoutOpen(true);
+  };
+
+  const pickGeo = () => {
+    if (!navigator.geolocation) return;
+    setGeoBusy(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setGeoUrl(`https://www.google.com/maps?q=${latitude},${longitude}`);
+        setGeoBusy(false);
+      },
+      () => setGeoBusy(false),
+      { enableHighAccuracy: true, timeout: 12_000 }
+    );
+  };
+
+  const sendOrderWhatsApp = () => {
     const wa = String(data.whatsapp_number ?? "").replace(/\D/g, "");
     if (!wa) return;
-    const text = `Hello! I'd like to order:\n${cart
-      .map(
-        (p) =>
-          `- ${(p.translations as any)?.[currentLang]?.name || p.name} (₼${Number(p.price).toFixed(2)})`
-      )
-      .join("\n")}\nTotal: ₼${cart.reduce((s, p) => s + Number(p.price), 0).toFixed(2)}`;
+    if (!addressText.trim() && !geoUrl.trim()) {
+      setCheckoutErr(t("checkout_address_required"));
+      return;
+    }
+    const addrLines: string[] = [];
+    if (addressText.trim()) addrLines.push(`${t("checkout_address_placeholder")}: ${addressText.trim()}`);
+    if (geoUrl.trim()) addrLines.push(`${t("checkout_geo_prefix")}: ${geoUrl.trim()}`);
+    const payLabel = payment === "cash" ? t("checkout_cash") : t("checkout_card");
+    const lines = cart.map((line) => {
+      const tr = line.product.translations as Record<string, { name?: string }> | undefined;
+      const pn = tr?.[currentLang]?.name || String(line.product.name ?? "");
+      const label = line.variantLabel ? `${line.variantLabel} · ${pn}` : pn;
+      const note = line.note?.trim() ? ` — ${line.note.trim()}` : "";
+      return `- ${label}${note} (₼${Number(line.unitPrice).toFixed(2)})`;
+    });
+    const total = cart.reduce((s, l) => s + Number(l.unitPrice), 0).toFixed(2);
+    const text = [
+      "Salam, sifariş:",
+      "",
+      ...lines,
+      "",
+      `${t("total")}: ₼${total}`,
+      "",
+      ...addrLines,
+      "",
+      `${t("checkout_payment")}: ${payLabel}`,
+    ].join("\n");
     window.open(`https://wa.me/${wa}?text=${encodeURIComponent(text)}`);
+    setCheckoutOpen(false);
+    setAddressText("");
+    setGeoUrl("");
+    setCheckoutErr("");
+    setCart([]);
   };
 
   return (
-    <MenuTemplateView
-      template={template}
-      restaurant={restaurantRow}
-      categories={categories}
-      products={products}
-      activeCategory={activeCategory}
-      setActiveCategory={(id) => setActiveCategory(id)}
-      currentLang={currentLang}
-      setCurrentLang={setCurrentLang}
-      cart={cart}
-      addToCart={addToCart}
-      onWhatsAppOrder={sendWhatsApp}
-      t={t}
-      planFeatures={{
-        whatsapp_order: plan_features?.whatsapp_order !== false,
-        reservation: plan_features?.reservation !== false,
-      }}
-    />
+    <>
+      <MenuTemplateView
+        template={template}
+        restaurant={restaurantRow}
+        categories={categories}
+        products={products}
+        activeCategory={activeCategory}
+        setActiveCategory={(id) => setActiveCategory(id)}
+        currentLang={currentLang}
+        setCurrentLang={setCurrentLang}
+        cart={cart}
+        addToCart={addToCart}
+        updateCartLineNote={updateCartLineNote}
+        removeCartLine={removeCartLine}
+        onCheckout={openCheckout}
+        ordersAllowed={ordersAllowed}
+        ordersClosedHint={ordersClosedHint}
+        t={t}
+        planFeatures={{
+          whatsapp_order: plan_features?.whatsapp_order !== false,
+          reservation: plan_features?.reservation !== false,
+        }}
+      />
+      <AnimatePresence>
+        {checkoutOpen ? (
+          <motion.div
+            key="ck"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/60 flex items-end sm:items-center justify-center p-4"
+            onClick={() => setCheckoutOpen(false)}
+          >
+            <motion.div
+              initial={{ y: 40 }}
+              animate={{ y: 0 }}
+              exit={{ y: 40 }}
+              className="w-full max-w-md rounded-2xl bg-white text-gray-900 shadow-2xl p-5 max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-lg font-bold mb-4">{t("checkout_title")}</h2>
+              <label className="block text-sm font-medium mb-1">{t("checkout_address_placeholder")}</label>
+              <textarea
+                className="w-full border rounded-xl p-3 text-sm mb-3 min-h-[72px]"
+                value={addressText}
+                onChange={(e) => {
+                  setAddressText(e.target.value);
+                  setCheckoutErr("");
+                }}
+                placeholder={t("checkout_address_placeholder")}
+              />
+              <button
+                type="button"
+                disabled={geoBusy}
+                onClick={() => {
+                  setCheckoutErr("");
+                  pickGeo();
+                }}
+                className="w-full mb-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold hover:bg-gray-50 disabled:opacity-60"
+              >
+                {geoBusy ? t("checkout_location_busy") : t("checkout_location_btn")}
+              </button>
+              {geoUrl ? (
+                <p className="text-xs text-green-700 mb-4 break-all">✓ {geoUrl}</p>
+              ) : null}
+              <p className="text-sm font-medium mb-2">{t("checkout_payment")}</p>
+              <div className="flex gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setPayment("cash")}
+                  className={cn(
+                    "flex-1 py-2 rounded-xl border text-sm font-semibold",
+                    payment === "cash" ? "border-red-600 bg-red-50 text-red-800" : "border-gray-200"
+                  )}
+                >
+                  {t("checkout_cash")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPayment("card")}
+                  className={cn(
+                    "flex-1 py-2 rounded-xl border text-sm font-semibold",
+                    payment === "card" ? "border-red-600 bg-red-50 text-red-800" : "border-gray-200"
+                  )}
+                >
+                  {t("checkout_card")}
+                </button>
+              </div>
+              {checkoutErr ? <p className="text-sm text-red-600 mb-3">{checkoutErr}</p> : null}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="flex-1 py-3 rounded-xl border border-gray-200 font-medium"
+                  onClick={() => setCheckoutOpen(false)}
+                >
+                  {t("checkout_cancel")}
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 py-3 rounded-xl bg-green-600 text-white font-bold"
+                  onClick={sendOrderWhatsApp}
+                >
+                  {t("checkout_send")}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </>
   );
 };
 
@@ -1737,6 +2125,8 @@ export default function App() {
       <Router>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/admin-login-page" element={<AdminLoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route path="/admin/*" element={<AdminApp />} />
           <Route path="/panel" element={<RestaurantLoginPage />} />
           <Route path="/restaurant/:id/*" element={<RestaurantPanel />} />

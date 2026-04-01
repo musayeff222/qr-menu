@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   MapPin,
@@ -62,6 +62,16 @@ const FONT_STACKS: Record<
   },
 };
 
+export type CartLine = {
+  lineId: string;
+  productId: number;
+  product: Record<string, unknown>;
+  variantId?: number;
+  variantLabel?: string;
+  unitPrice: number;
+  note?: string;
+};
+
 export type MenuTemplateViewProps = {
   template: MenuTemplateDef;
   restaurant: Record<string, unknown>;
@@ -71,11 +81,19 @@ export type MenuTemplateViewProps = {
   setActiveCategory: (id: number) => void;
   currentLang: string;
   setCurrentLang: (l: string) => void;
-  cart: Array<Record<string, unknown>>;
-  addToCart: (p: Record<string, unknown>) => void;
-  onWhatsAppOrder: () => void;
+  cart: CartLine[];
+  addToCart: (item: {
+    product: Record<string, unknown>;
+    variantId?: number;
+    variantLabel?: string;
+    unitPrice: number;
+  }) => void;
+  updateCartLineNote: (lineId: string, note: string) => void;
+  removeCartLine: (lineId: string) => void;
+  onCheckout: () => void;
+  ordersAllowed: boolean;
+  ordersClosedHint?: string;
   t: (k: string) => string;
-  /** Plan limitləri: WhatsApp sifariş / rezervasiya söndürülə bilər */
   planFeatures?: {
     whatsapp_order?: boolean;
     reservation?: boolean;
@@ -111,7 +129,11 @@ export function MenuTemplateView({
   setCurrentLang,
   cart,
   addToCart,
-  onWhatsAppOrder,
+  updateCartLineNote,
+  removeCartLine,
+  onCheckout,
+  ordersAllowed,
+  ordersClosedHint,
   t,
   planFeatures,
 }: MenuTemplateViewProps) {
@@ -345,6 +367,38 @@ export function MenuTemplateView({
     (p) => Number(p.category_id) === Number(activeCategory)
   );
 
+  const [variantPick, setVariantPick] = useState<Record<string, unknown> | null>(null);
+
+  const variantsOf = (p: Record<string, unknown>) =>
+    (Array.isArray(p.variants) ? p.variants : []) as Array<Record<string, unknown>>;
+
+  const displayMinPrice = (prod: Record<string, unknown>) => {
+    const base = Number(prod.price);
+    const v = variantsOf(prod).map((x) => Number(x.price)).filter((n) => !Number.isNaN(n));
+    if (!v.length) return base;
+    return Math.min(base, ...v);
+  };
+
+  const handleAddProduct = (prod: Record<string, unknown>) => {
+    if (!allowWa || !ordersAllowed) return;
+    const vars = variantsOf(prod);
+    if (vars.length > 0) {
+      setVariantPick(prod);
+      return;
+    }
+    addToCart({ product: prod, unitPrice: Number(prod.price) });
+  };
+
+  const pickVariant = (prod: Record<string, unknown>, v: Record<string, unknown>) => {
+    addToCart({
+      product: prod,
+      variantId: Number(v.id),
+      variantLabel: String(v.name),
+      unitPrice: Number(v.price),
+    });
+    setVariantPick(null);
+  };
+
   const socialRow = (
     <nav
       aria-label="Quick actions"
@@ -404,12 +458,16 @@ export function MenuTemplateView({
       ((prod.translations as Record<string, { desc?: string }> | undefined)?.[currentLang]?.desc) ||
       String(prod.description ?? "");
     const img = prod.image_url ? String(prod.image_url) : "";
+    const vars = variantsOf(prod);
+    const showFrom = vars.length > 0;
     const innerAdd = allowWa ? (
       <button
         type="button"
-        onClick={() => addToCart(prod)}
+        onClick={() => handleAddProduct(prod)}
+        disabled={!ordersAllowed}
         className={cn(
           "w-10 h-10 flex items-center justify-center text-white shadow-md active:scale-90 transition-transform shrink-0",
+          !ordersAllowed && "opacity-40 pointer-events-none",
           RADIUS_MAP.full
         )}
         style={{ backgroundColor: "var(--mt-primary)" }}
@@ -453,7 +511,7 @@ export function MenuTemplateView({
             ) : null}
             <div className="flex items-center justify-between mt-3 pt-2 border-t border-black/5">
               <span className="font-bold text-lg" style={{ color: "var(--mt-primary)" }}>
-                {formatPrice(prod.price)}
+                {showFrom ? <>ən azı {formatPrice(displayMinPrice(prod))}</> : formatPrice(prod.price)}
               </span>
               {innerAdd}
             </div>
@@ -495,7 +553,7 @@ export function MenuTemplateView({
           </h2>
           <div className="flex items-center justify-between gap-2 mt-auto">
             <span className="font-bold" style={{ color: "var(--mt-primary)" }}>
-              {formatPrice(prod.price)}
+              {showFrom ? <>ən azı {formatPrice(displayMinPrice(prod))}</> : formatPrice(prod.price)}
             </span>
             {innerAdd}
           </div>
@@ -544,7 +602,7 @@ export function MenuTemplateView({
           </div>
           <div className="flex items-center justify-between mt-2">
             <span className="font-bold text-lg" style={{ color: "var(--mt-primary)" }}>
-              {formatPrice(prod.price)}
+              {showFrom ? <>ən azı {formatPrice(displayMinPrice(prod))}</> : formatPrice(prod.price)}
             </span>
             {innerAdd}
           </div>
@@ -826,19 +884,35 @@ export function MenuTemplateView({
       </main>
 
       {allowWa && th.showFab && waOrderUrl && (
-        <a
-          href={waOrderUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            "fixed bottom-24 right-4 z-50 w-14 h-14 flex items-center justify-center text-white shadow-2xl active:scale-95 transition-transform",
-            RADIUS_MAP.full
-          )}
-          style={{ backgroundColor: "#22c55e" }}
-          aria-label="WhatsApp"
-        >
-          <MessageCircle size={26} />
-        </a>
+        cart.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => ordersAllowed && onCheckout()}
+            className={cn(
+              "fixed bottom-24 right-4 z-50 w-14 h-14 flex items-center justify-center text-white shadow-2xl active:scale-95 transition-transform",
+              RADIUS_MAP.full,
+              !ordersAllowed && "opacity-50"
+            )}
+            style={{ backgroundColor: "#22c55e" }}
+            aria-label="Checkout"
+          >
+            <ShoppingCart size={26} />
+          </button>
+        ) : (
+          <a
+            href={waOrderUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              "fixed bottom-24 right-4 z-50 w-14 h-14 flex items-center justify-center text-white shadow-2xl active:scale-95 transition-transform",
+              RADIUS_MAP.full
+            )}
+            style={{ backgroundColor: "#22c55e" }}
+            aria-label="WhatsApp"
+          >
+            <MessageCircle size={26} />
+          </a>
+        )
       )}
 
       {th.showBottomNav && (
@@ -863,7 +937,7 @@ export function MenuTemplateView({
           </a>
           <button
             type="button"
-            onClick={() => allowWa && onWhatsAppOrder()}
+            onClick={() => allowWa && ordersAllowed && onCheckout()}
             className="flex flex-col items-center text-[10px] text-[var(--mt-muted)]"
           >
             <ShoppingCart size={22} />
@@ -878,21 +952,79 @@ export function MenuTemplateView({
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
-            className={cn("fixed z-[60] left-3 right-3", th.showBottomNav ? "bottom-16" : "bottom-4")}
+            className={cn("fixed z-[60] left-3 right-3 max-h-[55vh] flex flex-col gap-2", th.showBottomNav ? "bottom-16" : "bottom-4")}
           >
+            <div
+              className="rounded-2xl border border-black/10 overflow-hidden flex flex-col max-h-[40vh] bg-[var(--mt-surface)] shadow-xl"
+              style={{ color: "var(--mt-text)" }}
+            >
+              <div className="overflow-y-auto divide-y divide-black/5">
+                {cart.map((line) => {
+                  const tr = line.product.translations as Record<string, { name?: string }> | undefined;
+                  const pn =
+                    tr?. [currentLang]?.name ||
+                    String(line.product.name ?? "");
+                  const label = line.variantLabel ? `${line.variantLabel} · ${pn}` : pn;
+                  return (
+                    <div key={line.lineId} className="p-3 text-sm space-y-2">
+                      <div className="flex justify-between gap-2">
+                        <span className="font-medium line-clamp-2">{label}</span>
+                        <span className="font-bold shrink-0">₼{Number(line.unitPrice).toFixed(2)}</span>
+                      </div>
+                      <div className="flex gap-1 flex-wrap">
+                        {["az duzlu", "ədviyyatlı", "sos"].map((q) => (
+                          <button
+                            key={q}
+                            type="button"
+                            className="text-[10px] px-2 py-0.5 rounded-full border border-black/10"
+                            onClick={() =>
+                              updateCartLineNote(
+                                line.lineId,
+                                [line.note, q].filter(Boolean).join(", ")
+                              )
+                            }
+                          >
+                            {q}
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        className="w-full text-xs p-2 rounded-lg border border-black/10 bg-transparent"
+                        placeholder="Qeyd (istəsən yaz)"
+                        value={line.note || ""}
+                        onChange={(e) => updateCartLineNote(line.lineId, e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="text-xs text-red-600"
+                        onClick={() => removeCartLine(line.lineId)}
+                      >
+                        Sil
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            {!ordersAllowed && ordersClosedHint ? (
+              <p className="text-center text-xs px-2 text-amber-800 bg-amber-100 rounded-lg py-2">
+                {ordersClosedHint}
+              </p>
+            ) : null}
             <button
               type="button"
-              onClick={onWhatsAppOrder}
-              className="w-full flex justify-between items-center text-white p-4 shadow-2xl active:scale-[0.99] transition-transform font-bold"
+              onClick={() => ordersAllowed && onCheckout()}
+              disabled={!ordersAllowed}
+              className="w-full flex justify-between items-center text-white p-4 shadow-2xl active:scale-[0.99] transition-transform font-bold disabled:opacity-50"
               style={{
                 backgroundColor: "var(--mt-primary)",
-                borderRadius:
-                  th.radius === "full" ? "9999px" : undefined,
+                borderRadius: th.radius === "full" ? "9999px" : undefined,
               }}
             >
               <span className="flex items-center gap-3">
                 <ShoppingCart size={22} />
-                {cart.length} {t("items_in_cart")}
+                {cart.length} · ₼
+                {cart.reduce((s, l) => s + Number(l.unitPrice), 0).toFixed(2)}
               </span>
               <span className="flex items-center gap-1">
                 {t("order_via_whatsapp")}
@@ -901,6 +1033,49 @@ export function MenuTemplateView({
             </button>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {variantPick ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[80] bg-black/50 flex items-end sm:items-center justify-center p-4"
+            onClick={() => setVariantPick(null)}
+          >
+            <motion.div
+              initial={{ y: 40 }}
+              animate={{ y: 0 }}
+              className="w-full max-w-md rounded-2xl p-4 shadow-2xl"
+              style={{ backgroundColor: "var(--mt-surface)", color: "var(--mt-text)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="font-bold mb-3">{String(variantPick.name)}</p>
+              <p className="text-xs text-[var(--mt-muted)] mb-2">Ölçü / çeşid seçin</p>
+              <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                {variantsOf(variantPick).map((v) => (
+                  <button
+                    key={String(v.id)}
+                    type="button"
+                    className="w-full flex justify-between p-3 rounded-xl border border-black/10 text-left"
+                    onClick={() => pickVariant(variantPick, v)}
+                  >
+                    <span>{String(v.name)}</span>
+                    <span className="font-bold">{formatPrice(v.price)}</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="mt-3 w-full py-2 text-sm text-[var(--mt-muted)]"
+                onClick={() => setVariantPick(null)}
+              >
+                Bağla
+              </button>
+            </motion.div>
+          </motion.div>
+        ) : null}
       </AnimatePresence>
     </div>
   );

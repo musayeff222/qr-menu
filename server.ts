@@ -123,6 +123,51 @@ async function countWhere(table: string, w: Record<string, unknown>) {
   return Number((row as { c?: string | number })?.c ?? 0);
 }
 
+const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+
+function ordersAllowedForRestaurant(r: Record<string, unknown>): boolean {
+  if (!asBool(r.strict_opening_hours)) return true;
+  const raw = (r.opening_hours as string) || "";
+  if (!raw.trim()) return true;
+  let parsed: { slots?: Record<string, Array<{ open: string; close: string }>> };
+  try {
+    parsed = JSON.parse(raw) as { slots?: Record<string, Array<{ open: string; close: string }>> };
+  } catch {
+    return true;
+  }
+  const slots = parsed.slots;
+  if (!slots || typeof slots !== "object") return true;
+  const key = DAY_KEYS[new Date().getDay()];
+  const daySlots = slots[key];
+  if (!daySlots || daySlots.length === 0) return false;
+  const n = new Date().getHours() * 60 + new Date().getMinutes();
+  for (const slot of daySlots) {
+    const [oh, om] = String(slot.open).split(":").map((x) => Number(x));
+    const [ch, cm] = String(slot.close).split(":").map((x) => Number(x));
+    if (Number.isNaN(oh) || Number.isNaN(om) || Number.isNaN(ch) || Number.isNaN(cm)) continue;
+    const a = oh * 60 + om;
+    const b = ch * 60 + cm;
+    if (a <= n && n <= b) return true;
+  }
+  return false;
+}
+
+async function attachVariantsToProducts(
+  parsedProducts: Array<Record<string, unknown>>
+): Promise<Array<Record<string, unknown>>> {
+  if (parsedProducts.length === 0) return parsedProducts;
+  const ids = parsedProducts.map((p) => Number(p.id)).filter((x) => !Number.isNaN(x));
+  if (!ids.length) return parsedProducts.map((p) => ({ ...p, variants: [] }));
+  const rows = await db("product_variants").whereIn("product_id", ids).orderBy("sort_order");
+  const m = new Map<number, typeof rows>();
+  for (const row of rows) {
+    const pid = Number((row as { product_id: number }).product_id);
+    if (!m.has(pid)) m.set(pid, []);
+    m.get(pid)!.push(row);
+  }
+  return parsedProducts.map((p) => ({ ...p, variants: m.get(Number(p.id)) || [] }));
+}
+
 async function startServer() {
   console.log("Starting server initialization...");
   try {
@@ -222,6 +267,67 @@ async function startServer() {
     }
   });
 
+  app.post("/api/public/register", async (req, res) => {
+    const { full_name, username, password, phone } = req.body;
+    if (!full_name || !username || !password || !phone) {
+      res.status(400).json({ error: "Ad soyad, login, parol və telefon tələb olunur" });
+      return;
+    }
+    const uname = String(username).toLowerCase().trim().slice(0, 64);
+    const takenUser = await db("restaurant_users").where({ username: uname }).first();
+    if (takenUser) {
+      res.status(400).json({ error: "Bu login artıq götürülüb" });
+      return;
+    }
+    let slugBase = uname.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "restoran";
+    let slug = slugBase;
+    let n = 0;
+    while (await db("restaurants").where({ slug }).first()) {
+      n++;
+      slug = `${slugBase}-${n}`;
+    }
+    const freePlan = await db("subscription_plans").where({ slug: "free" }).first();
+    const planId = freePlan?.id ?? null;
+    const wa = String(phone).replace(/\D/g, "");
+    try {
+      let newId = 0;
+      await db.transaction(async (trx) => {
+        const ids = await trx("restaurants").insert({
+          name: String(full_name).slice(0, 200),
+          slug,
+          whatsapp_number: wa || null,
+          phone: String(phone).slice(0, 64),
+          menu_template: "modern-01",
+          subscription_plan_id: planId,
+        });
+        newId = Number(Array.isArray(ids) ? ids[0] : ids);
+        await trx("restaurant_users").insert({
+          restaurant_id: newId,
+          username: uname,
+          password: String(password),
+          full_name: String(full_name).slice(0, 200),
+        });
+      });
+      const seedRow = await db("settings").where({ key: "seed_demo_on_create" }).first();
+      const defaultSeed = (seedRow as { value?: string } | undefined)?.value !== "false";
+      if (defaultSeed && newId) {
+        const pl = planId
+          ? await db("subscription_plans").where({ id: planId }).first()
+          : await db("subscription_plans").where({ slug: "free" }).first();
+        const mc = pl ? Number(pl.max_categories) : 5;
+        const mp = pl ? Number(pl.max_products) : 20;
+        await seedDemoAzMenu(db, newId, {
+          maxCategories: mc < 0 ? undefined : mc,
+          maxProducts: mp < 0 ? undefined : mp,
+        });
+      }
+      res.json({ success: true, restaurantId: newId, slug });
+    } catch (e) {
+      console.error(e);
+      res.status(400).json({ error: "Qeydiyyat tamamlanmadı" });
+    }
+  });
+
   app.post("/api/admin/login", async (req, res) => {
     const { username, password } = req.body;
     const user = await db("admin_users").where({ username, password }).first();
@@ -250,6 +356,7 @@ async function startServer() {
       res.status(401).json({ success: false, error: "Invalid credentials" });
       return;
     }
+    await db("restaurant_users").where({ id: row.id }).update({ last_login_at: db.fn.now() });
     const token = storeSession({
       kind: "restaurant",
       restaurantId: row.restaurant_id,
@@ -276,6 +383,35 @@ async function startServer() {
       return;
     }
     res.json({ restaurant, username: s.username });
+  });
+
+  app.get("/api/restaurant/owner-notifications", async (req, res) => {
+    const s = getSession(req);
+    if (!s || s.kind !== "restaurant") {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const rows = await db("owner_notifications")
+      .where({ restaurant_id: s.restaurantId })
+      .orderBy("id", "desc")
+      .limit(100);
+    res.json(rows);
+  });
+
+  app.patch("/api/restaurant/owner-notifications/:id/read", async (req, res) => {
+    const s = getSession(req);
+    if (!s || s.kind !== "restaurant") {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const nid = Number(req.params.id);
+    const row = await db("owner_notifications").where({ id: nid }).first();
+    if (!row || Number(row.restaurant_id) !== s.restaurantId) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    await db("owner_notifications").where({ id: nid }).update({ is_read: true });
+    res.json({ success: true });
   });
 
   app.post("/api/upload", upload.single("file"), (req, res) => {
@@ -309,6 +445,8 @@ async function startServer() {
       tiktok,
       logo_url,
       cover_image_url,
+      opening_hours,
+      strict_opening_hours,
     } = req.body;
     const patch: Record<string, unknown> = {};
     if (typeof name === "string") patch.name = name;
@@ -323,6 +461,9 @@ async function startServer() {
     if (typeof tiktok === "string") patch.tiktok = tiktok;
     if (typeof logo_url === "string") patch.logo_url = logo_url;
     if (typeof cover_image_url === "string") patch.cover_image_url = cover_image_url;
+    if (typeof opening_hours === "string") patch.opening_hours = opening_hours;
+    if (typeof strict_opening_hours === "boolean")
+      patch.strict_opening_hours = strict_opening_hours;
     if (typeof menu_template === "string" && menu_template.trim()) {
       const tid = menu_template.trim();
       const { plan } = await getRestaurantWithPlan(id);
@@ -379,6 +520,8 @@ async function startServer() {
       tiktok,
       logo_url,
       cover_image_url,
+      opening_hours,
+      strict_opening_hours,
     } = req.body;
     const patch: Record<string, unknown> = {};
     if (typeof name === "string") patch.name = name;
@@ -392,6 +535,9 @@ async function startServer() {
     if (typeof tiktok === "string") patch.tiktok = tiktok;
     if (typeof logo_url === "string") patch.logo_url = logo_url;
     if (typeof cover_image_url === "string") patch.cover_image_url = cover_image_url;
+    if (typeof opening_hours === "string") patch.opening_hours = opening_hours;
+    if (typeof strict_opening_hours === "boolean")
+      patch.strict_opening_hours = strict_opening_hours;
     if (typeof menu_template === "string" && menu_template.trim()) {
       const tid = menu_template.trim();
       const { plan } = await getRestaurantWithPlan(s.restaurantId);
@@ -650,10 +796,12 @@ async function startServer() {
       translations: safeJsonParse(cat.translations as string, {}),
     }));
 
-    const parsedProducts = products.map((prod) => ({
-      ...prod,
-      translations: safeJsonParse(prod.translations as string, {}),
-    }));
+    const parsedProducts = await attachVariantsToProducts(
+      products.map((prod) => ({
+        ...prod,
+        translations: safeJsonParse(prod.translations as string, {}),
+      }))
+    );
 
     const skipScan = String(req.query.preview) === "true";
     if (!skipScan) {
@@ -682,9 +830,12 @@ async function startServer() {
       .where({ is_active: true })
       .select("slug_key", "name", "category", "hero_image_url", "theme_json");
 
+    const orders_allowed = ordersAllowedForRestaurant(restaurant);
+
     res.json({
       ...restaurant,
       plan_features,
+      orders_allowed,
       categories: parsedCategories,
       products: parsedProducts,
       custom_templates,
@@ -708,10 +859,12 @@ async function startServer() {
       translations: safeJsonParse(cat.translations as string, {}),
     }));
 
-    const parsedProducts = products.map((prod) => ({
-      ...prod,
-      translations: safeJsonParse(prod.translations as string, {}),
-    }));
+    const parsedProducts = await attachVariantsToProducts(
+      products.map((prod) => ({
+        ...prod,
+        translations: safeJsonParse(prod.translations as string, {}),
+      }))
+    );
 
     const { plan } = await getRestaurantWithPlan(id);
     const customTemplates = await db("custom_menu_templates")
@@ -774,6 +927,7 @@ async function startServer() {
       price,
       image_url,
       translations,
+      variants,
     } = req.body;
     const rid = Number(restaurant_id);
     if (!requireRestaurantOrSuper(req, res, rid)) return;
@@ -794,10 +948,24 @@ async function startServer() {
       image_url,
       translations: translations ? JSON.stringify(translations) : null,
     });
+    if (Array.isArray(variants) && variants.length > 0) {
+      let i = 0;
+      for (const v of variants) {
+        if (!v?.name || v.price == null) continue;
+        await db("product_variants").insert({
+          product_id: Number(pid),
+          name: String(v.name).slice(0, 128),
+          price: Number(v.price),
+          sort_order: i++,
+        });
+      }
+    }
     const row = await db("products").where({ id: pid }).first();
+    const vrows = await db("product_variants").where({ product_id: pid }).orderBy("sort_order");
     res.json({
       ...row,
       translations: safeJsonParse((row as { translations?: string }).translations, {}),
+      variants: vrows,
     });
   });
 
@@ -805,6 +973,10 @@ async function startServer() {
     const cat = await db("categories").where({ id: req.params.id }).first();
     if (!cat) return res.status(404).json({ error: "Not found" });
     if (!requireRestaurantOrSuper(req, res, cat.restaurant_id)) return;
+    const pids = (await db("products").where({ category_id: cat.id }).select("id")).map(
+      (r) => r.id
+    );
+    if (pids.length) await db("product_variants").whereIn("product_id", pids).delete();
     await db("products").where({ category_id: cat.id }).delete();
     await db("categories").where({ id: cat.id }).delete();
     res.json({ success: true });
@@ -814,6 +986,7 @@ async function startServer() {
     const prod = await db("products").where({ id: req.params.id }).first();
     if (!prod) return res.status(404).json({ error: "Not found" });
     if (!requireRestaurantOrSuper(req, res, prod.restaurant_id)) return;
+    await db("product_variants").where({ product_id: prod.id }).delete();
     await db("products").where({ id: prod.id }).delete();
     res.json({ success: true });
   });
@@ -846,6 +1019,57 @@ async function startServer() {
         image_url,
         translations: translations ? JSON.stringify(translations) : null,
       });
+    res.json({ success: true });
+  });
+
+  app.post("/api/admin/products/:pid/variants", async (req, res) => {
+    const pid = Number(req.params.pid);
+    const prod = await db("products").where({ id: pid }).first();
+    if (!prod) return res.status(404).json({ error: "Not found" });
+    if (!requireRestaurantOrSuper(req, res, Number(prod.restaurant_id))) return;
+    const { name, price, sort_order } = req.body;
+    if (!name || price == null) {
+      res.status(400).json({ error: "Ad və qiymət lazımdır" });
+      return;
+    }
+    const ids = await db("product_variants").insert({
+      product_id: pid,
+      name: String(name).slice(0, 128),
+      price: Number(price),
+      sort_order: sort_order != null ? Number(sort_order) : 0,
+    });
+    const vid = Number(Array.isArray(ids) ? ids[0] : ids);
+    const row = await db("product_variants").where({ id: vid }).first();
+    res.json(row);
+  });
+
+  app.put("/api/admin/variants/:vid", async (req, res) => {
+    const vid = Number(req.params.vid);
+    const v = await db("product_variants").where({ id: vid }).first();
+    if (!v) return res.status(404).json({ error: "Not found" });
+    const prod = await db("products").where({ id: v.product_id }).first();
+    if (!prod || !requireRestaurantOrSuper(req, res, Number(prod.restaurant_id))) return;
+    const { name, price, sort_order } = req.body;
+    const patch: Record<string, unknown> = {};
+    if (typeof name === "string") patch.name = name.slice(0, 128);
+    if (price != null) patch.price = Number(price);
+    if (sort_order != null) patch.sort_order = Number(sort_order);
+    if (Object.keys(patch).length === 0) {
+      res.status(400).json({ error: "Boş" });
+      return;
+    }
+    await db("product_variants").where({ id: vid }).update(patch);
+    const row = await db("product_variants").where({ id: vid }).first();
+    res.json(row);
+  });
+
+  app.delete("/api/admin/variants/:vid", async (req, res) => {
+    const vid = Number(req.params.vid);
+    const v = await db("product_variants").where({ id: vid }).first();
+    if (!v) return res.status(404).json({ error: "Not found" });
+    const prod = await db("products").where({ id: v.product_id }).first();
+    if (!prod || !requireRestaurantOrSuper(req, res, Number(prod.restaurant_id))) return;
+    await db("product_variants").where({ id: vid }).delete();
     res.json({ success: true });
   });
 
@@ -977,6 +1201,119 @@ async function startServer() {
       return;
     }
     await db("subscription_plans").where({ id }).delete();
+    res.json({ success: true });
+  });
+
+  app.get("/api/admin/owner-accounts", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    const rests = await db("restaurants").orderBy("created_at", "desc");
+    const rows = await Promise.all(
+      rests.map(async (rest) => {
+        const user = await db("restaurant_users")
+          .where({ restaurant_id: rest.id })
+          .first();
+        const plan = rest.subscription_plan_id
+          ? await db("subscription_plans").where({ id: rest.subscription_plan_id }).first()
+          : null;
+        return { restaurant: rest, user, plan };
+      })
+    );
+    res.json(rows);
+  });
+
+  app.post("/api/admin/restaurants/:id/owner-notify", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    const rid = Number(req.params.id);
+    const rest = await db("restaurants").where({ id: rid }).first();
+    if (!rest) return res.status(404).json({ error: "Not found" });
+    const { title, body } = req.body;
+    if (!title) {
+      res.status(400).json({ error: "Başlıq lazımdır" });
+      return;
+    }
+    await db("owner_notifications").insert({
+      restaurant_id: rid,
+      title: String(title),
+      body: body ? String(body) : null,
+    });
+    res.json({ success: true });
+  });
+
+  app.post("/api/admin/restaurants/:id/plan-offer", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    const rid = Number(req.params.id);
+    const rest = await db("restaurants").where({ id: rid }).first();
+    if (!rest) return res.status(404).json({ error: "Not found" });
+    const { plan_id, message } = req.body;
+    const plan = plan_id
+      ? await db("subscription_plans").where({ id: Number(plan_id) }).first()
+      : null;
+    const title = `Plan təklifi${plan ? `: ${plan.name}` : ""}`;
+    const body =
+      (message ? String(message) : "") +
+      (plan
+        ? `\n\nTəklif olunan plan: ${plan.name} (aylıq ₼${Number(plan.price_monthly).toFixed(2)})`
+        : "");
+    await db("owner_notifications").insert({
+      restaurant_id: rid,
+      title,
+      body: body.trim() || null,
+    });
+    res.json({ success: true });
+  });
+
+  app.get("/api/admin/coupons", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    res.json(await db("promo_coupons").orderBy("id", "desc"));
+  });
+
+  app.post("/api/admin/coupons", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    const { code, max_uses, is_active, valid_from, valid_until, active_hours, notes } =
+      req.body;
+    if (!code) {
+      res.status(400).json({ error: "Kod lazımdır" });
+      return;
+    }
+    try {
+      const ids = await db("promo_coupons").insert({
+        code: String(code).toUpperCase().trim().slice(0, 64),
+        max_uses: max_uses != null ? Number(max_uses) : 1,
+        used_count: 0,
+        is_active: is_active !== false,
+        valid_from: valid_from || null,
+        valid_until: valid_until || null,
+        active_hours: active_hours != null ? Number(active_hours) : null,
+        notes: notes ? String(notes) : null,
+      });
+      const id = Number(Array.isArray(ids) ? ids[0] : ids);
+      const row = await db("promo_coupons").where({ id }).first();
+      res.json(row);
+    } catch {
+      res.status(400).json({ error: "Kod təkrar ola bilər" });
+    }
+  });
+
+  app.put("/api/admin/coupons/:id", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    const id = Number(req.params.id);
+    const b = req.body;
+    const patch: Record<string, unknown> = {};
+    if (typeof b.code === "string") patch.code = b.code.toUpperCase().trim().slice(0, 64);
+    if (b.max_uses != null) patch.max_uses = Number(b.max_uses);
+    if (b.used_count != null) patch.used_count = Number(b.used_count);
+    if (b.is_active !== undefined) patch.is_active = !!b.is_active;
+    if (b.valid_from !== undefined) patch.valid_from = b.valid_from || null;
+    if (b.valid_until !== undefined) patch.valid_until = b.valid_until || null;
+    if (b.active_hours !== undefined) patch.active_hours = b.active_hours;
+    if (b.notes !== undefined) patch.notes = b.notes;
+    await db("promo_coupons").where({ id }).update(patch);
+    res.json({ success: true, row: await db("promo_coupons").where({ id }).first() });
+  });
+
+  app.delete("/api/admin/coupons/:id", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    await db("promo_coupons").where({ id: req.params.id }).delete();
     res.json({ success: true });
   });
 

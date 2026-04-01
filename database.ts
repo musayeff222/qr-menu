@@ -501,6 +501,55 @@ export async function initDatabase() {
       });
     }
 
+    if (!(await db.schema.hasTable("product_variants"))) {
+      await db.schema.createTable("product_variants", (table) => {
+        table.increments("id");
+        table
+          .integer("product_id")
+          .unsigned()
+          .notNullable()
+          .references("id")
+          .inTable("products")
+          .onDelete("CASCADE");
+        table.string("name", 128).notNullable();
+        table.decimal("price", 10, 2).notNullable();
+        table.integer("sort_order").defaultTo(0);
+        table.timestamps(true, true);
+      });
+    }
+
+    if (!(await db.schema.hasTable("promo_coupons"))) {
+      await db.schema.createTable("promo_coupons", (table) => {
+        table.increments("id");
+        table.string("code", 64).unique().notNullable();
+        table.integer("max_uses").notNullable().defaultTo(1);
+        table.integer("used_count").notNullable().defaultTo(0);
+        table.boolean("is_active").defaultTo(true);
+        table.timestamp("valid_from").nullable();
+        table.timestamp("valid_until").nullable();
+        table.integer("active_hours").nullable();
+        table.text("notes");
+        table.timestamps(true, true);
+      });
+    }
+
+    if (!(await db.schema.hasTable("owner_notifications"))) {
+      await db.schema.createTable("owner_notifications", (table) => {
+        table.increments("id");
+        table
+          .integer("restaurant_id")
+          .unsigned()
+          .notNullable()
+          .references("id")
+          .inTable("restaurants")
+          .onDelete("CASCADE");
+        table.string("title", 255).notNullable();
+        table.text("body");
+        table.boolean("is_read").defaultTo(false);
+        table.timestamp("created_at").defaultTo(db.fn.now());
+      });
+    }
+
     if (await db.schema.hasTable("categories")) {
       await ensureColumn("categories", "translations", (table) => {
         table.text("translations");
@@ -548,6 +597,21 @@ export async function initDatabase() {
       });
       await ensureColumn("restaurants", "tiktok", (table) => {
         table.string("tiktok", 200);
+      });
+      await ensureColumn("restaurants", "opening_hours", (table) => {
+        table.text("opening_hours");
+      });
+      await ensureColumn("restaurants", "strict_opening_hours", (table) => {
+        table.boolean("strict_opening_hours").defaultTo(false);
+      });
+    }
+
+    if (await db.schema.hasTable("restaurant_users")) {
+      await ensureColumn("restaurant_users", "full_name", (table) => {
+        table.string("full_name", 200);
+      });
+      await ensureColumn("restaurant_users", "last_login_at", (table) => {
+        table.timestamp("last_login_at").nullable();
       });
     }
 
@@ -603,6 +667,7 @@ export async function initDatabase() {
         restaurant_id: newRid,
         username: "demo",
         password: "demo123",
+        full_name: "Demo istifadəçi",
       });
     }
 
@@ -639,6 +704,7 @@ export async function initDatabase() {
           restaurant_id: newRid,
           username: "demo",
           password: "demo123",
+          full_name: "Demo istifadəçi",
         });
       }
     }
