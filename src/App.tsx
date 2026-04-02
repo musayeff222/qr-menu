@@ -38,9 +38,9 @@ import { motion, AnimatePresence } from "motion/react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { authRestaurantHeaders, authAnyStaffHeaders } from "./lib/headers";
-import { DEMO_MENU_PREVIEW_SLUG } from "./demoMenuSlug";
 import { I18nBundleContext, useI18nBundle } from "./i18n/bundleContext";
 import RestaurantOnboarding from "./RestaurantOnboarding";
+import LandingPage from "./landing/LandingPage";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -55,153 +55,182 @@ const UI_TRANSLATIONS: any = {
     create_restaurant: "Yeni Restoran Yarat",
     name: "Ad",
     slug: "Slug",
-    whatsapp: "WhatsApp Nömrəsi",
+    whatsapp: "WhatsApp NГ¶mrЙ™si",
     create: "Yarat",
-    manage: "İdarə et",
+    manage: "Д°darЙ™ et",
     block: "Blokla",
-    logout: "Çıxış",
+    logout: "Г‡Д±xД±Еџ",
     categories: "Kateqoriyalar",
-    products: "Məhsullar",
-    add_category: "Kateqoriya Əlavə Et",
-    add_product: "Məhsul Əlavə Et",
-    price: "Qiymət",
-    description: "Təsvir",
+    products: "MЙ™hsullar",
+    add_category: "Kateqoriya ЖЏlavЙ™ Et",
+    add_product: "MЙ™hsul ЖЏlavЙ™ Et",
+    price: "QiymЙ™t",
+    description: "TЙ™svir",
     save: "Yadda saxla",
     language: "Dil",
-    default_language: "Əsas Dil",
-    supported_languages: "Dəstəklənən Dillər",
-    view_live: "Canlı Menyuya Bax",
-    scan_order_enjoy: "Skan et, Sifariş et, Zövq al!",
-    items_in_cart: "Məhsul səbətdə",
-    order_via_whatsapp: "WhatsApp ilə sifariş et",
-    total: "Cəmi",
-    loading: "Yüklənir...",
-    select_category: "Kateqoriya seçin",
-    translations: "Tərcümələr",
+    default_language: "ЖЏsas Dil",
+    supported_languages: "DЙ™stЙ™klЙ™nЙ™n DillЙ™r",
+    view_live: "CanlД± Menyuya Bax",
+    scan_order_enjoy: "Skan et, SifariЕџ et, ZГ¶vq al!",
+    items_in_cart: "MЙ™hsul sЙ™bЙ™tdЙ™",
+    order_via_whatsapp: "WhatsApp ilЙ™ sifariЕџ et",
+    total: "CЙ™mi",
+    loading: "YГјklЙ™nir...",
+    select_category: "Kateqoriya seГ§in",
+    translations: "TЙ™rcГјmЙ™lЙ™r",
     login: "Daxil ol",
-    username: "İstifadəçi adı",
-    password: "Şifrə",
+    username: "Д°stifadЙ™Г§i adД±",
+    password: "ЕћifrЙ™",
     landing_nav_admin: "Super Admin",
-    landing_nav_start: "Başla",
+    landing_nav_start: "BaЕџla",
     landing_hero_1: "Restoran menyunuz,",
-    landing_hero_2: "rəqəmsal.",
-    landing_hero_sub: "Dəqiqələr içində gözəl digital menyu yaradın. QR kodlar, kateqoriyalar və WhatsApp sifarişi.",
+    landing_hero_2: "rЙ™qЙ™msal.",
+    landing_hero_sub: "DЙ™qiqЙ™lЙ™r iГ§indЙ™ gГ¶zЙ™l digital menyu yaradД±n. QR kodlar, kateqoriyalar vЙ™ WhatsApp sifariЕџi.",
     landing_cta: "Menyu yarat",
-    landing_feat1_t: "Sürətli quraşdırma",
-    landing_feat1_d: "Bir kliklə restoran və menyu.",
+    landing_feat1_t: "SГјrЙ™tli quraЕџdД±rma",
+    landing_feat1_d: "Bir kliklЙ™ restoran vЙ™ menyu.",
     landing_feat2_t: "QR kod",
     landing_feat2_d: "Avtomatik QR kodlar.",
     landing_feat3_t: "WhatsApp",
-    landing_feat3_d: "Birbaşa telefonunuza sifariş.",
-    landing_sales_title: "Restoranınız üçün Rəqəmsal QR Menu yaradın",
+    landing_feat3_d: "BirbaЕџa telefonunuza sifariЕџ.",
+    landing_sales_title: "RestoranД±nД±z ГјГ§Гјn RЙ™qЙ™msal QR Menu yaradД±n",
     landing_sales_sub:
-      "QR kod ilə qonaqlar menyuya bir saniyədə daxil olsun. WhatsApp sifariş, 50-dən çox şablon, tam mobil uyğunluq.",
-    landing_cta_free: "Pulsuz başla",
+      "QR kod ilЙ™ qonaqlar menyuya bir saniyЙ™dЙ™ daxil olsun. WhatsApp sifariЕџ, 50-dЙ™n Г§ox Еџablon, tam mobil uyДџunluq.",
+    landing_cta_free: "Pulsuz baЕџla",
     landing_cta_demo: "Demo bax",
-    landing_feat4_t: "50+ fərqli şablon",
-    landing_feat4_d: "Hər şablon fərqli layout, rəng və fontlarla.",
-    landing_how_title: "Necə işləyir?",
-    landing_how_1: "Qeydiyyat — hesab yaradın",
-    landing_how_2: "Menu — məhsul və şəkil əlavə edin",
-    landing_how_3: "QR — masada paylaşın",
-    landing_plans_title: "Tariflər",
-    landing_buy: "Satın al",
-    landing_demo_title: "Canlı demo menyusu",
-    landing_footer_contact: "Əlaqə",
-    landing_sticky: "Başla",
-    landing_plans_sub: "Super Admin panelindən idarə olunur — dəyişikliklər avtomatik burada görünür.",
-    server_health: "Server və baza",
-    server_online: "Qoşulub",
-    server_error: "Xəta",
-    db_driver: "Növ",
+    landing_feat4_t: "50+ fЙ™rqli Еџablon",
+    landing_feat4_d: "HЙ™r Еџablon fЙ™rqli layout, rЙ™ng vЙ™ fontlarla.",
+    landing_how_title: "NecЙ™ iЕџlЙ™yir?",
+    landing_how_1: "Qeydiyyat вЂ” hesab yaradД±n",
+    landing_how_2: "Menu вЂ” mЙ™hsul vЙ™ ЕџЙ™kil Й™lavЙ™ edin",
+    landing_how_3: "QR вЂ” masada paylaЕџД±n",
+    landing_plans_title: "TariflЙ™r",
+    landing_buy: "SatД±n al",
+    landing_demo_title: "CanlД± demo menyusu",
+    landing_footer_contact: "ЖЏlaqЙ™",
+    landing_sticky: "BaЕџla",
+    landing_plans_sub: "Super Admin panelindЙ™n idarЙ™ olunur вЂ” dЙ™yiЕџikliklЙ™r avtomatik burada gГ¶rГјnГјr.",
+    server_health: "Server vЙ™ baza",
+    server_online: "QoЕџulub",
+    server_error: "XЙ™ta",
+    db_driver: "NГ¶v",
     response_ms: "ms",
-    rest_login_title: "Restoran girişi",
-    rest_login_sub: "Menyunuzu idarə etmək üçün daxil olun",
+    rest_login_title: "Restoran giriЕџi",
+    rest_login_sub: "Menyunuzu idarЙ™ etmЙ™k ГјГ§Гјn daxil olun",
     restaurant_staff_login: "Restoran paneli",
     admin_acc_user: "Restoran admin login",
-    admin_acc_pass: "Restoran şifrə",
-    staff_note: "Hər restoran öz menyusuna bu hesabla girir",
+    admin_acc_pass: "Restoran ЕџifrЙ™",
+    staff_note: "HЙ™r restoran Г¶z menyusuna bu hesabla girir",
     staff_username_col: "Restoran login",
-    reset_staff_short: "Girişi yenilə",
-    your_link: "İctimai link",
+    reset_staff_short: "GiriЕџi yenilЙ™",
+    your_link: "Д°ctimai link",
     slug_label: "URL (slug)",
     save_profile: "Yadda saxla",
-    super_dashboard: "İdarə paneli",
+    super_dashboard: "Д°darЙ™ paneli",
     full_name_label: "Ad soyad",
-    phone_label: "Telefon nömrəsi",
-    register_title: "Hesab yaradın",
-    register_sub: "Pulsuz başlayın — restoran və demo menyu avtomatik yaradılır",
+    phone_label: "Telefon nГ¶mrЙ™si",
+    register_title: "Hesab yaradД±n",
+    register_sub: "Pulsuz baЕџlayД±n вЂ” restoran vЙ™ demo menyu avtomatik yaradД±lД±r",
     register_submit: "Qeydiyyat",
-    register_success_note: "Hesab hazırdır. Aşağıdan daxil olun.",
-    register_have_account: "Artıq hesabınız var?",
-    orders_closed_hint: "Hal-hazırda sifariş qəbul edilmir (iş saatları).",
-    checkout_title: "Sifarişi tamamla",
-    checkout_address_placeholder: "Ünvanı yazın",
-    checkout_location_btn: "Konumumu göndər",
-    checkout_location_busy: "Konum alınır…",
+    register_success_note: "Hesab hazД±rdД±r. AЕџaДџД±dan daxil olun.",
+    register_have_account: "ArtД±q hesabД±nД±z var?",
+    orders_closed_hint: "Hal-hazД±rda sifariЕџ qЙ™bul edilmir (iЕџ saatlarД±).",
+    checkout_title: "SifariЕџi tamamla",
+    checkout_address_placeholder: "ГњnvanД± yazД±n",
+    checkout_location_btn: "Konumumu gГ¶ndЙ™r",
+    checkout_location_busy: "Konum alД±nД±rвЂ¦",
     checkout_geo_prefix: "Konum",
-    checkout_payment: "Ödəniş üsulu",
-    checkout_cash: "Nağd",
+    checkout_payment: "Г–dЙ™niЕџ Гјsulu",
+    checkout_cash: "NaДџd",
     checkout_card: "Kart",
-    checkout_send: "WhatsApp ilə göndər",
-    checkout_address_required: "Ünvan yazın və ya konumu seçin",
-    checkout_cancel: "Bağla",
+    checkout_send: "WhatsApp ilЙ™ gГ¶ndЙ™r",
+    checkout_address_required: "Гњnvan yazД±n vЙ™ ya konumu seГ§in",
+    checkout_cancel: "BaДџla",
     nav_menu: "Menyu",
-    nav_map: "Xəritə",
-    nav_order: "Sifariş",
-    nav_cart: "Səbət",
-    cart_back_menu: "Menyuya qayıt",
-    cart_screen_title: "Səbət",
-    cart_note_placeholder: "Qeyd (istəsən yaz)",
+    nav_map: "XЙ™ritЙ™",
+    nav_order: "SifariЕџ",
+    nav_cart: "SЙ™bЙ™t",
+    cart_back_menu: "Menyuya qayД±t",
+    cart_screen_title: "SЙ™bЙ™t",
+    cart_note_placeholder: "Qeyd (istЙ™sЙ™n yaz)",
     cart_remove_line: "Sil",
-    cart_open_full: "Tam səbətə keç",
+    cart_open_full: "Tam sЙ™bЙ™tЙ™ keГ§",
     register_sub_profile:
-      "Profil adınızı yazın (restoran adı deyil). Restoran məlumatlarını sonradan təkmilləşdirə bilərsiniz.",
-    register_success_title: "Hesabınız uğurla yaradıldı",
-    btn_prepare_menu: "Menyu hazırla",
+      "Profil adД±nД±zД± yazД±n (restoran adД± deyil). Restoran mЙ™lumatlarД±nД± sonradan tЙ™kmillЙ™ЕџdirЙ™ bilЙ™rsiniz.",
+    register_success_title: "HesabД±nД±z uДџurla yaradД±ldД±",
+    btn_prepare_menu: "Menyu hazД±rla",
     btn_continue: "Davam et",
-    onboarding_title: "Qoşulma",
+    onboarding_title: "QoЕџulma",
     onboarding_skip: "Sonra",
-    onboarding_step1_title: "Restoran məlumatları",
-    onboarding_step1_sub: "Qonaqlarınızın görməli olduğu əsas məlumatlar.",
-    restaurant_name_label: "Restoran adı",
+    onboarding_step1_title: "Restoran mЙ™lumatlarД±",
+    onboarding_step1_sub: "QonaqlarД±nД±zД±n gГ¶rmЙ™li olduДџu Й™sas mЙ™lumatlar.",
+    restaurant_name_label: "Restoran adД±",
     onboarding_location: "Konum",
     maps_url_placeholder: "Google Maps linki",
-    onboarding_next: "Növbəti",
+    onboarding_next: "NГ¶vbЙ™ti",
     onboarding_back: "Geri",
     onboarding_step2_title: "Menyu linkiniz",
-    onboarding_step2_sub: "Qonaqlar bu ünvanla menyunuza daxil olacaq.",
-    onboarding_link_example_prefix: "Nümunə: ",
-    onboarding_step3_title: "Şablon seçimi",
+    onboarding_step2_sub: "Qonaqlar bu Гјnvanla menyunuza daxil olacaq.",
+    onboarding_link_example_prefix: "NГјmunЙ™: ",
+    onboarding_step3_title: "Ећablon seГ§imi",
     onboarding_finish: "Bitir",
-    panel_plan: "Plan və limitlər",
+    panel_plan: "Plan vЙ™ limitlЙ™r",
     plan_active_label: "Aktiv plan",
-    plan_limits_title: "Limitlər",
-    plan_max_products: "Məhsul",
+    plan_limits_title: "LimitlЙ™r",
+    plan_max_products: "MЙ™hsul",
     plan_max_categories: "Kateqoriya",
-    plan_max_templates: "Şablon",
-    plan_upgrade_btn: "Planı yüksəlt",
-    plan_processing_badge: "İcradadır",
-    plan_upgrade_modal_title: "Plan seçin",
-    plan_request_submit: "Sorğu göndər",
-    plan_request_ok_title: "Sorğunuz uğurla göndərildi",
+    plan_max_templates: "Ећablon",
+    plan_upgrade_btn: "PlanД± yГјksЙ™lt",
+    plan_processing_badge: "Д°cradadД±r",
+    plan_upgrade_modal_title: "Plan seГ§in",
+    plan_request_submit: "SorДџu gГ¶ndЙ™r",
+    plan_request_ok_title: "SorДџunuz uДџurla gГ¶ndЙ™rildi",
     plan_request_ok_body:
-      "Ən qısa zamanda WhatsApp üzərindən sizinlə əlaqə saxlanılacaq.",
-    plan_back_panel: "Panelə qayıt",
+      "ЖЏn qД±sa zamanda WhatsApp ГјzЙ™rindЙ™n sizinlЙ™ Й™laqЙ™ saxlanД±lacaq.",
+    plan_back_panel: "PanelЙ™ qayД±t",
     panel_qr_title: "QR kodunuz",
-    panel_qr_scan_hint: "Menyuya baxmaq üçün skan edin",
-    panel_download: "Yüklə",
+    panel_qr_scan_hint: "Menyuya baxmaq ГјГ§Гјn skan edin",
+    panel_download: "YГјklЙ™",
     panel_copy_link: "Linki kopyala",
-    link_copied: "Link kopyalandı!",
-    templates_section_title: "Menyu şablonları",
-    templates_section_sub: "şablon. Canlı önizləmə menyunu açır.",
-    translation_cancel: "Ləğv et",
-    landing_hero_kicker: "Yeni nəsil restoran təcrübəsi",
-    landing_hero_headline: "Qonaqlar bir skanla menyuda — sifariş bir toxunuşla WhatsApp-da",
-    landing_hero_highlight: "Kənardan sifariş — içəridən nəzarət",
-    landing_value_line: "Mobil öncüllüklü · Çoxdilli · Anında yenilənən",
-    orders_section_title: "Sifarişlər",
-    demo_login: "Demo: demo / demo123 (nümunə menyusu)"
+    link_copied: "Link kopyalandД±!",
+    templates_section_title: "Menyu ЕџablonlarД±",
+    templates_section_sub: "Еџablon. CanlД± Г¶nizlЙ™mЙ™ menyunu aГ§Д±r.",
+    translation_cancel: "LЙ™Дџv et",
+    landing_hero_kicker: "Yeni nЙ™sil restoran tЙ™crГјbЙ™si",
+    landing_hero_headline: "Qonaqlar bir skanla menyuda вЂ” sifariЕџ bir toxunuЕџla WhatsApp-da",
+    landing_hero_highlight: "KЙ™nardan sifariЕџ вЂ” iГ§Й™ridЙ™n nЙ™zarЙ™t",
+    landing_value_line: "Mobil Г¶ncГјllГјklГј В· Г‡oxdilli В· AnД±nda yenilЙ™nЙ™n",
+    orders_section_title: "SifariЕџlЙ™r",
+    landing_hero_display_sub:
+      "KaДџД±z menyunu unudun, mГјЕџtЙ™rilЙ™rinizЙ™ modern tЙ™crГјbЙ™ tЙ™qdim edin",
+    landing_meta_title: "QRMenu вЂ” RestoranД±nД±z ГјГ§Гјn rЙ™qЙ™msal QR menyu",
+    landing_meta_description:
+      "Pulsuz baЕџlayД±n: QR kod, 50+ Еџablon, WhatsApp sifariЕџ, mobil uyДџun menyu vЙ™ asan idarЙ™ paneli.",
+    landing_benefits_title: "ГњstГјnlГјklЙ™r",
+    landing_benefit_qr_t: "QR ilЙ™ sГјrЙ™tli giriЕџ",
+    landing_benefit_qr_d: "Qonaqlar bir skanla menyunu aГ§Д±r вЂ” gГ¶zlЙ™mЙ™ vЙ™ xЙ™ta azalД±r.",
+    landing_benefit_mobile_t: "Mobil uyДџun dizayn",
+    landing_benefit_mobile_d: "Telefon vЙ™ planЕџet ГјГ§Гјn optimallaЕџdД±rД±lmД±Еџ, sГјrЙ™tli yГјklЙ™nmЙ™.",
+    landing_benefit_templates_t: "50+ fЙ™rqli Еџablon",
+    landing_benefit_templates_d: "RestoranД±nД±za uyДџun premium gГ¶rГјnГјЕџ вЂ” bir kliklЙ™ dЙ™yiЕџdirin.",
+    landing_benefit_wa_t: "WhatsApp sifariЕџ",
+    landing_benefit_wa_d: "SifariЕџlЙ™r birbaЕџa sizin nГ¶mrЙ™nizЙ™ dГјЕџГјr.",
+    landing_benefit_panel_t: "Asan idarЙ™ paneli",
+    landing_benefit_panel_d: "Menyu, qiymЙ™t vЙ™ ЕџЙ™killЙ™ri Г¶zГјnГјz idarЙ™ edin.",
+    landing_templates_showcase_title: "Ећablon Г¶nizlЙ™mЙ™",
+    landing_templates_showcase_sub: "HazД±r UI gГ¶rГјnГјЕџГј ilЙ™ canlД± nГјmunЙ™yЙ™ baxД±n.",
+    landing_preview_live: "CanlД± bax",
+    landing_how_short_1: "Qeydiyyat ol",
+    landing_how_short_2: "Menyu Й™lavЙ™ et",
+    landing_how_short_3: "QR kodu paylaЕџ",
+    landing_plan_popular: "ЖЏn populyar",
+    landing_final_cta_title: "Д°ndi baЕџla vЙ™ restoranД±nД± rЙ™qЙ™msallaЕџdД±r",
+    landing_footer_tagline: "Restoranlar ГјГ§Гјn mГјasir QR menyu platformasД±.",
+    landing_footer_legal: "В© 2026 QRMenu. BГјtГјn hГјquqlar qorunur.",
+    landing_footer_connect: "ЖЏlaqЙ™",
+    landing_footer_explore: "KeЕџf et",
+    landing_footer_social: "Bizi izlЙ™yin",
+    demo_login: "Demo: demo / demo123 (nГјmunЙ™ menyusu)"
   },
   en: {
     dashboard: "Dashboard",
@@ -256,15 +285,15 @@ const UI_TRANSLATIONS: any = {
     landing_feat4_t: "50+ unique templates",
     landing_feat4_d: "Different layouts, colors, and typography.",
     landing_how_title: "How it works",
-    landing_how_1: "Sign up — create your account",
-    landing_how_2: "Menu — add dishes and photos",
-    landing_how_3: "QR — share at tables",
+    landing_how_1: "Sign up вЂ” create your account",
+    landing_how_2: "Menu вЂ” add dishes and photos",
+    landing_how_3: "QR вЂ” share at tables",
     landing_plans_title: "Plans",
     landing_buy: "Subscribe",
     landing_demo_title: "Live demo menu",
     landing_footer_contact: "Contact",
     landing_sticky: "Get started",
-    landing_plans_sub: "Managed from Super Admin — changes sync here automatically.",
+    landing_plans_sub: "Managed from Super Admin вЂ” changes sync here automatically.",
     server_health: "Server & database",
     server_online: "Connected",
     server_error: "Error",
@@ -285,7 +314,7 @@ const UI_TRANSLATIONS: any = {
     full_name_label: "Full name",
     phone_label: "Phone",
     register_title: "Create account",
-    register_sub: "Start free — your restaurant and demo menu are created automatically",
+    register_sub: "Start free вЂ” your restaurant and demo menu are created automatically",
     register_submit: "Sign up",
     register_success_note: "You're all set. Sign in below.",
     register_have_account: "Already have an account?",
@@ -293,7 +322,7 @@ const UI_TRANSLATIONS: any = {
     checkout_title: "Complete order",
     checkout_address_placeholder: "Delivery address",
     checkout_location_btn: "Share my location",
-    checkout_location_busy: "Getting location…",
+    checkout_location_busy: "Getting locationвЂ¦",
     checkout_geo_prefix: "Location",
     checkout_payment: "Payment",
     checkout_cash: "Cash",
@@ -350,317 +379,402 @@ const UI_TRANSLATIONS: any = {
     templates_section_sub: "templates. Live preview opens your menu.",
     translation_cancel: "Cancel",
     landing_hero_kicker: "The modern restaurant stack",
-    landing_hero_headline: "Guests scan once — orders land in WhatsApp",
+    landing_hero_headline: "Guests scan once вЂ” orders land in WhatsApp",
     landing_hero_highlight: "sales-driven",
-    landing_value_line: "Mobile-first · Multilingual · Always up to date",
+    landing_value_line: "Mobile-first В· Multilingual В· Always up to date",
     orders_section_title: "Orders",
-    demo_login: "Demo: demo / demo123 (nümunə menyusu)"
+    landing_hero_display_sub:
+      "Ditch paper menus вЂ” give guests a modern experience.",
+    landing_meta_title: "QRMenu вЂ” Digital QR menus for restaurants",
+    landing_meta_description:
+      "Start free: QR codes, 50+ templates, WhatsApp ordering, mobile-first menus, easy dashboard.",
+    landing_benefits_title: "Why QRMenu",
+    landing_benefit_qr_t: "Instant access with QR",
+    landing_benefit_qr_d: "Guests open your menu in one scan вЂ” less waiting, fewer errors.",
+    landing_benefit_mobile_t: "Mobile-first design",
+    landing_benefit_mobile_d: "Optimized for phones and tablets, fast loading.",
+    landing_benefit_templates_t: "50+ unique templates",
+    landing_benefit_templates_d: "Premium look & feel вЂ” switch designs in one click.",
+    landing_benefit_wa_t: "WhatsApp ordering",
+    landing_benefit_wa_d: "Orders go straight to your number.",
+    landing_benefit_panel_t: "Easy admin panel",
+    landing_benefit_panel_d: "Manage items, prices, and photos yourself.",
+    landing_templates_showcase_title: "Template previews",
+    landing_templates_showcase_sub: "See real menu UI before you publish.",
+    landing_preview_live: "Live preview",
+    landing_how_short_1: "Sign up",
+    landing_how_short_2: "Add your menu",
+    landing_how_short_3: "Share your QR",
+    landing_plan_popular: "Most popular",
+    landing_final_cta_title: "Go digital today",
+    landing_footer_tagline: "Modern QR menu platform for restaurants.",
+    landing_footer_legal: "В© 2026 QRMenu. All rights reserved.",
+    landing_footer_connect: "Contact",
+    landing_footer_explore: "Explore",
+    landing_footer_social: "Follow us",
+    demo_login: "Demo: demo / demo123 (nГјmunЙ™ menyusu)"
   },
   ru: {
-    dashboard: "Панель",
-    settings: "Настройки",
-    restaurants: "Рестораны",
-    create_restaurant: "Создать новый ресторан",
-    name: "Имя",
-    slug: "Слаг",
-    whatsapp: "Номер WhatsApp",
-    create: "Создать",
-    manage: "Управлять",
-    block: "Блокировать",
-    logout: "Выйти",
-    categories: "Категории",
-    products: "Продукты",
-    add_category: "Добавить категорию",
-    add_product: "Добавить продукт",
-    price: "Цена",
-    description: "Описание",
-    save: "Сохранить",
-    language: "Язык",
-    default_language: "Язык по умолчанию",
-    supported_languages: "Поддерживаемые языки",
-    view_live: "Посмотреть меню",
-    scan_order_enjoy: "Сканируй, Заказывай, Наслаждайся!",
-    items_in_cart: "Товаров в корзине",
-    order_via_whatsapp: "Заказать через WhatsApp",
-    total: "Итого",
-    loading: "Загрузка...",
-    select_category: "Выберите категорию",
-    translations: "Переводы",
-    login: "Войти",
-    username: "Логин",
-    password: "Пароль",
-    landing_nav_admin: "Супер админ",
-    landing_nav_start: "Начать",
-    landing_hero_1: "Меню вашего ресторана,",
-    landing_hero_2: "в цифре.",
-    landing_hero_sub: "Создайте цифровое меню за минуты. QR-коды, категории и заказы в WhatsApp.",
-    landing_cta: "Создать меню",
-    landing_feat1_t: "Быстрый старт",
-    landing_feat1_d: "Ресторан и меню в один клик.",
-    landing_feat2_t: "QR-коды",
-    landing_feat2_d: "Автоматические QR для столов.",
+    dashboard: "РџР°РЅРµР»СЊ",
+    settings: "РќР°СЃС‚СЂРѕР№РєРё",
+    restaurants: "Р РµСЃС‚РѕСЂР°РЅС‹",
+    create_restaurant: "РЎРѕР·РґР°С‚СЊ РЅРѕРІС‹Р№ СЂРµСЃС‚РѕСЂР°РЅ",
+    name: "РРјСЏ",
+    slug: "РЎР»Р°Рі",
+    whatsapp: "РќРѕРјРµСЂ WhatsApp",
+    create: "РЎРѕР·РґР°С‚СЊ",
+    manage: "РЈРїСЂР°РІР»СЏС‚СЊ",
+    block: "Р‘Р»РѕРєРёСЂРѕРІР°С‚СЊ",
+    logout: "Р’С‹Р№С‚Рё",
+    categories: "РљР°С‚РµРіРѕСЂРёРё",
+    products: "РџСЂРѕРґСѓРєС‚С‹",
+    add_category: "Р”РѕР±Р°РІРёС‚СЊ РєР°С‚РµРіРѕСЂРёСЋ",
+    add_product: "Р”РѕР±Р°РІРёС‚СЊ РїСЂРѕРґСѓРєС‚",
+    price: "Р¦РµРЅР°",
+    description: "РћРїРёСЃР°РЅРёРµ",
+    save: "РЎРѕС…СЂР°РЅРёС‚СЊ",
+    language: "РЇР·С‹Рє",
+    default_language: "РЇР·С‹Рє РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ",
+    supported_languages: "РџРѕРґРґРµСЂР¶РёРІР°РµРјС‹Рµ СЏР·С‹РєРё",
+    view_live: "РџРѕСЃРјРѕС‚СЂРµС‚СЊ РјРµРЅСЋ",
+    scan_order_enjoy: "РЎРєР°РЅРёСЂСѓР№, Р—Р°РєР°Р·С‹РІР°Р№, РќР°СЃР»Р°Р¶РґР°Р№СЃСЏ!",
+    items_in_cart: "РўРѕРІР°СЂРѕРІ РІ РєРѕСЂР·РёРЅРµ",
+    order_via_whatsapp: "Р—Р°РєР°Р·Р°С‚СЊ С‡РµСЂРµР· WhatsApp",
+    total: "РС‚РѕРіРѕ",
+    loading: "Р—Р°РіСЂСѓР·РєР°...",
+    select_category: "Р’С‹Р±РµСЂРёС‚Рµ РєР°С‚РµРіРѕСЂРёСЋ",
+    translations: "РџРµСЂРµРІРѕРґС‹",
+    login: "Р’РѕР№С‚Рё",
+    username: "Р›РѕРіРёРЅ",
+    password: "РџР°СЂРѕР»СЊ",
+    landing_nav_admin: "РЎСѓРїРµСЂ Р°РґРјРёРЅ",
+    landing_nav_start: "РќР°С‡Р°С‚СЊ",
+    landing_hero_1: "РњРµРЅСЋ РІР°С€РµРіРѕ СЂРµСЃС‚РѕСЂР°РЅР°,",
+    landing_hero_2: "РІ С†РёС„СЂРµ.",
+    landing_hero_sub: "РЎРѕР·РґР°Р№С‚Рµ С†РёС„СЂРѕРІРѕРµ РјРµРЅСЋ Р·Р° РјРёРЅСѓС‚С‹. QR-РєРѕРґС‹, РєР°С‚РµРіРѕСЂРёРё Рё Р·Р°РєР°Р·С‹ РІ WhatsApp.",
+    landing_cta: "РЎРѕР·РґР°С‚СЊ РјРµРЅСЋ",
+    landing_feat1_t: "Р‘С‹СЃС‚СЂС‹Р№ СЃС‚Р°СЂС‚",
+    landing_feat1_d: "Р РµСЃС‚РѕСЂР°РЅ Рё РјРµРЅСЋ РІ РѕРґРёРЅ РєР»РёРє.",
+    landing_feat2_t: "QR-РєРѕРґС‹",
+    landing_feat2_d: "РђРІС‚РѕРјР°С‚РёС‡РµСЃРєРёРµ QR РґР»СЏ СЃС‚РѕР»РѕРІ.",
     landing_feat3_t: "WhatsApp",
-    landing_feat3_d: "Заказы прямо на телефон.",
-    landing_sales_title: "Создайте цифровое QR-меню для ресторана",
+    landing_feat3_d: "Р—Р°РєР°Р·С‹ РїСЂСЏРјРѕ РЅР° С‚РµР»РµС„РѕРЅ.",
+    landing_sales_title: "РЎРѕР·РґР°Р№С‚Рµ С†РёС„СЂРѕРІРѕРµ QR-РјРµРЅСЋ РґР»СЏ СЂРµСЃС‚РѕСЂР°РЅР°",
     landing_sales_sub:
-      "Гости открывают меню за секунду. WhatsApp, 50+ шаблонов, мобильная вёрстка.",
-    landing_cta_free: "Начать бесплатно",
-    landing_cta_demo: "Демо",
-    landing_feat4_t: "50+ шаблонов",
-    landing_feat4_d: "Разные макеты, цвета и шрифты.",
-    landing_how_title: "Как это работает",
-    landing_how_1: "Регистрация",
-    landing_how_2: "Меню и фото",
-    landing_how_3: "QR на столах",
-    landing_plans_title: "Тарифы",
-    landing_buy: "Оформить",
-    landing_demo_title: "Живое демо",
-    landing_footer_contact: "Контакты",
-    landing_sticky: "Начать",
-    landing_plans_sub: "Тарифы из панели Super Admin — обновляются автоматически.",
-    server_health: "Сервер и БД",
-    server_online: "Подключено",
-    server_error: "Ошибка",
-    db_driver: "Тип",
-    response_ms: "мс",
-    rest_login_title: "Вход для ресторана",
-    rest_login_sub: "Войдите для управления меню",
-    restaurant_staff_login: "Панель ресторана",
-    admin_acc_user: "Логин администратора",
-    admin_acc_pass: "Пароль администратора",
-    staff_note: "Каждый ресторан входит со своей учётной записью",
-    staff_username_col: "Логин персонала",
-    reset_staff_short: "Сбросить доступ",
-    your_link: "Публичная ссылка",
+      "Р“РѕСЃС‚Рё РѕС‚РєСЂС‹РІР°СЋС‚ РјРµРЅСЋ Р·Р° СЃРµРєСѓРЅРґСѓ. WhatsApp, 50+ С€Р°Р±Р»РѕРЅРѕРІ, РјРѕР±РёР»СЊРЅР°СЏ РІС‘СЂСЃС‚РєР°.",
+    landing_cta_free: "РќР°С‡Р°С‚СЊ Р±РµСЃРїР»Р°С‚РЅРѕ",
+    landing_cta_demo: "Р”РµРјРѕ",
+    landing_feat4_t: "50+ С€Р°Р±Р»РѕРЅРѕРІ",
+    landing_feat4_d: "Р Р°Р·РЅС‹Рµ РјР°РєРµС‚С‹, С†РІРµС‚Р° Рё С€СЂРёС„С‚С‹.",
+    landing_how_title: "РљР°Рє СЌС‚Рѕ СЂР°Р±РѕС‚Р°РµС‚",
+    landing_how_1: "Р РµРіРёСЃС‚СЂР°С†РёСЏ",
+    landing_how_2: "РњРµРЅСЋ Рё С„РѕС‚Рѕ",
+    landing_how_3: "QR РЅР° СЃС‚РѕР»Р°С…",
+    landing_plans_title: "РўР°СЂРёС„С‹",
+    landing_buy: "РћС„РѕСЂРјРёС‚СЊ",
+    landing_demo_title: "Р–РёРІРѕРµ РґРµРјРѕ",
+    landing_footer_contact: "РљРѕРЅС‚Р°РєС‚С‹",
+    landing_sticky: "РќР°С‡Р°С‚СЊ",
+    landing_plans_sub: "РўР°СЂРёС„С‹ РёР· РїР°РЅРµР»Рё Super Admin вЂ” РѕР±РЅРѕРІР»СЏСЋС‚СЃСЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё.",
+    server_health: "РЎРµСЂРІРµСЂ Рё Р‘Р”",
+    server_online: "РџРѕРґРєР»СЋС‡РµРЅРѕ",
+    server_error: "РћС€РёР±РєР°",
+    db_driver: "РўРёРї",
+    response_ms: "РјСЃ",
+    rest_login_title: "Р’С…РѕРґ РґР»СЏ СЂРµСЃС‚РѕСЂР°РЅР°",
+    rest_login_sub: "Р’РѕР№РґРёС‚Рµ РґР»СЏ СѓРїСЂР°РІР»РµРЅРёСЏ РјРµРЅСЋ",
+    restaurant_staff_login: "РџР°РЅРµР»СЊ СЂРµСЃС‚РѕСЂР°РЅР°",
+    admin_acc_user: "Р›РѕРіРёРЅ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°",
+    admin_acc_pass: "РџР°СЂРѕР»СЊ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°",
+    staff_note: "РљР°Р¶РґС‹Р№ СЂРµСЃС‚РѕСЂР°РЅ РІС…РѕРґРёС‚ СЃРѕ СЃРІРѕРµР№ СѓС‡С‘С‚РЅРѕР№ Р·Р°РїРёСЃСЊСЋ",
+    staff_username_col: "Р›РѕРіРёРЅ РїРµСЂСЃРѕРЅР°Р»Р°",
+    reset_staff_short: "РЎР±СЂРѕСЃРёС‚СЊ РґРѕСЃС‚СѓРї",
+    your_link: "РџСѓР±Р»РёС‡РЅР°СЏ СЃСЃС‹Р»РєР°",
     slug_label: "URL (slug)",
-    save_profile: "Сохранить",
-    super_dashboard: "Панель",
-    full_name_label: "ФИО",
-    phone_label: "Телефон",
-    register_title: "Регистрация",
-    register_sub: "Бесплатно — ресторан и демо-меню создаются автоматически",
-    register_submit: "Зарегистрироваться",
-    register_success_note: "Готово. Войдите ниже.",
-    register_have_account: "Уже есть аккаунт?",
-    orders_closed_hint: "Сейчас заказы не принимаются (не рабочее время).",
-    checkout_title: "Оформить заказ",
-    checkout_address_placeholder: "Адрес",
-    checkout_location_btn: "Отправить геолокацию",
-    checkout_location_busy: "Определение…",
-    checkout_geo_prefix: "Локация",
-    checkout_payment: "Оплата",
-    checkout_cash: "Наличные",
-    checkout_card: "Карта",
-    checkout_send: "Отправить в WhatsApp",
-    checkout_address_required: "Укажите адрес или геолокацию",
-    checkout_cancel: "Закрыть",
-    nav_menu: "Меню",
-    nav_map: "Карта",
-    nav_order: "Заказ",
-    nav_cart: "Корзина",
-    cart_back_menu: "К меню",
-    cart_screen_title: "Корзина",
-    cart_note_placeholder: "Примечание",
-    cart_remove_line: "Удалить",
-    cart_open_full: "Открыть корзину",
-    register_sub_profile: "Имя профиля (не название ресторана). Данные ресторана добавите позже.",
-    register_success_title: "Аккаунт создан",
-    btn_prepare_menu: "Настроить меню",
-    btn_continue: "Продолжить",
-    onboarding_title: "Онбординг",
-    onboarding_skip: "Позже",
-    onboarding_step1_title: "Данные ресторана",
-    onboarding_step1_sub: "Что увидят гости.",
-    restaurant_name_label: "Название ресторана",
-    onboarding_location: "Локация",
-    maps_url_placeholder: "Ссылка Google Maps",
-    onboarding_next: "Далее",
-    onboarding_back: "Назад",
-    onboarding_step2_title: "Ссылка меню",
-    onboarding_step2_sub: "Гости откроют меню по этому адресу.",
-    onboarding_link_example_prefix: "Пример: ",
-    onboarding_step3_title: "Шаблон",
-    onboarding_finish: "Готово",
-    panel_plan: "План и лимиты",
-    plan_active_label: "Текущий план",
-    plan_limits_title: "Лимиты",
-    plan_max_products: "Товары",
-    plan_max_categories: "Категории",
-    plan_max_templates: "Шаблоны",
-    plan_upgrade_btn: "Сменить план",
-    plan_processing_badge: "В работе",
-    plan_upgrade_modal_title: "Выберите план",
-    plan_request_submit: "Отправить запрос",
-    plan_request_ok_title: "Запрос отправлен",
-    plan_request_ok_body: "Мы свяжемся с вами в WhatsApp.",
-    plan_back_panel: "В панель",
-    panel_qr_title: "QR-код",
-    panel_qr_scan_hint: "Сканируйте, чтобы открыть меню",
-    panel_download: "Скачать",
-    panel_copy_link: "Копировать ссылку",
-    link_copied: "Скопировано!",
-    templates_section_title: "Шаблоны меню",
-    templates_section_sub: "шаблонов. Живой предпросмотр.",
-    translation_cancel: "Отмена",
-    landing_hero_kicker: "Цифровое меню для гостей",
-    landing_hero_headline: "Гости сканируют один раз — заказы в WhatsApp",
-    landing_hero_highlight: "Больше заказов — меньше хаоса",
-    landing_value_line: "Мобильно · Мультиязычно · Всегда актуально",
-    orders_section_title: "Заказы",
-    demo_login: "Демо: demo / demo123 (пример меню)"
+    save_profile: "РЎРѕС…СЂР°РЅРёС‚СЊ",
+    super_dashboard: "РџР°РЅРµР»СЊ",
+    full_name_label: "Р¤РРћ",
+    phone_label: "РўРµР»РµС„РѕРЅ",
+    register_title: "Р РµРіРёСЃС‚СЂР°С†РёСЏ",
+    register_sub: "Р‘РµСЃРїР»Р°С‚РЅРѕ вЂ” СЂРµСЃС‚РѕСЂР°РЅ Рё РґРµРјРѕ-РјРµРЅСЋ СЃРѕР·РґР°СЋС‚СЃСЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё",
+    register_submit: "Р—Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊСЃСЏ",
+    register_success_note: "Р“РѕС‚РѕРІРѕ. Р’РѕР№РґРёС‚Рµ РЅРёР¶Рµ.",
+    register_have_account: "РЈР¶Рµ РµСЃС‚СЊ Р°РєРєР°СѓРЅС‚?",
+    orders_closed_hint: "РЎРµР№С‡Р°СЃ Р·Р°РєР°Р·С‹ РЅРµ РїСЂРёРЅРёРјР°СЋС‚СЃСЏ (РЅРµ СЂР°Р±РѕС‡РµРµ РІСЂРµРјСЏ).",
+    checkout_title: "РћС„РѕСЂРјРёС‚СЊ Р·Р°РєР°Р·",
+    checkout_address_placeholder: "РђРґСЂРµСЃ",
+    checkout_location_btn: "РћС‚РїСЂР°РІРёС‚СЊ РіРµРѕР»РѕРєР°С†РёСЋ",
+    checkout_location_busy: "РћРїСЂРµРґРµР»РµРЅРёРµвЂ¦",
+    checkout_geo_prefix: "Р›РѕРєР°С†РёСЏ",
+    checkout_payment: "РћРїР»Р°С‚Р°",
+    checkout_cash: "РќР°Р»РёС‡РЅС‹Рµ",
+    checkout_card: "РљР°СЂС‚Р°",
+    checkout_send: "РћС‚РїСЂР°РІРёС‚СЊ РІ WhatsApp",
+    checkout_address_required: "РЈРєР°Р¶РёС‚Рµ Р°РґСЂРµСЃ РёР»Рё РіРµРѕР»РѕРєР°С†РёСЋ",
+    checkout_cancel: "Р—Р°РєСЂС‹С‚СЊ",
+    nav_menu: "РњРµРЅСЋ",
+    nav_map: "РљР°СЂС‚Р°",
+    nav_order: "Р—Р°РєР°Р·",
+    nav_cart: "РљРѕСЂР·РёРЅР°",
+    cart_back_menu: "Рљ РјРµРЅСЋ",
+    cart_screen_title: "РљРѕСЂР·РёРЅР°",
+    cart_note_placeholder: "РџСЂРёРјРµС‡Р°РЅРёРµ",
+    cart_remove_line: "РЈРґР°Р»РёС‚СЊ",
+    cart_open_full: "РћС‚РєСЂС‹С‚СЊ РєРѕСЂР·РёРЅСѓ",
+    register_sub_profile: "РРјСЏ РїСЂРѕС„РёР»СЏ (РЅРµ РЅР°Р·РІР°РЅРёРµ СЂРµСЃС‚РѕСЂР°РЅР°). Р”Р°РЅРЅС‹Рµ СЂРµСЃС‚РѕСЂР°РЅР° РґРѕР±Р°РІРёС‚Рµ РїРѕР·Р¶Рµ.",
+    register_success_title: "РђРєРєР°СѓРЅС‚ СЃРѕР·РґР°РЅ",
+    btn_prepare_menu: "РќР°СЃС‚СЂРѕРёС‚СЊ РјРµРЅСЋ",
+    btn_continue: "РџСЂРѕРґРѕР»Р¶РёС‚СЊ",
+    onboarding_title: "РћРЅР±РѕСЂРґРёРЅРі",
+    onboarding_skip: "РџРѕР·Р¶Рµ",
+    onboarding_step1_title: "Р”Р°РЅРЅС‹Рµ СЂРµСЃС‚РѕСЂР°РЅР°",
+    onboarding_step1_sub: "Р§С‚Рѕ СѓРІРёРґСЏС‚ РіРѕСЃС‚Рё.",
+    restaurant_name_label: "РќР°Р·РІР°РЅРёРµ СЂРµСЃС‚РѕСЂР°РЅР°",
+    onboarding_location: "Р›РѕРєР°С†РёСЏ",
+    maps_url_placeholder: "РЎСЃС‹Р»РєР° Google Maps",
+    onboarding_next: "Р”Р°Р»РµРµ",
+    onboarding_back: "РќР°Р·Р°Рґ",
+    onboarding_step2_title: "РЎСЃС‹Р»РєР° РјРµРЅСЋ",
+    onboarding_step2_sub: "Р“РѕСЃС‚Рё РѕС‚РєСЂРѕСЋС‚ РјРµРЅСЋ РїРѕ СЌС‚РѕРјСѓ Р°РґСЂРµСЃСѓ.",
+    onboarding_link_example_prefix: "РџСЂРёРјРµСЂ: ",
+    onboarding_step3_title: "РЁР°Р±Р»РѕРЅ",
+    onboarding_finish: "Р“РѕС‚РѕРІРѕ",
+    panel_plan: "РџР»Р°РЅ Рё Р»РёРјРёС‚С‹",
+    plan_active_label: "РўРµРєСѓС‰РёР№ РїР»Р°РЅ",
+    plan_limits_title: "Р›РёРјРёС‚С‹",
+    plan_max_products: "РўРѕРІР°СЂС‹",
+    plan_max_categories: "РљР°С‚РµРіРѕСЂРёРё",
+    plan_max_templates: "РЁР°Р±Р»РѕРЅС‹",
+    plan_upgrade_btn: "РЎРјРµРЅРёС‚СЊ РїР»Р°РЅ",
+    plan_processing_badge: "Р’ СЂР°Р±РѕС‚Рµ",
+    plan_upgrade_modal_title: "Р’С‹Р±РµСЂРёС‚Рµ РїР»Р°РЅ",
+    plan_request_submit: "РћС‚РїСЂР°РІРёС‚СЊ Р·Р°РїСЂРѕСЃ",
+    plan_request_ok_title: "Р—Р°РїСЂРѕСЃ РѕС‚РїСЂР°РІР»РµРЅ",
+    plan_request_ok_body: "РњС‹ СЃРІСЏР¶РµРјСЃСЏ СЃ РІР°РјРё РІ WhatsApp.",
+    plan_back_panel: "Р’ РїР°РЅРµР»СЊ",
+    panel_qr_title: "QR-РєРѕРґ",
+    panel_qr_scan_hint: "РЎРєР°РЅРёСЂСѓР№С‚Рµ, С‡С‚РѕР±С‹ РѕС‚РєСЂС‹С‚СЊ РјРµРЅСЋ",
+    panel_download: "РЎРєР°С‡Р°С‚СЊ",
+    panel_copy_link: "РљРѕРїРёСЂРѕРІР°С‚СЊ СЃСЃС‹Р»РєСѓ",
+    link_copied: "РЎРєРѕРїРёСЂРѕРІР°РЅРѕ!",
+    templates_section_title: "РЁР°Р±Р»РѕРЅС‹ РјРµРЅСЋ",
+    templates_section_sub: "С€Р°Р±Р»РѕРЅРѕРІ. Р–РёРІРѕР№ РїСЂРµРґРїСЂРѕСЃРјРѕС‚СЂ.",
+    translation_cancel: "РћС‚РјРµРЅР°",
+    landing_hero_kicker: "Р¦РёС„СЂРѕРІРѕРµ РјРµРЅСЋ РґР»СЏ РіРѕСЃС‚РµР№",
+    landing_hero_headline: "Р“РѕСЃС‚Рё СЃРєР°РЅРёСЂСѓСЋС‚ РѕРґРёРЅ СЂР°Р· вЂ” Р·Р°РєР°Р·С‹ РІ WhatsApp",
+    landing_hero_highlight: "Р‘РѕР»СЊС€Рµ Р·Р°РєР°Р·РѕРІ вЂ” РјРµРЅСЊС€Рµ С…Р°РѕСЃР°",
+    landing_value_line: "РњРѕР±РёР»СЊРЅРѕ В· РњСѓР»СЊС‚РёСЏР·С‹С‡РЅРѕ В· Р’СЃРµРіРґР° Р°РєС‚СѓР°Р»СЊРЅРѕ",
+    orders_section_title: "Р—Р°РєР°Р·С‹",
+    landing_hero_display_sub: "Р—Р°Р±СѓРґСЊС‚Рµ Р±СѓРјР°Р¶РЅРѕРµ РјРµРЅСЋ вЂ” СЃРѕРІСЂРµРјРµРЅРЅС‹Р№ РѕРїС‹С‚ РґР»СЏ РіРѕСЃС‚РµР№.",
+    landing_meta_title: "QRMenu вЂ” Р¦РёС„СЂРѕРІРѕРµ QR-РјРµРЅСЋ",
+    landing_meta_description:
+      "РќР°С‡РЅРёС‚Рµ Р±РµСЃРїР»Р°С‚РЅРѕ: QR, 50+ С€Р°Р±Р»РѕРЅРѕРІ, Р·Р°РєР°Р·С‹ РІ WhatsApp, РјРѕР±РёР»СЊРЅРѕРµ РјРµРЅСЋ.",
+    landing_benefits_title: "РџСЂРµРёРјСѓС‰РµСЃС‚РІР°",
+    landing_benefit_qr_t: "Р‘С‹СЃС‚СЂС‹Р№ РІС…РѕРґ РїРѕ QR",
+    landing_benefit_qr_d: "РњРµРЅСЋ РѕС‚РєСЂС‹РІР°РµС‚СЃСЏ Р·Р° СЃРµРєСѓРЅРґСѓ.",
+    landing_benefit_mobile_t: "РњРѕР±РёР»СЊРЅС‹Р№ РґРёР·Р°Р№РЅ",
+    landing_benefit_mobile_d: "РћРїС‚РёРјРёР·Р°С†РёСЏ РїРѕРґ СЃРјР°СЂС‚С„РѕРЅС‹.",
+    landing_benefit_templates_t: "50+ С€Р°Р±Р»РѕРЅРѕРІ",
+    landing_benefit_templates_d: "РњРµРЅСЏР№С‚Рµ СЃС‚РёР»СЊ РѕРґРЅРёРј РєР»РёРєРѕРј.",
+    landing_benefit_wa_t: "Р—Р°РєР°Р· РІ WhatsApp",
+    landing_benefit_wa_d: "Р—Р°СЏРІРєРё РїСЂСЏРјРѕ РЅР° РІР°С€ РЅРѕРјРµСЂ.",
+    landing_benefit_panel_t: "РџСЂРѕСЃС‚Р°СЏ РїР°РЅРµР»СЊ",
+    landing_benefit_panel_d: "РЈРїСЂР°РІР»СЏР№С‚Рµ РјРµРЅСЋ СЃР°РјРѕСЃС‚РѕСЏС‚РµР»СЊРЅРѕ.",
+    landing_templates_showcase_title: "РЁР°Р±Р»РѕРЅС‹",
+    landing_templates_showcase_sub: "Р–РёРІРѕР№ РїСЂРµРґРїСЂРѕСЃРјРѕС‚СЂ РёРЅС‚РµСЂС„РµР№СЃР°.",
+    landing_preview_live: "РЎРјРѕС‚СЂРµС‚СЊ",
+    landing_how_short_1: "Р РµРіРёСЃС‚СЂР°С†РёСЏ",
+    landing_how_short_2: "Р”РѕР±Р°РІСЊС‚Рµ РјРµРЅСЋ",
+    landing_how_short_3: "РџРѕРґРµР»РёС‚РµСЃСЊ QR",
+    landing_plan_popular: "РџРѕРїСѓР»СЏСЂРЅС‹Р№",
+    landing_final_cta_title: "Р¦РёС„СЂРѕРІРёР·РёСЂСѓР№С‚Рµ СЂРµСЃС‚РѕСЂР°РЅ СЃРµРіРѕРґРЅСЏ",
+    landing_footer_tagline: "РЎРѕРІСЂРµРјРµРЅРЅР°СЏ РїР»Р°С‚С„РѕСЂРјР° QR-РјРµРЅСЋ.",
+    landing_footer_legal: "В© 2026 QRMenu",
+    landing_footer_connect: "РљРѕРЅС‚Р°РєС‚С‹",
+    landing_footer_explore: "Р Р°Р·РґРµР»С‹",
+    landing_footer_social: "РЎРѕС†СЃРµС‚Рё",
+    demo_login: "Р”РµРјРѕ: demo / demo123 (РїСЂРёРјРµСЂ РјРµРЅСЋ)"
   },
   tr: {
     dashboard: "Panel",
     settings: "Ayarlar",
     restaurants: "Restoranlar",
-    create_restaurant: "Yeni Restoran Oluştur",
+    create_restaurant: "Yeni Restoran OluЕџtur",
     name: "Ad",
     slug: "Slug",
-    whatsapp: "WhatsApp Numarası",
-    create: "Oluştur",
-    manage: "Yönet",
+    whatsapp: "WhatsApp NumarasД±",
+    create: "OluЕџtur",
+    manage: "YГ¶net",
     block: "Engelle",
-    logout: "Çıkış",
+    logout: "Г‡Д±kД±Еџ",
     categories: "Kategoriler",
-    products: "Ürünler",
+    products: "ГњrГјnler",
     add_category: "Kategori Ekle",
-    add_product: "Ürün Ekle",
+    add_product: "ГњrГјn Ekle",
     price: "Fiyat",
-    description: "Açıklama",
+    description: "AГ§Д±klama",
     save: "Kaydet",
     language: "Dil",
-    default_language: "Varsayılan Dil",
+    default_language: "VarsayД±lan Dil",
     supported_languages: "Desteklenen Diller",
-    view_live: "Canlı Menüyü Görüntüle",
-    scan_order_enjoy: "Tara, Sipariş Ver, Keyfini Çıkar!",
-    items_in_cart: "Sepetteki Ürünler",
-    order_via_whatsapp: "WhatsApp ile Sipariş Ver",
+    view_live: "CanlД± MenГјyГј GГ¶rГјntГјle",
+    scan_order_enjoy: "Tara, SipariЕџ Ver, Keyfini Г‡Д±kar!",
+    items_in_cart: "Sepetteki ГњrГјnler",
+    order_via_whatsapp: "WhatsApp ile SipariЕџ Ver",
     total: "Toplam",
-    loading: "Yükleniyor...",
-    select_category: "Kategori seçin",
-    translations: "Çeviriler",
-    login: "Giriş",
-    username: "Kullanıcı adı",
-    password: "Şifre",
-    landing_nav_admin: "Süper Admin",
-    landing_nav_start: "Başla",
-    landing_hero_1: "Restoran menünüz,",
+    loading: "YГјkleniyor...",
+    select_category: "Kategori seГ§in",
+    translations: "Г‡eviriler",
+    login: "GiriЕџ",
+    username: "KullanД±cД± adД±",
+    password: "Ећifre",
+    landing_nav_admin: "SГјper Admin",
+    landing_nav_start: "BaЕџla",
+    landing_hero_1: "Restoran menГјnГјz,",
     landing_hero_2: "dijital.",
-    landing_hero_sub: "Dakikalar içinde dijital menü oluşturun. QR kodlar, kategoriler ve WhatsApp siparişleri.",
-    landing_cta: "Menü oluştur",
-    landing_feat1_t: "Hızlı kurulum",
-    landing_feat1_d: "Tek tıkla restoran ve menü.",
-    landing_feat2_t: "QR üretimi",
+    landing_hero_sub: "Dakikalar iГ§inde dijital menГј oluЕџturun. QR kodlar, kategoriler ve WhatsApp sipariЕџleri.",
+    landing_cta: "MenГј oluЕџtur",
+    landing_feat1_t: "HД±zlД± kurulum",
+    landing_feat1_d: "Tek tД±kla restoran ve menГј.",
+    landing_feat2_t: "QR Гјretimi",
     landing_feat2_d: "Otomatik QR kodlar.",
-    landing_feat3_t: "WhatsApp sipariş",
-    landing_feat3_d: "Siparişler doğrudan telefona.",
-    landing_sales_title: "Restoranınız için dijital QR menü oluşturun",
+    landing_feat3_t: "WhatsApp sipariЕџ",
+    landing_feat3_d: "SipariЕџler doДџrudan telefona.",
+    landing_sales_title: "RestoranД±nД±z iГ§in dijital QR menГј oluЕџturun",
     landing_sales_sub:
-      "Misafirler menüyü bir saniyede açar. WhatsApp, 50+ şablon, mobil uyum.",
-    landing_cta_free: "Ücretsiz başla",
-    landing_cta_demo: "Demoyu gör",
-    landing_feat4_t: "50+ şablon",
-    landing_feat4_d: "Farklı yerleşim ve renk paletleri.",
-    landing_how_title: "Nasıl çalışır?",
-    landing_how_1: "Kayıt",
-    landing_how_2: "Menü ve fotoğraf",
-    landing_how_3: "QR paylaş",
+      "Misafirler menГјyГј bir saniyede aГ§ar. WhatsApp, 50+ Еџablon, mobil uyum.",
+    landing_cta_free: "Гњcretsiz baЕџla",
+    landing_cta_demo: "Demoyu gГ¶r",
+    landing_feat4_t: "50+ Еџablon",
+    landing_feat4_d: "FarklД± yerleЕџim ve renk paletleri.",
+    landing_how_title: "NasД±l Г§alД±ЕџД±r?",
+    landing_how_1: "KayД±t",
+    landing_how_2: "MenГј ve fotoДџraf",
+    landing_how_3: "QR paylaЕџ",
     landing_plans_title: "Planlar",
-    landing_buy: "Satın al",
-    landing_demo_title: "Canlı demo",
-    landing_footer_contact: "İletişim",
-    landing_sticky: "Başla",
-    landing_plans_sub: "Super Admin panelinden yönetilir — değişiklikler otomatik senkron.",
-    server_health: "Sunucu ve veritabanı",
-    server_online: "Bağlı",
+    landing_buy: "SatД±n al",
+    landing_demo_title: "CanlД± demo",
+    landing_footer_contact: "Д°letiЕџim",
+    landing_sticky: "BaЕџla",
+    landing_plans_sub: "Super Admin panelinden yГ¶netilir вЂ” deДџiЕџiklikler otomatik senkron.",
+    server_health: "Sunucu ve veritabanД±",
+    server_online: "BaДџlД±",
     server_error: "Hata",
-    db_driver: "Sürücü",
+    db_driver: "SГјrГјcГј",
     response_ms: "ms",
-    rest_login_title: "Restoran girişi",
-    rest_login_sub: "Menünüzü yönetmek için giriş yapın",
+    rest_login_title: "Restoran giriЕџi",
+    rest_login_sub: "MenГјnГјzГј yГ¶netmek iГ§in giriЕџ yapД±n",
     restaurant_staff_login: "Restoran paneli",
-    admin_acc_user: "Restoran admin kullanıcı adı",
-    admin_acc_pass: "Restoran admin şifre",
-    staff_note: "Her restoran kendi hesabıyla paneline girer",
-    staff_username_col: "Personel girişi",
-    reset_staff_short: "Erişimi sıfırla",
-    your_link: "Genel menü linki",
+    admin_acc_user: "Restoran admin kullanД±cД± adД±",
+    admin_acc_pass: "Restoran admin Еџifre",
+    staff_note: "Her restoran kendi hesabД±yla paneline girer",
+    staff_username_col: "Personel giriЕџi",
+    reset_staff_short: "EriЕџimi sД±fД±rla",
+    your_link: "Genel menГј linki",
     slug_label: "URL (slug)",
     save_profile: "Kaydet",
     super_dashboard: "Panel",
     full_name_label: "Ad soyad",
     phone_label: "Telefon",
-    register_title: "Hesap oluştur",
-    register_sub: "Ücretsiz başlayın — restoran ve demo menü otomatik oluşturulur",
-    register_submit: "Kayıt ol",
-    register_success_note: "Hesabınız hazır. Aşağıdan giriş yapın.",
-    register_have_account: "Zaten hesabınız var mı?",
-    orders_closed_hint: "Şu an sipariş alınmıyor (çalışma saatleri dışında).",
-    checkout_title: "Siparişi tamamla",
-    checkout_address_placeholder: "Adres yazın",
-    checkout_location_btn: "Konumumu gönder",
-    checkout_location_busy: "Konum alınıyor…",
+    register_title: "Hesap oluЕџtur",
+    register_sub: "Гњcretsiz baЕџlayД±n вЂ” restoran ve demo menГј otomatik oluЕџturulur",
+    register_submit: "KayД±t ol",
+    register_success_note: "HesabД±nД±z hazД±r. AЕџaДџД±dan giriЕџ yapД±n.",
+    register_have_account: "Zaten hesabД±nД±z var mД±?",
+    orders_closed_hint: "Ећu an sipariЕџ alД±nmД±yor (Г§alД±Еџma saatleri dД±ЕџД±nda).",
+    checkout_title: "SipariЕџi tamamla",
+    checkout_address_placeholder: "Adres yazД±n",
+    checkout_location_btn: "Konumumu gГ¶nder",
+    checkout_location_busy: "Konum alД±nД±yorвЂ¦",
     checkout_geo_prefix: "Konum",
-    checkout_payment: "Ödeme",
+    checkout_payment: "Г–deme",
     checkout_cash: "Nakit",
     checkout_card: "Kart",
-    checkout_send: "WhatsApp ile gönder",
-    checkout_address_required: "Adres yazın veya konum seçin",
+    checkout_send: "WhatsApp ile gГ¶nder",
+    checkout_address_required: "Adres yazД±n veya konum seГ§in",
     checkout_cancel: "Kapat",
-    nav_menu: "Menü",
+    nav_menu: "MenГј",
     nav_map: "Harita",
-    nav_order: "Sipariş",
+    nav_order: "SipariЕџ",
     nav_cart: "Sepet",
-    cart_back_menu: "Menüye dön",
+    cart_back_menu: "MenГјye dГ¶n",
     cart_screen_title: "Sepet",
     cart_note_placeholder: "Not",
-    cart_remove_line: "Kaldır",
+    cart_remove_line: "KaldД±r",
     cart_open_full: "Tam sepet",
-    register_sub_profile: "Profil adınız (restoran adı değil). Restoranı sonra tamamlayın.",
-    register_success_title: "Hesap oluşturuldu",
-    btn_prepare_menu: "Menü kur",
+    register_sub_profile: "Profil adД±nД±z (restoran adД± deДџil). RestoranД± sonra tamamlayД±n.",
+    register_success_title: "Hesap oluЕџturuldu",
+    btn_prepare_menu: "MenГј kur",
     btn_continue: "Devam",
-    onboarding_title: "Başlangıç",
+    onboarding_title: "BaЕџlangД±Г§",
     onboarding_skip: "Sonra",
     onboarding_step1_title: "Restoran bilgileri",
-    onboarding_step1_sub: "Misafirlerin göreceği temel bilgiler.",
-    restaurant_name_label: "Restoran adı",
+    onboarding_step1_sub: "Misafirlerin gГ¶receДџi temel bilgiler.",
+    restaurant_name_label: "Restoran adД±",
     onboarding_location: "Konum",
     maps_url_placeholder: "Google Maps linki",
-    onboarding_next: "İleri",
+    onboarding_next: "Д°leri",
     onboarding_back: "Geri",
-    onboarding_step2_title: "Menü bağlantınız",
-    onboarding_step2_sub: "Misafirler bu URL ile menüye girer.",
-    onboarding_link_example_prefix: "Örnek: ",
-    onboarding_step3_title: "Şablon seçin",
+    onboarding_step2_title: "MenГј baДџlantД±nД±z",
+    onboarding_step2_sub: "Misafirler bu URL ile menГјye girer.",
+    onboarding_link_example_prefix: "Г–rnek: ",
+    onboarding_step3_title: "Ећablon seГ§in",
     onboarding_finish: "Bitir",
     panel_plan: "Plan ve limitler",
     plan_active_label: "Aktif plan",
     plan_limits_title: "Limitler",
-    plan_max_products: "Ürün",
+    plan_max_products: "ГњrГјn",
     plan_max_categories: "Kategori",
-    plan_max_templates: "Şablon",
-    plan_upgrade_btn: "Planı yükselt",
-    plan_processing_badge: "İşlemde",
-    plan_upgrade_modal_title: "Plan seçin",
-    plan_request_submit: "Talep gönder",
-    plan_request_ok_title: "Talebiniz gönderildi",
-    plan_request_ok_body: "WhatsApp üzerinden en kısa sürede dönüş yapılacaktır.",
-    plan_back_panel: "Panele dön",
+    plan_max_templates: "Ећablon",
+    plan_upgrade_btn: "PlanД± yГјkselt",
+    plan_processing_badge: "Д°Еџlemde",
+    plan_upgrade_modal_title: "Plan seГ§in",
+    plan_request_submit: "Talep gГ¶nder",
+    plan_request_ok_title: "Talebiniz gГ¶nderildi",
+    plan_request_ok_body: "WhatsApp Гјzerinden en kД±sa sГјrede dГ¶nГјЕџ yapД±lacaktД±r.",
+    plan_back_panel: "Panele dГ¶n",
     panel_qr_title: "QR kodunuz",
-    panel_qr_scan_hint: "Menüyü görmek için tarayın",
-    panel_download: "İndir",
+    panel_qr_scan_hint: "MenГјyГј gГ¶rmek iГ§in tarayД±n",
+    panel_download: "Д°ndir",
     panel_copy_link: "Linki kopyala",
-    link_copied: "Kopyalandı!",
-    templates_section_title: "Menü şablonları",
-    templates_section_sub: "şablon. Canlı önizleme.",
-    translation_cancel: "İptal",
+    link_copied: "KopyalandД±!",
+    templates_section_title: "MenГј ЕџablonlarД±",
+    templates_section_sub: "Еџablon. CanlД± Г¶nizleme.",
+    translation_cancel: "Д°ptal",
     landing_hero_kicker: "Modern restoran deneyimi",
-    landing_hero_headline: "Misafirler tek tarama — sipariş WhatsApp'ta",
-    landing_hero_highlight: "Daha çok sipariş · daha az karmaşa",
-    landing_value_line: "Mobil öncelikli · Çok dilli · Her zaman güncel",
-    orders_section_title: "Siparişler",
-    demo_login: "Demo: demo / demo123 (nümunə menyusu)"
+    landing_hero_headline: "Misafirler tek tarama вЂ” sipariЕџ WhatsApp'ta",
+    landing_hero_highlight: "Daha Г§ok sipariЕџ В· daha az karmaЕџa",
+    landing_value_line: "Mobil Г¶ncelikli В· Г‡ok dilli В· Her zaman gГјncel",
+    orders_section_title: "SipariЕџler",
+    landing_hero_display_sub: "KaДџД±t menГјyГј unutun вЂ” misafirlerinize modern deneyim sunun.",
+    landing_meta_title: "QRMenu вЂ” Dijital QR menГј",
+    landing_meta_description:
+      "Гњcretsiz baЕџlayД±n: QR, 50+ Еџablon, WhatsApp sipariЕџ, mobil menГј.",
+    landing_benefits_title: "Avantajlar",
+    landing_benefit_qr_t: "QR ile hД±zlД± giriЕџ",
+    landing_benefit_qr_d: "MenГј tek taramada aГ§Д±lД±r.",
+    landing_benefit_mobile_t: "Mobil uyumlu",
+    landing_benefit_mobile_d: "Telefon iГ§in optimize.",
+    landing_benefit_templates_t: "50+ Еџablon",
+    landing_benefit_templates_d: "Tek tД±kla gГ¶rГјnГјm deДџiЕџtirin.",
+    landing_benefit_wa_t: "WhatsApp sipariЕџ",
+    landing_benefit_wa_d: "SipariЕџler numaranД±za gelsin.",
+    landing_benefit_panel_t: "Kolay panel",
+    landing_benefit_panel_d: "MenГјyГј kendiniz yГ¶netin.",
+    landing_templates_showcase_title: "Ећablon Г¶nizleme",
+    landing_templates_showcase_sub: "CanlД± arayГјz Г¶nizlemesi.",
+    landing_preview_live: "CanlД± bak",
+    landing_how_short_1: "KayД±t ol",
+    landing_how_short_2: "MenГј ekle",
+    landing_how_short_3: "QR paylaЕџ",
+    landing_plan_popular: "PopГјler",
+    landing_final_cta_title: "RestoranД±nД±zД± dijitalleЕџtirin",
+    landing_footer_tagline: "Restoranlar iГ§in modern QR menГј.",
+    landing_footer_legal: "В© 2026 QRMenu",
+    landing_footer_connect: "Д°letiЕџim",
+    landing_footer_explore: "KeЕџfet",
+    landing_footer_social: "Sosyal",
+    demo_login: "Demo: demo / demo123 (nГјmunЙ™ menyusu)"
   }
 };
 
@@ -726,320 +840,6 @@ const Card = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivEle
 
 // --- Pages ---
 
-const LandingPage = () => {
-  const bundle = useI18nBundle();
-  const [lang, setLang] = useState("az");
-  const [plans, setPlans] = useState<
-    Array<{
-      id: number;
-      name: string;
-      slug: string;
-      price_monthly: string | number;
-      price_yearly: string | number;
-      max_products: number;
-      max_categories: number;
-      max_templates: number;
-      whatsapp_order_enabled: number | boolean;
-      reservation_enabled: number | boolean;
-      analytics_enabled: number | boolean;
-      premium_templates_enabled: number | boolean;
-    }>
-  >([]);
-
-  useEffect(() => {
-    fetch("/api/public/settings")
-      .then((r) => r.json())
-      .then((s: { default_language?: string }) => {
-        if (s.default_language) setLang(s.default_language);
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/public/plans")
-      .then((r) => r.json())
-      .then((rows) => setPlans(Array.isArray(rows) ? rows : []))
-      .catch(() => setPlans([]));
-  }, []);
-
-  const t = (key: string) => bundle[lang]?.[key] || key;
-
-  const feats = [
-    { titleKey: "landing_feat2_t", descKey: "landing_feat2_d", icon: QrCode },
-    { titleKey: "landing_feat1_t", descKey: "landing_feat1_d", icon: Smartphone },
-    { titleKey: "landing_feat4_t", descKey: "landing_feat4_d", icon: Layers },
-    { titleKey: "landing_feat3_t", descKey: "landing_feat3_d", icon: MessageSquare },
-  ] as const;
-
-  const lim = (n: number) => (n < 0 ? "∞" : String(n));
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-red-950/80 to-slate-950 text-white overflow-x-hidden pb-24">
-      <motion.div
-        className="absolute inset-0 opacity-40 pointer-events-none"
-        animate={{ backgroundPosition: ["0% 0%", "100% 100%"] }}
-        transition={{ duration: 20, repeat: Infinity, repeatType: "reverse" }}
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 20% 50%, rgba(239,68,68,0.35), transparent 45%), radial-gradient(circle at 80% 20%, rgba(248,113,113,0.2), transparent 40%)",
-          backgroundSize: "120% 120%",
-        }}
-      />
-
-      <nav className="relative z-10 px-4 sm:px-6 py-4 flex flex-wrap justify-between items-center gap-3 max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, x: -12 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-white"
-        >
-          <Sparkles className="text-red-400 shrink-0" size={26} />
-          QRMenu
-        </motion.div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
-          <select
-            className="text-xs sm:text-sm border border-white/20 bg-white/10 backdrop-blur rounded-lg px-2 py-2 text-white outline-none"
-            value={lang}
-            onChange={(e) => setLang(e.target.value)}
-          >
-            <option value="az" className="text-gray-900">AZ</option>
-            <option value="en" className="text-gray-900">EN</option>
-            <option value="ru" className="text-gray-900">RU</option>
-            <option value="tr" className="text-gray-900">TR</option>
-          </select>
-          <Link
-            to="/panel"
-            className="text-sm px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 transition-colors flex items-center gap-1"
-          >
-            <Store size={18} /> {t("restaurant_staff_login")}
-          </Link>
-        </div>
-      </nav>
-
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 pb-24">
-        <div className="text-center max-w-3xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", damping: 22 }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs sm:text-sm text-red-100 mb-6"
-          >
-            <Wifi size={14} className="text-red-300" />
-            {t("landing_hero_kicker")}
-          </motion.div>
-          <motion.h1
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight mb-4"
-          >
-            {t("landing_hero_headline")}
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-lg sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-red-200 mb-4"
-          >
-            {t("landing_hero_highlight")}
-          </motion.p>
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.12 }}
-            className="text-base sm:text-lg md:text-xl text-red-100/90 mb-4 max-w-2xl mx-auto"
-          >
-            {t("landing_sales_sub")}
-          </motion.p>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.16 }}
-            className="text-sm text-red-200/80 mb-10 font-medium tracking-wide"
-          >
-            {t("landing_value_line")}
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.18 }}
-            className="flex flex-col sm:flex-row gap-3 justify-center items-stretch sm:items-center"
-          >
-            <motion.div
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.97 }}
-              className="inline-flex rounded-xl"
-            >
-              <Link
-                to="/register"
-                className="inline-flex items-center justify-center gap-2 bg-white text-red-900 px-8 py-4 rounded-xl text-base font-bold shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_20px_50px_-12px_rgba(239,68,68,0.65)] ring-2 ring-red-400/40"
-              >
-                {t("landing_cta_free")} <ArrowRight size={20} />
-              </Link>
-            </motion.div>
-            <a
-              href={`/r/${DEMO_MENU_PREVIEW_SLUG}?preview=true&previewTemplate=modern-01`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 border border-white/25 px-6 py-3.5 rounded-xl font-medium hover:bg-white/10 transition-colors"
-            >
-              <Globe size={20} /> {t("landing_cta_demo")}
-            </a>
-          </motion.div>
-        </div>
-
-        <motion.div
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-40px" }}
-          variants={{
-            hidden: {},
-            show: { transition: { staggerChildren: 0.08 } },
-          }}
-          className="mt-16 sm:mt-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
-        >
-          {feats.map((feat, i) => (
-            <motion.div
-              key={i}
-              variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0 },
-              }}
-            >
-              <Card className="p-6 sm:p-8 h-full bg-white/5 border-white/10 backdrop-blur-md hover:border-red-400/30 transition-colors text-left">
-                <div className="w-11 h-11 bg-red-500/20 text-red-200 rounded-xl flex items-center justify-center mb-4">
-                  <feat.icon size={22} />
-                </div>
-                <h3 className="text-lg font-bold mb-2 text-white">{t(feat.titleKey)}</h3>
-                <p className="text-sm text-red-100/75">{t(feat.descKey)}</p>
-              </Card>
-            </motion.div>
-          ))}
-        </motion.div>
-
-        <section className="mt-20 sm:mt-28">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-6">{t("landing_demo_title")}</h2>
-          <p className="text-center text-red-100/80 text-sm mb-6 max-w-xl mx-auto">
-            {t("landing_cta_demo")} — login tələb olunmur.
-          </p>
-          <div className="relative rounded-2xl border border-white/15 overflow-hidden bg-black/40 shadow-2xl max-w-4xl mx-auto aspect-[10/16] sm:aspect-[16/10] md:h-[min(70vh,520px)] md:aspect-auto">
-            <iframe
-              title="Demo menu"
-              src={`/r/${DEMO_MENU_PREVIEW_SLUG}?preview=true&previewTemplate=modern-01`}
-              className="absolute inset-0 w-full h-full border-0"
-            />
-          </div>
-        </section>
-
-        <section className="mt-20 sm:mt-28 max-w-3xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10">{t("landing_how_title")}</h2>
-          <div className="grid gap-6 sm:grid-cols-3">
-            {[
-              { n: "1", text: t("landing_how_1") },
-              { n: "2", text: t("landing_how_2") },
-              { n: "3", text: t("landing_how_3") },
-            ].map((s) => (
-              <div
-                key={s.n}
-                className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center"
-              >
-                <div className="flex justify-center mb-3">
-                  <span className="w-12 h-12 rounded-full bg-red-600 text-white font-bold flex items-center justify-center text-lg">
-                    {s.n}
-                  </span>
-                </div>
-                <p className="text-sm text-red-100/90">{s.text}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-20 sm:mt-28">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-2">{t("landing_plans_title")}</h2>
-          <p className="text-center text-red-100/70 text-sm mb-10 max-w-2xl mx-auto">
-            {t("landing_plans_sub")}
-          </p>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {plans.map((p) => (
-              <Card
-                key={p.id}
-                className="p-6 sm:p-8 bg-white/5 border-white/10 backdrop-blur-md hover:border-red-400/30 transition-colors flex flex-col"
-              >
-                <h3 className="text-xl font-bold text-white mb-1">{p.name}</h3>
-                <p className="text-3xl font-extrabold text-red-300 mb-4">
-                  ₼{Number(p.price_monthly).toFixed(0)}
-                  <span className="text-sm font-normal text-red-100/60"> / ay</span>
-                </p>
-                <ul className="text-sm text-red-100/85 space-y-2 mb-4 flex-1">
-                  <li>
-                    ✓ {t("products")}: {lim(Number(p.max_products))}
-                  </li>
-                  <li>
-                    ✓ {t("categories")}: {lim(Number(p.max_categories))}
-                  </li>
-                  <li>
-                    ✓ Şablonlar: {lim(Number(p.max_templates))}
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CircleCheck
-                      size={16}
-                      className={p.whatsapp_order_enabled ? "text-green-400" : "text-white/30"}
-                    />{" "}
-                    WhatsApp
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CircleCheck
-                      size={16}
-                      className={p.reservation_enabled ? "text-green-400" : "text-white/30"}
-                    />{" "}
-                    Rezervasiya
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CircleCheck
-                      size={16}
-                      className={p.analytics_enabled ? "text-green-400" : "text-white/30"}
-                    />{" "}
-                    Statistikalar
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CircleCheck
-                      size={16}
-                      className={p.premium_templates_enabled ? "text-green-400" : "text-white/30"}
-                    />{" "}
-                    Premium şablonlar
-                  </li>
-                </ul>
-                <Link
-                  to="/register"
-                  className="mt-auto inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white py-3 rounded-xl font-bold text-sm"
-                >
-                  <ShoppingBag size={18} /> {t("landing_buy")}
-                </Link>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        <footer className="mt-24 pt-10 border-t border-white/10 text-center text-sm text-red-100/70">
-          <p className="font-semibold text-white mb-2">{t("landing_footer_contact")}</p>
-          <p>QRMenu · {t("landing_nav_start")}</p>
-        </footer>
-      </main>
-
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-slate-950/95 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-sm text-red-100/90 hidden sm:inline line-clamp-1">{t("landing_sales_title")}</span>
-          <Link
-            to="/register"
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold"
-          >
-            {t("landing_sticky")} <ArrowRight size={18} />
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const RegisterPage = () => {
   const bundle = useI18nBundle();
   const navigate = useNavigate();
@@ -1096,7 +896,7 @@ const RegisterPage = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 to-red-950 flex items-center justify-center p-4">
         <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
           <Card className="p-6 sm:p-8 border border-white/10 bg-white/95 backdrop-blur shadow-2xl text-center space-y-6">
-            <div className="text-4xl">✓</div>
+            <div className="text-4xl">вњ“</div>
             <h1 className="text-xl font-bold text-gray-900">{t("register_success_title")}</h1>
             <p className="text-sm text-gray-600">{t("register_success_note")}</p>
             <div className="flex flex-col gap-3">
@@ -1118,7 +918,7 @@ const RegisterPage = () => {
               </Button>
             </div>
             <Link to="/" className="inline-block text-sm text-red-600 hover:underline">
-              ← {t("landing_nav_start")}
+              в†ђ {t("landing_nav_start")}
             </Link>
           </Card>
         </motion.div>
@@ -1179,7 +979,7 @@ const RegisterPage = () => {
             </div>
             {error && <p className="text-red-600 text-sm">{error}</p>}
             <Button type="submit" disabled={busy} className="w-full bg-red-600 text-white py-3 disabled:opacity-60">
-              {busy ? "…" : t("register_submit")}
+              {busy ? "вЂ¦" : t("register_submit")}
             </Button>
           </form>
           <div className="mt-6 text-center text-sm text-gray-600 space-y-2">
@@ -1190,7 +990,7 @@ const RegisterPage = () => {
               </Link>
             </p>
             <Link to="/" className="block text-red-600 hover:underline">
-              ← {t("landing_nav_start")}
+              в†ђ {t("landing_nav_start")}
             </Link>
           </div>
         </Card>
@@ -1306,7 +1106,7 @@ const RestaurantLoginPage = () => {
               </Link>
             </p>
             <Link to="/" className="text-red-600 hover:underline">
-              ← {t("landing_nav_start")}
+              в†ђ {t("landing_nav_start")}
             </Link>
           </div>
         </Card>
@@ -1483,7 +1283,7 @@ const RestaurantPanel = () => {
 
   const closeMobileNav = () => setMobileNavOpen(false);
 
-  const lim = (n: number) => (n < 0 ? "∞" : String(n));
+  const lim = (n: number) => (n < 0 ? "в€ћ" : String(n));
 
   const submitPlanRequest = async () => {
     if (!selectedUpgradePlanId) return;
@@ -1500,7 +1300,7 @@ const RestaurantPanel = () => {
       setPendingPlanRequest(d.pendingPlanRequest ?? null);
     } else {
       const err = await res.json().catch(() => ({}));
-      alert((err as { error?: string }).error || "Xəta");
+      alert((err as { error?: string }).error || "XЙ™ta");
     }
   };
 
@@ -1586,7 +1386,7 @@ const RestaurantPanel = () => {
   };
 
   const deleteCategory = async (cid: number) => {
-    if (!confirm("Kateqoriya və məhsulları silinsin?")) return;
+    if (!confirm("Kateqoriya vЙ™ mЙ™hsullarД± silinsin?")) return;
     const res = await fetch(`/api/admin/categories/${cid}`, {
       method: "DELETE",
       headers: authAnyStaffHeaders(),
@@ -1598,7 +1398,7 @@ const RestaurantPanel = () => {
   };
 
   const deleteProduct = async (pid: number) => {
-    if (!confirm("Məhsul silinsin?")) return;
+    if (!confirm("MЙ™hsul silinsin?")) return;
     const res = await fetch(`/api/admin/products/${pid}`, {
       method: "DELETE",
       headers: authAnyStaffHeaders(),
@@ -1673,7 +1473,7 @@ const RestaurantPanel = () => {
       </a>
       {isSuper && (
         <Link to="/admin" className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 whitespace-nowrap" onClick={closeMobileNav}>
-          ← Admin
+          в†ђ Admin
         </Link>
       )}
       {!isSuper && (
@@ -1711,7 +1511,7 @@ const RestaurantPanel = () => {
           <>
             <motion.button
               type="button"
-              aria-label="Bağla"
+              aria-label="BaДџla"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -1787,15 +1587,15 @@ const RestaurantPanel = () => {
         {section === "dashboard" && dashStats && (
           <div className="grid md:grid-cols-3 gap-4 mb-8">
             <Card className="p-4">
-              <p className="text-xs text-gray-500">QR skan sayı</p>
+              <p className="text-xs text-gray-500">QR skan sayД±</p>
               <p className="text-2xl font-bold text-red-600">{dashStats.scans}</p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs text-gray-500">Menyu baxışı</p>
+              <p className="text-xs text-gray-500">Menyu baxД±ЕџД±</p>
               <p className="text-2xl font-bold">{dashStats.pageViews}</p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs text-gray-500 mb-2">Ən çox baxılan məhsullar</p>
+              <p className="text-xs text-gray-500 mb-2">ЖЏn Г§ox baxД±lan mЙ™hsullar</p>
               <ul className="text-sm space-y-1">
                 {(dashStats.topProducts || []).slice(0, 5).map((p: any) => (
                   <li key={p.id}>
@@ -1810,15 +1610,15 @@ const RestaurantPanel = () => {
         {section === "orders" && (
           <Card className="p-6">
             <p className="text-sm text-gray-500 mb-4">
-              Son sifarişlər (stub — API hazırdır).
+              Son sifariЕџlЙ™r (stub вЂ” API hazД±rdД±r).
             </p>
             {orders.length === 0 ? (
-              <p className="text-gray-400 text-sm">Hələ sifariş yoxdur.</p>
+              <p className="text-gray-400 text-sm">HЙ™lЙ™ sifariЕџ yoxdur.</p>
             ) : (
               <ul className="text-sm space-y-2">
                 {orders.map((o) => (
                   <li key={o.id} className="border rounded-lg p-3">
-                    #{o.id} · {o.status}
+                    #{o.id} В· {o.status}
                   </li>
                 ))}
               </ul>
@@ -1901,7 +1701,7 @@ const RestaurantPanel = () => {
                           <div>
                             <div className="font-bold">{p.name}</div>
                             <div className="text-xs text-gray-500">
-                              ₼{p.price_monthly} / ay · {t("plan_max_products")}: {lim(p.max_products)}
+                              в‚ј{p.price_monthly} / ay В· {t("plan_max_products")}: {lim(p.max_products)}
                             </div>
                           </div>
                         </label>
@@ -1992,7 +1792,7 @@ const RestaurantPanel = () => {
             />
             <div className="sm:col-span-2 grid sm:grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-gray-500 mb-1">Logo (profil şəkli)</p>
+                <p className="text-xs text-gray-500 mb-1">Logo (profil ЕџЙ™kli)</p>
                 <div className="flex items-center gap-2 flex-wrap">
                   {profile.logo_url ? (
                     <img
@@ -2022,7 +1822,7 @@ const RestaurantPanel = () => {
                 />
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-1">Cover (yuxarı fon şəkli)</p>
+                <p className="text-xs text-gray-500 mb-1">Cover (yuxarД± fon ЕџЙ™kli)</p>
                 {profile.cover_image_url ? (
                   <img
                     src={profile.cover_image_url}
@@ -2207,7 +2007,7 @@ const RestaurantPanel = () => {
                         <div className="flex-1">
                           <div className="flex justify-between gap-2">
                             <h5 className="font-bold">{prod.translations?.[currentLang]?.name || prod.name}</h5>
-                            <span className="font-bold text-red-600">₼{Number(prod.price).toFixed(2)}</span>
+                            <span className="font-bold text-red-600">в‚ј{Number(prod.price).toFixed(2)}</span>
                           </div>
                           <p className="text-sm text-gray-500 line-clamp-2">{prod.translations?.[currentLang]?.desc || prod.description}</p>
                           <div className="mt-2 flex justify-end gap-2">
@@ -2265,7 +2065,7 @@ const RestaurantPanel = () => {
                   onChange={(e) => setNewProd({ ...newProd, description: e.target.value })}
                 />
                 <div className="sm:col-span-2">
-                  <p className="text-xs text-gray-500 mb-1">{t("description")} — şəkil</p>
+                  <p className="text-xs text-gray-500 mb-1">{t("description")} вЂ” ЕџЙ™kil</p>
                   <div className="flex flex-wrap items-center gap-2">
                     {newProd.image_url ? (
                       <img src={newProd.image_url} alt="" className="w-16 h-16 rounded-lg object-cover border" />
@@ -2418,7 +2218,7 @@ const CustomerMenu = () => {
     if (!data?.name) return;
     const tid = previewTemplateId || data.menu_template || "modern-01";
     const tpl = resolveMenuTemplate(tid, data.custom_templates);
-    document.title = `${data.name} · ${tpl.name}`;
+    document.title = `${data.name} В· ${tpl.name}`;
     return () => {
       document.title = "QRMenu";
     };
@@ -2503,17 +2303,17 @@ const CustomerMenu = () => {
     const lines = cart.map((line) => {
       const tr = line.product.translations as Record<string, { name?: string }> | undefined;
       const pn = tr?.[currentLang]?.name || String(line.product.name ?? "");
-      const label = line.variantLabel ? `${line.variantLabel} · ${pn}` : pn;
-      const note = line.note?.trim() ? ` — ${line.note.trim()}` : "";
-      return `- ${label}${note} (₼${Number(line.unitPrice).toFixed(2)})`;
+      const label = line.variantLabel ? `${line.variantLabel} В· ${pn}` : pn;
+      const note = line.note?.trim() ? ` вЂ” ${line.note.trim()}` : "";
+      return `- ${label}${note} (в‚ј${Number(line.unitPrice).toFixed(2)})`;
     });
     const total = cart.reduce((s, l) => s + Number(l.unitPrice), 0).toFixed(2);
     const text = [
-      "Salam, sifariş:",
+      "Salam, sifariЕџ:",
       "",
       ...lines,
       "",
-      `${t("total")}: ₼${total}`,
+      `${t("total")}: в‚ј${total}`,
       "",
       ...addrLines,
       "",
@@ -2594,7 +2394,7 @@ const CustomerMenu = () => {
                 {geoBusy ? t("checkout_location_busy") : t("checkout_location_btn")}
               </button>
               {geoUrl ? (
-                <p className="text-xs text-green-700 mb-4 break-all">✓ {geoUrl}</p>
+                <p className="text-xs text-green-700 mb-4 break-all">вњ“ {geoUrl}</p>
               ) : null}
               <p className="text-sm font-medium mb-2">{t("checkout_payment")}</p>
               <div className="flex gap-2 mb-4">
