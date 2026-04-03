@@ -547,7 +547,13 @@ export function MenuTemplateView({
             ) : null}
             <div className="flex items-center justify-between mt-3 pt-2 border-t border-black/5">
               <span className="font-bold text-lg" style={{ color: "var(--mt-primary)" }}>
-                {showFrom ? <>ən azı {formatPrice(displayMinPrice(prod))}</> : formatPrice(prod.price)}
+                {showFrom ? (
+                  <>
+                    {t("price_from")} {formatPrice(displayMinPrice(prod))}
+                  </>
+                ) : (
+                  formatPrice(prod.price)
+                )}
               </span>
               {innerAdd}
             </div>
@@ -589,7 +595,13 @@ export function MenuTemplateView({
           </h2>
           <div className="flex items-center justify-between gap-2 mt-auto">
             <span className="font-bold" style={{ color: "var(--mt-primary)" }}>
-              {showFrom ? <>ən azı {formatPrice(displayMinPrice(prod))}</> : formatPrice(prod.price)}
+              {showFrom ? (
+                <>
+                  {t("price_from")} {formatPrice(displayMinPrice(prod))}
+                </>
+              ) : (
+                formatPrice(prod.price)
+              )}
             </span>
             {innerAdd}
           </div>
@@ -638,7 +650,13 @@ export function MenuTemplateView({
           </div>
           <div className="flex items-center justify-between mt-2">
             <span className="font-bold text-lg" style={{ color: "var(--mt-primary)" }}>
-              {showFrom ? <>ən azı {formatPrice(displayMinPrice(prod))}</> : formatPrice(prod.price)}
+              {showFrom ? (
+                <>
+                  {t("price_from")} {formatPrice(displayMinPrice(prod))}
+                </>
+              ) : (
+                formatPrice(prod.price)
+              )}
             </span>
             {innerAdd}
           </div>
@@ -1177,7 +1195,7 @@ export function MenuTemplateView({
               onClick={(e) => e.stopPropagation()}
             >
               <p className="font-bold mb-3">{String(variantPick.name)}</p>
-              <p className="text-xs text-[var(--mt-muted)] mb-2">Ölçü / çeşid seçin</p>
+              <p className="text-xs text-[var(--mt-muted)] mb-2">{t("menu_variant_subtitle")}</p>
               <div className="space-y-2 max-h-[50vh] overflow-y-auto">
                 {variantsOf(variantPick).map((v) => (
                   <button
@@ -1196,7 +1214,7 @@ export function MenuTemplateView({
                 className="mt-3 w-full py-2 text-sm text-[var(--mt-muted)]"
                 onClick={() => setVariantPick(null)}
               >
-                Bağla
+                {t("btn_close")}
               </button>
             </motion.div>
           </motion.div>

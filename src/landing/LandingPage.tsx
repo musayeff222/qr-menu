@@ -257,18 +257,18 @@ export default function LandingPage() {
 
       <main>
         {/* Hero */}
-        <section className="relative z-10 mx-auto max-w-7xl px-4 pb-20 pt-10 sm:px-6 sm:pb-28 sm:pt-16 lg:pt-20">
-          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-10">
-            <motion.div initial="hidden" animate="show" variants={stagger} className="text-center lg:text-left">
+        <section className="relative z-10 mx-auto max-w-7xl px-4 pb-20 pt-8 sm:px-6 sm:pb-28 sm:pt-12 lg:pt-14">
+          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12 lg:items-start">
+            <motion.div initial="hidden" animate="show" variants={stagger} className="text-center lg:text-left lg:-mt-1">
               <motion.p
                 variants={fadeUp}
-                className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-rose-200/90 backdrop-blur-md"
+                className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-gradient-to-r from-amber-500/15 to-rose-500/15 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-amber-100/95 shadow-sm backdrop-blur-md sm:text-xs"
               >
-                <Sparkles size={14} className="text-amber-300" /> Premium QR menyu
+                <Sparkles size={14} className="text-amber-300" /> {t("landing_hero_badge")}
               </motion.p>
               <motion.h1
                 variants={fadeUp}
-                className="text-4xl font-black leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl"
+                className="text-4xl font-black leading-[1.06] tracking-tight sm:text-5xl lg:text-[3.35rem] lg:leading-[1.05]"
               >
                 <span className="bg-gradient-to-r from-white via-rose-100 to-amber-200 bg-clip-text text-transparent">
                   {t("landing_sales_title")}
@@ -306,19 +306,30 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 40, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-              className="relative mx-auto w-full max-w-[320px] lg:max-w-[360px]"
+              className="relative mx-auto w-full max-w-[300px] sm:max-w-[318px] lg:max-w-[340px] lg:pt-4"
             >
-              <div className="absolute -inset-4 rounded-[3rem] bg-gradient-to-tr from-fuchsia-500/30 via-rose-500/20 to-amber-400/20 blur-2xl" />
-              <div className="relative rounded-[2.5rem] border-[12px] border-slate-900 bg-slate-900 shadow-2xl shadow-black/60 ring-1 ring-white/10">
-                <div className="absolute left-1/2 top-3 z-10 h-5 w-20 -translate-x-1/2 rounded-full bg-slate-950" />
-                <div className="relative aspect-[9/19] overflow-hidden rounded-[1.85rem] bg-black">
+              <div className="absolute -inset-6 rounded-[3.25rem] bg-gradient-to-tr from-fuchsia-500/35 via-rose-500/25 to-amber-400/25 blur-3xl opacity-90" />
+              <div className="relative rounded-[2.65rem] border-[14px] border-[#1a1d2e] bg-gradient-to-b from-[#252838] to-[#12141c] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-white/10">
+                <div className="absolute left-1/2 top-[11px] z-20 h-6 w-[72px] -translate-x-1/2 rounded-full bg-black/80 ring-1 ring-white/[0.07]" />
+                <div className="absolute left-3 right-3 top-9 z-10 flex h-7 items-center justify-between rounded-lg bg-black/55 px-3 text-[10px] font-semibold tracking-wide text-white/90 backdrop-blur-md">
+                  <span className="tabular-nums opacity-90">9:41</span>
+                  <span className="flex items-center gap-1 opacity-80" aria-hidden>
+                    <span className="h-2 w-3 rounded-sm border border-white/40" />
+                    <span className="h-2 w-1 rounded-[1px] bg-white/60" />
+                    <span className="h-2.5 w-5 rounded-[3px] border border-white/35 pl-[2px] pr-[2px]">
+                      <span className="block h-full w-[55%] rounded-[2px] bg-emerald-400/90" />
+                    </span>
+                  </span>
+                </div>
+                <div className="relative aspect-[9/19] overflow-hidden rounded-[2rem] bg-[#0b0c10] pt-7 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
                   <iframe
                     title="Menu preview"
                     src={`${demoBase}&previewTemplate=modern-01`}
-                    className="h-full w-full border-0"
+                    className="h-full w-full scale-[0.972] border-0 origin-top"
                     loading="lazy"
                   />
                 </div>
+                <div className="pointer-events-none absolute bottom-2 left-1/2 z-10 h-1 w-[28%] -translate-x-1/2 rounded-full bg-white/20" />
               </div>
             </motion.div>
           </div>
