@@ -39,6 +39,8 @@ import clsx from "clsx";
 import { twMerge } from "tailwind-merge";
 import { authSuperHeaders } from "../lib/headers";
 import { MENU_TEMPLATES, type MenuTemplateDef } from "../menu-templates";
+import WebsiteCmsPage from "./WebsiteCmsPage";
+import UsersAdminPage from "./UsersAdminPage";
 
 function cn(...i: (string | boolean | undefined)[]) {
   return twMerge(clsx(i));
@@ -151,6 +153,9 @@ function AdminLayoutShell() {
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
           <NavLink to="/admin" end className={navCls}>
             <LayoutDashboard size={20} /> {itemLabel("İdarə paneli")}
+          </NavLink>
+          <NavLink to="/admin/website" className={navCls}>
+            <Globe size={20} /> {itemLabel("Web sayt")}
           </NavLink>
           <NavLink to="/admin/users" className={navCls}>
             <Users size={20} /> {itemLabel("İstifadəçilər")}
@@ -1039,181 +1044,6 @@ function NotificationsPage() {
   );
 }
 
-function OwnerAccountsPage() {
-  const [rows, setRows] = useState<any[]>([]);
-  const [plans, setPlans] = useState<any[]>([]);
-
-  const load = () =>
-    fetch("/api/admin/owner-accounts", { headers: authSuperHeaders() }).then((r) =>
-      r.json()
-    ).then(setRows);
-
-  useEffect(() => {
-    load();
-    fetch("/api/admin/plans", { headers: authSuperHeaders() })
-      .then((r) => r.json())
-      .then(setPlans);
-  }, []);
-
-  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
-
-  const notify = async (rid: number) => {
-    const title = prompt("Bildiriş başlığı");
-    if (!title) return;
-    const body = prompt("Mətn (ixtiyari)") || "";
-    await fetch(`/api/admin/restaurants/${rid}/owner-notify`, {
-      method: "POST",
-      headers: { ...authSuperHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify({ title, body }),
-    });
-    alert("Göndərildi");
-  };
-
-  const planOffer = async (rid: number) => {
-    const pid = prompt(`Plan ID (mövcud: ${plans.map((p) => `${p.id}=${p.name}`).join(", ")})`);
-    if (!pid) return;
-    const message = prompt("Əlavə mesaj (ixtiyari)") || "";
-    await fetch(`/api/admin/restaurants/${rid}/plan-offer`, {
-      method: "POST",
-      headers: { ...authSuperHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify({ plan_id: Number(pid), message }),
-    });
-    alert("Təklif bildirişi yaradıldı");
-  };
-
-  const toggleBlock = async (r: any) => {
-    await fetch(`/api/admin/restaurants/${r.id}`, {
-      method: "PATCH",
-      headers: { ...authSuperHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify({ is_active: !r.is_active }),
-    });
-    load();
-  };
-
-  const newOnes = rows.filter(
-    (x) =>
-      x.restaurant?.created_at &&
-      new Date(x.restaurant.created_at).getTime() > weekAgo
-  );
-  const oldOnes = rows.filter(
-    (x) =>
-      !x.restaurant?.created_at ||
-      new Date(x.restaurant.created_at).getTime() <= weekAgo
-  );
-
-  return (
-    <div className="space-y-8">
-      <header>
-        <motion.h1
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-red-600 to-amber-600 bg-clip-text text-transparent"
-        >
-          Restoran sahibləri
-        </motion.h1>
-        <p className="text-gray-500 dark:text-slate-400 text-sm mt-1">
-          Yeni qeydiyyatlar, aktiv/bloklu, bildiriş və plan təklifi
-        </p>
-      </header>
-
-      <section>
-        <h2 className="font-bold mb-3 flex items-center gap-2">
-          <span className="w-2 h-8 rounded-full bg-red-500" />
-          Son 7 gün — yeni
-        </h2>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {newOnes.map(({ restaurant: r, user: u, plan: pl }) => (
-            <motion.div
-              key={r.id}
-              layout
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ y: -4 }}
-              transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            >
-              <Card className="p-5 border-2 border-red-200/80 dark:border-red-900/50 shadow-lg shadow-red-900/10">
-                <p className="font-bold text-lg">{r.name}</p>
-                <p className="text-xs font-mono text-gray-500">/r/{r.slug}</p>
-                <p className="text-sm mt-2">
-                  <span className="text-gray-500">Login:</span> {u?.username}
-                </p>
-                <p className="text-sm">{u?.full_name}</p>
-                <p className="text-xs text-gray-500">
-                  Son giriş: {u?.last_login_at ? new Date(u.last_login_at).toLocaleString() : "—"}
-                </p>
-                <p className="text-xs mt-1">
-                  Plan: {pl?.name ?? "—"} ·{" "}
-                  <span className={r.is_active ? "text-emerald-600" : "text-red-600"}>
-                    {r.is_active ? "Aktiv" : "Bloklu"}
-                  </span>
-                </p>
-                <div className="flex flex-wrap gap-2 mt-4">
-                  <Button
-                    className="text-xs bg-red-600 text-white"
-                    onClick={() => notify(r.id)}
-                  >
-                    Bildiriş
-                  </Button>
-                  <Button className="text-xs border dark:border-slate-600" onClick={() => planOffer(r.id)}>
-                    Plan təklifi
-                  </Button>
-                  <Button className="text-xs border dark:border-slate-600" onClick={() => toggleBlock(r)}>
-                    {r.is_active ? "Blokla" : "Aktiv et"}
-                  </Button>
-                  <Link
-                    to={`/restaurant/${r.id}`}
-                    className="text-xs font-semibold text-red-600 px-3 py-2 rounded-lg hover:bg-red-50"
-                  >
-                    Panel
-                  </Link>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
-          {newOnes.length === 0 && (
-            <p className="text-gray-500 text-sm">Bu həftə yeni hesab yoxdur.</p>
-          )}
-        </div>
-      </section>
-
-      <section>
-        <h2 className="font-bold mb-3 flex items-center gap-2">
-          <span className="w-2 h-8 rounded-full bg-slate-400" />
-          Əvvəlki qeydiyyatlar
-        </h2>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {oldOnes.map(({ restaurant: r, user: u, plan: pl }) => (
-            <motion.div
-              key={r.id}
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              whileHover={{ y: -3 }}
-            >
-              <Card className="p-4 dark:bg-slate-900/90">
-                <p className="font-semibold">{r.name}</p>
-                <p className="text-xs font-mono text-gray-500">{u?.username}</p>
-                <p className="text-xs mt-1">{pl?.name}</p>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  <Button className="text-xs border" onClick={() => notify(r.id)}>
-                    Bildiriş
-                  </Button>
-                  <Button className="text-xs border" onClick={() => planOffer(r.id)}>
-                    Plan
-                  </Button>
-                  <Button className="text-xs border" onClick={() => toggleBlock(r)}>
-                    {r.is_active ? "Blokla" : "Aktiv"}
-                  </Button>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
-}
-
 function CouponsAdminPage() {
   const [rows, setRows] = useState<any[]>([]);
   const [form, setForm] = useState({
@@ -1462,7 +1292,8 @@ export default function AdminApp() {
       <Route path="login" element={<Navigate to="/admin-login-page" replace />} />
       <Route element={<AdminLayoutShell />}>
         <Route index element={<DashboardPage />} />
-        <Route path="users" element={<OwnerAccountsPage />} />
+        <Route path="website" element={<WebsiteCmsPage />} />
+        <Route path="users" element={<UsersAdminPage />} />
         <Route path="coupons" element={<CouponsAdminPage />} />
         <Route path="plans" element={<PlansPage />} />
         <Route path="plan-requests" element={<PlanRequestsPage />} />

@@ -42,6 +42,7 @@ import { I18nBundleContext, useI18nBundle } from "./i18n/bundleContext";
 import RestaurantOnboarding from "./RestaurantOnboarding";
 import LandingPage from "./landing/LandingPage";
 import { UI_TRANSLATIONS } from "./i18n/uiBuiltIn";
+import { AuthSplitLayout } from "./auth/AuthSplitLayout";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -205,9 +206,8 @@ const RegisterPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-red-950 flex items-center justify-center p-4">
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
-        <Card className="p-6 sm:p-8 border border-white/10 bg-white/95 backdrop-blur shadow-2xl">
+    <AuthSplitLayout defaultTitle={t("landing_sales_title")} defaultSubtitle={t("register_sub")}>
+      <Card className="p-6 sm:p-8 border border-white/10 bg-white/95 backdrop-blur shadow-2xl rounded-2xl">
           <div className="flex items-center gap-2 text-red-600 font-bold text-xl mb-2 justify-center">
             <Store /> {t("register_title")}
           </div>
@@ -272,8 +272,7 @@ const RegisterPage = () => {
             </Link>
           </div>
         </Card>
-      </motion.div>
-    </div>
+    </AuthSplitLayout>
   );
 };
 
@@ -340,13 +339,8 @@ const RestaurantLoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-red-950 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
-        <Card className="p-6 sm:p-8 border border-white/10 bg-white/95 backdrop-blur shadow-2xl">
+    <AuthSplitLayout defaultTitle={t("landing_sales_title")} defaultSubtitle={t("landing_hero_display_sub")}>
+      <Card className="p-6 sm:p-8 border border-white/10 bg-white/95 backdrop-blur shadow-2xl rounded-2xl">
           <div className="flex items-center gap-2 text-red-600 font-bold text-xl mb-2 justify-center">
             <LogIn /> {t("rest_login_title")}
           </div>
@@ -388,8 +382,7 @@ const RestaurantLoginPage = () => {
             </Link>
           </div>
         </Card>
-      </motion.div>
-    </div>
+    </AuthSplitLayout>
   );
 };
 

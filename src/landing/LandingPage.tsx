@@ -27,6 +27,8 @@ import { twMerge } from "tailwind-merge";
 import { MENU_TEMPLATES } from "../menu-templates";
 import { DEMO_MENU_PREVIEW_SLUG } from "../demoMenuSlug";
 import { useI18nBundle } from "../i18n/bundleContext";
+import type { LandingCms, LandingCmsCopy } from "../lib/landingCms";
+import { CMS_COPY_I18N_KEYS, parseLandingCms, sectionEnabled } from "../lib/landingCms";
 
 function cn(...i: (string | boolean | undefined)[]) {
   return twMerge(clsx(i));
@@ -93,6 +95,7 @@ const stagger: Variants = {
 export default function LandingPage() {
   const bundle = useI18nBundle();
   const [lang, setLang] = useState("az");
+  const [cms, setCms] = useState<LandingCms>(() => parseLandingCms(null));
   const [plans, setPlans] = useState<
     Array<{
       id: number;
@@ -125,6 +128,13 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
+    fetch("/api/public/landing-cms")
+      .then((r) => r.json())
+      .then((data: unknown) => setCms(parseLandingCms(JSON.stringify(data))))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     fetch("/api/public/plans")
       .then((r) => r.json())
       .then((rows) => setPlans(Array.isArray(rows) ? rows : []))
@@ -133,13 +143,24 @@ export default function LandingPage() {
 
   const t = useT(lang);
 
+  const tc = (k: keyof LandingCmsCopy) => {
+    const raw = cms.copy?.[k];
+    if (raw != null && String(raw).trim()) return String(raw).trim();
+    const ik = CMS_COPY_I18N_KEYS[k] as string;
+    return t(ik);
+  };
+
+  const sec = (k: Parameters<typeof sectionEnabled>[1]) => sectionEnabled(cms, k);
+
   useEffect(() => {
     const title =
+      (cms.copy?.meta_title && String(cms.copy.meta_title).trim()) ||
       bundle[lang]?.["landing_meta_title"] ||
       bundle.en?.["landing_meta_title"] ||
       bundle.az?.["landing_meta_title"] ||
       "QRMenu";
     const desc =
+      (cms.copy?.meta_description && String(cms.copy.meta_description).trim()) ||
       bundle[lang]?.["landing_meta_description"] ||
       bundle.en?.["landing_meta_description"] ||
       bundle.az?.["landing_meta_description"] ||
@@ -161,7 +182,7 @@ export default function LandingPage() {
     if (canonical && typeof window !== "undefined") {
       canonical.setAttribute("href", window.location.origin + "/");
     }
-  }, [lang, bundle]);
+  }, [lang, bundle, cms.copy?.meta_title, cms.copy?.meta_description]);
 
   const lim = (n: number) => (n < 0 ? "∞" : String(n));
 
@@ -239,12 +260,14 @@ export default function LandingPage() {
                 TR
               </option>
             </select>
-            <Link
-              to="/register"
-              className="hidden rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium backdrop-blur transition hover:border-white/35 hover:bg-white/10 sm:inline-flex"
-            >
-              {t("landing_cta_free")}
-            </Link>
+            {sec("navRegisterLink") ? (
+              <Link
+                to="/register"
+                className="hidden rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium backdrop-blur transition hover:border-white/35 hover:bg-white/10 sm:inline-flex"
+              >
+                {tc("cta_primary")}
+              </Link>
+            ) : null}
             <Link
               to="/panel"
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-fuchsia-600 px-4 py-2 text-sm font-semibold shadow-lg shadow-rose-500/30 transition hover:brightness-110"
@@ -257,6 +280,7 @@ export default function LandingPage() {
 
       <main>
         {/* Hero */}
+        {sec("hero") ? (
         <section className="relative z-10 mx-auto max-w-7xl px-4 pb-20 pt-8 sm:px-6 sm:pb-28 sm:pt-12 lg:pt-14">
           <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12 lg:items-start">
             <motion.div initial="hidden" animate="show" variants={stagger} className="text-center lg:text-left lg:-mt-1">
@@ -264,18 +288,18 @@ export default function LandingPage() {
                 variants={fadeUp}
                 className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-gradient-to-r from-amber-500/15 to-rose-500/15 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-amber-100/95 shadow-sm backdrop-blur-md sm:text-xs"
               >
-                <Sparkles size={14} className="text-amber-300" /> {t("landing_hero_badge")}
+                <Sparkles size={14} className="text-amber-300" /> {tc("hero_badge")}
               </motion.p>
               <motion.h1
                 variants={fadeUp}
                 className="text-4xl font-black leading-[1.06] tracking-tight sm:text-5xl lg:text-[3.35rem] lg:leading-[1.05]"
               >
                 <span className="bg-gradient-to-r from-white via-rose-100 to-amber-200 bg-clip-text text-transparent">
-                  {t("landing_sales_title")}
+                  {tc("hero_title")}
                 </span>
               </motion.h1>
               <motion.p variants={fadeUp} className="mx-auto mt-6 max-w-xl text-lg text-slate-300 lg:mx-0 lg:text-xl">
-                {t("landing_hero_display_sub")}
+                {tc("hero_sub")}
               </motion.p>
               <motion.div
                 variants={fadeUp}
@@ -286,7 +310,7 @@ export default function LandingPage() {
                   className="group rounded-2xl bg-gradient-to-r from-rose-500 via-rose-600 to-fuchsia-600 px-8 py-4 text-base font-bold text-white shadow-[0_20px_50px_-12px_rgba(244,63,94,0.55)] transition hover:shadow-[0_24px_60px_-8px_rgba(244,63,94,0.65)]"
                 >
                   <span className="flex items-center justify-center gap-2">
-                    {t("landing_cta_free")}
+                    {tc("cta_primary")}
                     <ArrowRight className="transition group-hover:translate-x-1" size={20} />
                   </span>
                 </RippleLink>
@@ -296,7 +320,7 @@ export default function LandingPage() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/5 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition hover:border-white/35 hover:bg-white/10"
                 >
-                  <Globe size={20} /> {t("landing_cta_demo")}
+                  <Globe size={20} /> {tc("cta_demo")}
                 </a>
               </motion.div>
             </motion.div>
@@ -334,8 +358,10 @@ export default function LandingPage() {
             </motion.div>
           </div>
         </section>
+        ) : null}
 
         {/* Benefits */}
+        {sec("benefits") ? (
         <section className="relative z-10 border-t border-white/[0.06] bg-gradient-to-b from-transparent to-[#0a0c14]/90 py-20 sm:py-24">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <motion.div
@@ -344,8 +370,8 @@ export default function LandingPage() {
               viewport={{ once: true, margin: "-80px" }}
               className="mb-14 text-center"
             >
-              <h2 className="text-3xl font-bold sm:text-4xl">{t("landing_benefits_title")}</h2>
-              <p className="mx-auto mt-3 max-w-2xl text-slate-400">{t("landing_value_line")}</p>
+              <h2 className="text-3xl font-bold sm:text-4xl">{tc("benefits_title")}</h2>
+              <p className="mx-auto mt-3 max-w-2xl text-slate-400">{tc("benefits_sub")}</p>
             </motion.div>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
               {benefits.map((b, i) => (
@@ -368,8 +394,10 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+        ) : null}
 
         {/* Templates slider */}
+        {sec("templates") ? (
         <section className="relative z-10 py-20 sm:py-24">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <motion.div
@@ -379,8 +407,8 @@ export default function LandingPage() {
               className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
             >
               <div>
-                <h2 className="text-3xl font-bold sm:text-4xl">{t("landing_templates_showcase_title")}</h2>
-                <p className="mt-2 max-w-xl text-slate-400">{t("landing_templates_showcase_sub")}</p>
+                <h2 className="text-3xl font-bold sm:text-4xl">{tc("templates_title")}</h2>
+                <p className="mt-2 max-w-xl text-slate-400">{tc("templates_sub")}</p>
               </div>
               <div className="flex gap-2">
                 <button
@@ -440,8 +468,10 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+        ) : null}
 
         {/* How it works */}
+        {sec("howItWorks") ? (
         <section className="relative z-10 border-y border-white/[0.06] bg-[#080a12]/80 py-20 backdrop-blur-sm sm:py-24">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <motion.h2
@@ -450,7 +480,7 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className="mb-14 text-center text-3xl font-bold sm:text-4xl"
             >
-              {t("landing_how_title")}
+              {tc("how_title")}
             </motion.h2>
             <div className="grid gap-8 sm:grid-cols-3">
               {[
@@ -479,8 +509,10 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+        ) : null}
 
         {/* Pricing */}
+        {sec("pricing") ? (
         <section className="relative z-10 py-20 sm:py-24">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <motion.div
@@ -489,8 +521,8 @@ export default function LandingPage() {
               viewport={{ once: true }}
               className="mb-12 text-center"
             >
-              <h2 className="text-3xl font-bold sm:text-4xl">{t("landing_plans_title")}</h2>
-              <p className="mx-auto mt-3 max-w-2xl text-slate-400">{t("landing_plans_sub")}</p>
+              <h2 className="text-3xl font-bold sm:text-4xl">{tc("pricing_title")}</h2>
+              <p className="mx-auto mt-3 max-w-2xl text-slate-400">{tc("pricing_sub")}</p>
             </motion.div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {plans.map((p, idx) => {
@@ -561,8 +593,10 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+        ) : null}
 
         {/* Final CTA */}
+        {sec("finalCta") ? (
         <section className="relative z-10 px-4 pb-24 sm:px-6 sm:pb-32">
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
@@ -571,18 +605,20 @@ export default function LandingPage() {
             className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-rose-600/30 via-fuchsia-600/20 to-amber-500/10 p-10 text-center shadow-2xl backdrop-blur-xl sm:p-14"
           >
             <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.03%22%3E%3Cpath%20d3D%22M36%2034v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6%2034v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6%204V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40" />
-            <h2 className="relative text-3xl font-black sm:text-4xl">{t("landing_final_cta_title")}</h2>
+            <h2 className="relative text-3xl font-black sm:text-4xl">{tc("final_cta_title")}</h2>
             <Link
               to="/register"
               className="relative mt-8 inline-flex items-center gap-2 rounded-2xl bg-white px-10 py-4 text-base font-bold text-slate-900 shadow-xl transition hover:scale-[1.02] active:scale-[0.98]"
             >
-              {t("landing_cta_free")} <ArrowRight size={20} />
+              {tc("cta_primary")} <ArrowRight size={20} />
             </Link>
           </motion.div>
         </section>
+        ) : null}
       </main>
 
       {/* Footer */}
+      {sec("footer") ? (
       <footer className="relative z-10 border-t border-white/[0.08] bg-[#05060a]">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
           <div className="grid gap-10 md:grid-cols-3">
@@ -590,14 +626,14 @@ export default function LandingPage() {
               <Link to="/" className="flex items-center gap-2 text-lg font-bold">
                 <QrCode className="text-rose-400" size={22} /> QRMenu
               </Link>
-              <p className="mt-4 text-sm text-slate-500">{t("landing_footer_tagline")}</p>
+              <p className="mt-4 text-sm text-slate-500">{tc("footer_tagline")}</p>
             </div>
             <div>
               <p className="font-semibold text-slate-200">{t("landing_footer_explore")}</p>
               <ul className="mt-4 space-y-2 text-sm text-slate-400">
                 <li>
                   <Link to="/register" className="hover:text-white">
-                    {t("landing_cta_free")}
+                    {tc("cta_primary")}
                   </Link>
                 </li>
                 <li>
@@ -607,7 +643,7 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <a href={`${demoBase}&previewTemplate=modern-01`} className="hover:text-white">
-                    {t("landing_cta_demo")}
+                    {tc("cta_demo")}
                   </a>
                 </li>
               </ul>
@@ -647,16 +683,19 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
+      ) : null}
 
       {/* Sticky mobile CTA */}
+      {sec("stickyBar") ? (
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-[#07080f]/92 px-4 py-3 backdrop-blur-xl safe-area-pb sm:hidden">
         <Link
           to="/register"
           className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-fuchsia-600 py-3.5 text-sm font-bold shadow-lg"
         >
-          {t("landing_sticky")} <ArrowRight size={18} />
+          {tc("sticky_bar")} <ArrowRight size={18} />
         </Link>
       </div>
+      ) : null}
     </div>
   );
 }

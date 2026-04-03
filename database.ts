@@ -648,11 +648,16 @@ export async function initDatabase() {
           value: JSON.stringify(["az", "ru", "tr", "en"]),
         },
         { key: "seed_demo_on_create", value: "true" },
+        { key: "landing_cms", value: "{}" },
       ]);
     } else {
       const sd = await db("settings").where({ key: "seed_demo_on_create" }).first();
       if (!sd) {
         await db("settings").insert({ key: "seed_demo_on_create", value: "true" });
+      }
+      const lc = await db("settings").where({ key: "landing_cms" }).first();
+      if (!lc) {
+        await db("settings").insert({ key: "landing_cms", value: "{}" });
       }
     }
 

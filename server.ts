@@ -255,6 +255,24 @@ async function startServer() {
     }
   });
 
+  app.get("/api/public/landing-cms", async (_req, res) => {
+    try {
+      const row = await db("settings").where({ key: "landing_cms" }).first();
+      const raw = (row as { value?: string } | undefined)?.value;
+      let parsed: Record<string, unknown> = {};
+      if (raw && String(raw).trim()) {
+        try {
+          parsed = JSON.parse(String(raw)) as Record<string, unknown>;
+        } catch {
+          parsed = {};
+        }
+      }
+      res.json(parsed);
+    } catch {
+      res.json({});
+    }
+  });
+
   app.get("/api/public/plans", async (_req, res) => {
     try {
       const rows = await db("subscription_plans")
