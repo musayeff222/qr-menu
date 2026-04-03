@@ -135,6 +135,14 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
+    fetch("/api/public/analytics/ping", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: "/" }),
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     fetch("/api/public/plans")
       .then((r) => r.json())
       .then((rows) => setPlans(Array.isArray(rows) ? rows : []))

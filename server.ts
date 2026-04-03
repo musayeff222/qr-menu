@@ -111,7 +111,22 @@ async function getRestaurantWithPlan(restaurantId: number) {
       | PlanRow
       | undefined;
   }
-  return { restaurant, plan: plan ?? null };
+  let merged = plan ?? null;
+  if (merged && restaurant?.subscription_overrides) {
+    const ov = safeJsonParse<Record<string, unknown>>(String(restaurant.subscription_overrides), {});
+    const pickNum = (k: keyof PlanRow): number => {
+      if (ov[k] != null && !Number.isNaN(Number(ov[k]))) return Number(ov[k]);
+      return Number(merged![k]);
+    };
+    merged = {
+      ...merged,
+      max_products: pickNum("max_products"),
+      max_categories: pickNum("max_categories"),
+      max_templates: pickNum("max_templates"),
+      max_qr_codes: pickNum("max_qr_codes"),
+    };
+  }
+  return { restaurant, plan: merged };
 }
 
 function asBool(v: unknown): boolean {
@@ -121,6 +136,18 @@ function asBool(v: unknown): boolean {
 async function countWhere(table: string, w: Record<string, unknown>) {
   const row = await db(table).where(w).count("* as c").first();
   return Number((row as { c?: string | number })?.c ?? 0);
+}
+
+async function bumpAnalyticsMetric(metric: string) {
+  const day = new Date().toISOString().slice(0, 10);
+  const existing = await db("analytics_daily").where({ day, metric }).first();
+  if (existing) {
+    await db("analytics_daily")
+      .where({ day, metric })
+      .update({ value: Number((existing as { value?: number }).value ?? 0) + 1 });
+  } else {
+    await db("analytics_daily").insert({ day, metric, value: 1 });
+  }
 }
 
 const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
@@ -202,6 +229,17 @@ async function startServer() {
   app.use(express.json());
   app.use("/uploads", express.static(uploadsDir));
   console.log("Express middleware configured.");
+
+  app.post("/api/public/analytics/ping", async (req, res) => {
+    try {
+      const p = String(req.body?.path ?? "/").slice(0, 120);
+      const metric = p === "/" || p === "" ? "landing_hit" : `page:${p}`;
+      await bumpAnalyticsMetric(metric);
+      res.json({ ok: true });
+    } catch {
+      res.status(500).json({ ok: false });
+    }
+  });
 
   setInterval(() => {
     const now = Date.now();
@@ -672,7 +710,7 @@ async function startServer() {
   app.patch("/api/admin/restaurants/:id", async (req, res) => {
     if (!requireSuper(req, res)) return;
     const id = Number(req.params.id);
-    const { is_active, subscription_plan_id } = req.body;
+    const { is_active, subscription_plan_id, subscription_ends_at, subscription_overrides } = req.body;
     const patch: Record<string, unknown> = {};
     if (typeof is_active === "boolean") patch.is_active = is_active;
     if (subscription_plan_id != null) {
@@ -683,6 +721,22 @@ async function startServer() {
         return;
       }
       patch.subscription_plan_id = pid;
+    }
+    if (subscription_ends_at !== undefined) {
+      patch.subscription_ends_at =
+        subscription_ends_at === null || subscription_ends_at === ""
+          ? null
+          : new Date(String(subscription_ends_at)).toISOString();
+    }
+    if (subscription_overrides !== undefined) {
+      if (subscription_overrides === null || subscription_overrides === "") {
+        patch.subscription_overrides = null;
+      } else {
+        patch.subscription_overrides =
+          typeof subscription_overrides === "string"
+            ? subscription_overrides
+            : JSON.stringify(subscription_overrides);
+      }
     }
     if (Object.keys(patch).length === 0) {
       res.status(400).json({ error: "No fields" });
@@ -828,6 +882,7 @@ async function startServer() {
     const skipScan = String(req.query.preview) === "true";
     if (!skipScan) {
       await db("scans").insert({ restaurant_id: restaurant.id });
+      await bumpAnalyticsMetric("qr_scan");
       await db("restaurants").where({ id: restaurant.id }).increment("total_page_views", 1);
       const pids = parsedProducts.map((p) => p.id).filter(Boolean);
       if (pids.length)
@@ -1227,6 +1282,55 @@ async function startServer() {
       .limit(8)
       .select("id", "name", "slug", "is_active", "created_at");
 
+    const startOfToday = new Date();
+    startOfToday.setUTCHours(0, 0, 0, 0);
+    const registrationsTodayRow = await db("restaurants")
+      .where("created_at", ">=", startOfToday.toISOString())
+      .count("* as c")
+      .first();
+    const registrationsToday = Number((registrationsTodayRow as { c?: string | number })?.c ?? 0);
+
+    const pendingPlanRow = await db("plan_upgrade_requests")
+      .where({ status: "pending" })
+      .count("* as c")
+      .first();
+    const pendingPlanRequests = Number((pendingPlanRow as { c?: string | number })?.c ?? 0);
+
+    const now = new Date();
+    const in3d = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const expRow = await db("restaurants")
+      .whereNotNull("subscription_ends_at")
+      .where("subscription_ends_at", ">=", now.toISOString())
+      .where("subscription_ends_at", "<=", in3d.toISOString())
+      .count("* as c")
+      .first();
+    const expiringSubscriptionsCount = Number((expRow as { c?: string | number })?.c ?? 0);
+
+    const registrationsSeries: { day: string; count: number }[] = [];
+    const landingSeries: { day: string; count: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d0 = new Date();
+      d0.setUTCDate(d0.getUTCDate() - i);
+      d0.setUTCHours(0, 0, 0, 0);
+      const d1 = new Date(d0);
+      d1.setUTCDate(d1.getUTCDate() + 1);
+      const dayKey = d0.toISOString().slice(0, 10);
+      const cr = await db("restaurants")
+        .where("created_at", ">=", d0.toISOString())
+        .where("created_at", "<", d1.toISOString())
+        .count("* as c")
+        .first();
+      registrationsSeries.push({
+        day: dayKey,
+        count: Number((cr as { c?: string | number })?.c ?? 0),
+      });
+      const lr = await db("analytics_daily").where({ day: dayKey, metric: "landing_hit" }).first();
+      landingSeries.push({
+        day: dayKey,
+        count: Number((lr as { value?: number })?.value ?? 0),
+      });
+    }
+
     res.json({
       totalRestaurants,
       activeRestaurants,
@@ -1235,6 +1339,40 @@ async function startServer() {
       totalPageViews,
       estimatedMonthlyRevenue,
       recentRestaurants,
+      registrationsToday,
+      pendingPlanRequests,
+      expiringSubscriptionsCount,
+      registrationsSeries,
+      landingSeries,
+    });
+  });
+
+  app.get("/api/admin/analytics", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    const days = Math.min(90, Math.max(7, Number(req.query.days) || 30));
+    const start = new Date();
+    start.setUTCDate(start.getUTCDate() - (days - 1));
+    start.setUTCHours(0, 0, 0, 0);
+    const startKey = start.toISOString().slice(0, 10);
+
+    const daily = await db("analytics_daily").where("day", ">=", startKey).orderBy("day", "asc");
+
+    const topPagesRaw = await db("analytics_daily")
+      .where("metric", "like", "page:%")
+      .select(db.raw("metric as path"), db.raw("SUM(value) as hits"))
+      .groupBy("metric")
+      .orderBy("hits", "desc")
+      .limit(15);
+
+    const topMenus = await db("restaurants")
+      .orderBy("total_page_views", "desc")
+      .limit(12)
+      .select("id", "name", "slug", "total_page_views");
+
+    res.json({
+      daily,
+      topPages: topPagesRaw,
+      topMenus,
     });
   });
 
@@ -1261,6 +1399,11 @@ async function startServer() {
       slug: String(b.slug).toLowerCase().replace(/[^a-z0-9-]/g, ""),
       price_monthly: b.price_monthly ?? 0,
       price_yearly: b.price_yearly ?? 0,
+      original_price_monthly:
+        b.original_price_monthly != null && b.original_price_monthly !== ""
+          ? Number(b.original_price_monthly)
+          : null,
+      is_featured: !!b.is_featured,
       max_products: b.max_products ?? 20,
       max_categories: b.max_categories ?? 5,
       max_templates: b.max_templates ?? 5,
@@ -1285,6 +1428,7 @@ async function startServer() {
       "slug",
       "price_monthly",
       "price_yearly",
+      "original_price_monthly",
       "max_products",
       "max_categories",
       "max_templates",
@@ -1303,6 +1447,13 @@ async function startServer() {
     if (b.premium_templates_enabled !== undefined)
       patch.premium_templates_enabled = !!b.premium_templates_enabled;
     if (b.is_active !== undefined) patch.is_active = !!b.is_active;
+    if (b.is_featured !== undefined) patch.is_featured = !!b.is_featured;
+    if (b.original_price_monthly !== undefined) {
+      patch.original_price_monthly =
+        b.original_price_monthly === null || b.original_price_monthly === ""
+          ? null
+          : Number(b.original_price_monthly);
+    }
     if (Object.keys(patch).length === 0) {
       res.status(400).json({ error: "Boş" });
       return;
@@ -1351,10 +1502,13 @@ async function startServer() {
       res.status(400).json({ error: "Başlıq lazımdır" });
       return;
     }
+    const channel = String(req.body?.channel || "system").slice(0, 24);
+    const allowed = new Set(["system", "whatsapp", "email"]);
     await db("owner_notifications").insert({
       restaurant_id: rid,
       title: String(title),
       body: body ? String(body) : null,
+      channel: allowed.has(channel) ? channel : "system",
     });
     res.json({ success: true });
   });
@@ -1396,6 +1550,10 @@ async function startServer() {
       return;
     }
     try {
+      const discount_type =
+        req.body?.discount_type === "fixed" ? "fixed" : "percent";
+      const discount_value =
+        req.body?.discount_value != null ? Number(req.body.discount_value) : 0;
       const ids = await db("promo_coupons").insert({
         code: String(code).toUpperCase().trim().slice(0, 64),
         max_uses: max_uses != null ? Number(max_uses) : 1,
@@ -1405,6 +1563,8 @@ async function startServer() {
         valid_until: valid_until || null,
         active_hours: active_hours != null ? Number(active_hours) : null,
         notes: notes ? String(notes) : null,
+        discount_type,
+        discount_value,
       });
       const id = Number(Array.isArray(ids) ? ids[0] : ids);
       const row = await db("promo_coupons").where({ id }).first();
@@ -1427,6 +1587,9 @@ async function startServer() {
     if (b.valid_until !== undefined) patch.valid_until = b.valid_until || null;
     if (b.active_hours !== undefined) patch.active_hours = b.active_hours;
     if (b.notes !== undefined) patch.notes = b.notes;
+    if (b.discount_type !== undefined)
+      patch.discount_type = b.discount_type === "fixed" ? "fixed" : "percent";
+    if (b.discount_value !== undefined) patch.discount_value = Number(b.discount_value);
     await db("promo_coupons").where({ id }).update(patch);
     res.json({ success: true, row: await db("promo_coupons").where({ id }).first() });
   });
@@ -1439,8 +1602,13 @@ async function startServer() {
 
   app.get("/api/admin/notifications", async (req, res) => {
     if (!requireSuper(req, res)) return;
-    const rows = await db("admin_notifications").orderBy("id", "desc").limit(50);
-    res.json(rows);
+    const filter = String(req.query.filter || "all");
+    let qb = db("admin_notifications");
+    if (filter === "unread") qb = qb.where({ is_read: false });
+    else if (filter === "read") qb = qb.where({ is_read: true });
+    const sort = String(req.query.sort || "newest");
+    qb = qb.orderBy("created_at", sort === "oldest" ? "asc" : "desc").limit(200);
+    res.json(await qb);
   });
 
   app.patch("/api/admin/notifications/:id/read", async (req, res) => {
@@ -1493,6 +1661,58 @@ async function startServer() {
     res.json({ success: true });
   });
 
+  app.patch("/api/admin/restaurant-users/:uid", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    const uid = Number(req.params.uid);
+    const row = await db("restaurant_users").where({ id: uid }).first();
+    if (!row) {
+      res.status(404).json({ error: "Tapılmadı" });
+      return;
+    }
+    const patch: Record<string, unknown> = {};
+    if (req.body.full_name !== undefined) {
+      patch.full_name = req.body.full_name ? String(req.body.full_name) : null;
+    }
+    if (req.body.username !== undefined) {
+      const u = String(req.body.username).trim();
+      const clash = await db("restaurant_users").where({ username: u }).whereNot("id", uid).first();
+      if (clash) {
+        res.status(400).json({ error: "Bu login artıq mövcuddur" });
+        return;
+      }
+      patch.username = u;
+    }
+    if (req.body.new_password != null && String(req.body.new_password).length > 0) {
+      patch.password = String(req.body.new_password);
+    }
+    if (Object.keys(patch).length === 0) {
+      res.status(400).json({ error: "Heç bir dəyişiklik yoxdur" });
+      return;
+    }
+    await db("restaurant_users").where({ id: uid }).update(patch);
+    res.json({ success: true });
+  });
+
+  app.delete("/api/admin/restaurant-users/:uid", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    const uid = Number(req.params.uid);
+    const row = await db("restaurant_users").where({ id: uid }).first();
+    if (!row) {
+      res.status(404).json({ error: "Tapılmadı" });
+      return;
+    }
+    const cntRow = await db("restaurant_users")
+      .where({ restaurant_id: row.restaurant_id })
+      .count("* as c")
+      .first();
+    if (Number((cntRow as { c?: string | number })?.c ?? 0) <= 1) {
+      res.status(400).json({ error: "Restoranın son istifadəçisi silinə bilməz" });
+      return;
+    }
+    await db("restaurant_users").where({ id: uid }).delete();
+    res.json({ success: true });
+  });
+
   app.post("/api/admin/impersonate/:restaurantId", async (req, res) => {
     if (!requireSuper(req, res)) return;
     const restaurantId = Number(req.params.restaurantId);
@@ -1531,9 +1751,11 @@ async function startServer() {
     }
   } else {
     const distPath = path.join(process.cwd(), "dist");
+    const indexHtml = path.join(distPath, "index.html");
     app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+    // Express 5 + path-to-regexp v8: bare "*" is invalid; use a RegExp catch-all for SPA fallback.
+    app.get(/^\/(.*)$/, (req, res) => {
+      res.sendFile(indexHtml);
     });
   }
 

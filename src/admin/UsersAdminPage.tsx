@@ -10,6 +10,11 @@ import {
   Ban,
   CheckCircle,
   X,
+  Mail,
+  MessageCircle,
+  Smartphone,
+  Trash2,
+  Save,
 } from "lucide-react";
 import { authSuperHeaders } from "../lib/headers";
 import {
@@ -31,6 +36,9 @@ type Row = {
     is_active: boolean | number;
     whatsapp_number?: string;
     created_at?: string;
+    subscription_plan_id?: number | null;
+    subscription_ends_at?: string | null;
+    subscription_overrides?: string | null;
   };
   user: {
     id: number;
@@ -56,6 +64,20 @@ export default function UsersAdminPage() {
   const [q, setQ] = useState("");
   const [listFilter, setListFilter] = useState<ListFilter>("all");
   const [view, setView] = useState<Row | null>(null);
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifyRid, setNotifyRid] = useState<number | null>(null);
+  const [notifyForm, setNotifyForm] = useState({
+    title: "",
+    body: "",
+    channel: "system" as "system" | "email" | "whatsapp",
+  });
+
+  const [subPlanId, setSubPlanId] = useState<number | "">("");
+  const [subEnds, setSubEnds] = useState("");
+  const [subOverrides, setSubOverrides] = useState("");
+  const [uUsername, setUUsername] = useState("");
+  const [uFullName, setUFullName] = useState("");
+  const [uPass, setUPass] = useState("");
 
   const load = () => {
     fetch("/api/admin/owner-accounts", { headers: authSuperHeaders() })
@@ -92,16 +114,44 @@ export default function UsersAdminPage() {
     });
   }, [rows, q, listFilter, weekAgo]);
 
-  const notify = async (rid: number) => {
-    const title = prompt("Bildiriş başlığı");
-    if (!title) return;
-    const body = prompt("Mətn (ixtiyari)") || "";
-    await fetch(`/api/admin/restaurants/${rid}/owner-notify`, {
+  const openNotify = (rid: number) => {
+    setNotifyRid(rid);
+    setNotifyForm({ title: "", body: "", channel: "system" });
+    setNotifyOpen(true);
+  };
+
+  const sendNotify = async () => {
+    if (!notifyRid || !notifyForm.title.trim()) return;
+    const res = await fetch(`/api/admin/restaurants/${notifyRid}/owner-notify`, {
       method: "POST",
       headers: { ...authSuperHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify({ title, body }),
+      body: JSON.stringify({
+        title: notifyForm.title.trim(),
+        body: notifyForm.body.trim() || null,
+        channel: notifyForm.channel,
+      }),
     });
-    alert("Göndərildi");
+    if (!res.ok) alert(await res.text());
+    else {
+      setNotifyOpen(false);
+      alert("Göndərildi");
+    }
+  };
+
+  const syncDetailFields = (row: Row) => {
+    const r = row.restaurant;
+    setSubPlanId(r.subscription_plan_id ?? plans[0]?.id ?? "");
+    setSubEnds(
+      r.subscription_ends_at ? new Date(r.subscription_ends_at).toISOString().slice(0, 16) : ""
+    );
+    setSubOverrides(
+      r.subscription_overrides && r.subscription_overrides !== "null"
+        ? String(r.subscription_overrides)
+        : ""
+    );
+    setUUsername(row.user?.username ?? "");
+    setUFullName(row.user?.full_name ?? "");
+    setUPass("");
   };
 
   const planOffer = async (rid: number) => {
@@ -225,14 +275,17 @@ export default function UsersAdminPage() {
                       <div className="inline-flex flex-wrap justify-end gap-1.5">
                         <button
                           type="button"
-                          onClick={() => setView(row)}
+                          onClick={() => {
+                            setView(row);
+                            syncDetailFields(row);
+                          }}
                           className="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-slate-600 px-2.5 py-1.5 text-xs font-semibold text-gray-800 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800 shadow-sm"
                         >
                           <Eye size={14} /> Bax
                         </button>
                         <button
                           type="button"
-                          onClick={() => notify(r.id)}
+                          onClick={() => openNotify(r.id)}
                           className="rounded-lg border border-gray-200 dark:border-slate-600 p-1.5 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
                           title="Bildiriş"
                         >
@@ -328,8 +381,163 @@ export default function UsersAdminPage() {
                   <p className="text-xs font-semibold uppercase text-gray-500 dark:text-slate-400 mb-1">Plan</p>
                   <p className="font-medium">{view.plan?.name ?? "—"}</p>
                 </div>
+                <SurfaceCard className="p-4 space-y-3 border border-violet-200/60 dark:border-violet-900/50">
+                  <p className="text-xs font-semibold uppercase text-violet-600 dark:text-violet-400">
+                    Abunəlik (admin)
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div>
+                      <label className={labelCn}>Plan</label>
+                      <select
+                        className={inputCn}
+                        value={subPlanId === "" ? "" : subPlanId}
+                        onChange={(e) => setSubPlanId(Number(e.target.value))}
+                      >
+                        {plans.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelCn}>Bitmə tarixi</label>
+                      <input
+                        type="datetime-local"
+                        className={inputCn}
+                        value={subEnds}
+                        onChange={(e) => setSubEnds(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelCn}>Limit override (JSON, opsional)</label>
+                    <textarea
+                      className={cn(inputCn, "font-mono text-xs min-h-[4rem]")}
+                      placeholder='{"max_products":500,"max_qr_codes":10}'
+                      value={subOverrides}
+                      onChange={(e) => setSubOverrides(e.target.value)}
+                    />
+                  </div>
+                  <PrimaryButton
+                    type="button"
+                    className="text-sm w-full sm:w-auto"
+                    onClick={async () => {
+                      let subscription_overrides: string | null = null;
+                      const raw = subOverrides.trim();
+                      if (raw) {
+                        try {
+                          subscription_overrides = JSON.stringify(JSON.parse(raw));
+                        } catch {
+                          alert("JSON formatı yanlışdır");
+                          return;
+                        }
+                      }
+                      const res = await fetch(`/api/admin/restaurants/${view.restaurant.id}`, {
+                        method: "PATCH",
+                        headers: { ...authSuperHeaders(), "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          subscription_plan_id: Number(subPlanId),
+                          subscription_ends_at: subEnds ? new Date(subEnds).toISOString() : null,
+                          subscription_overrides,
+                        }),
+                      });
+                      if (!res.ok) alert(await res.text());
+                      else {
+                        load();
+                        alert("Abunəlik yeniləndi");
+                      }
+                    }}
+                  >
+                    <Save size={16} className="inline mr-1" /> Abunəliyi saxla
+                  </PrimaryButton>
+                </SurfaceCard>
+
+                {view.user ? (
+                  <SurfaceCard className="p-4 space-y-3 border border-sky-200/60 dark:border-sky-900/50">
+                    <p className="text-xs font-semibold uppercase text-sky-600 dark:text-sky-400">
+                      Hesab redaktəsi
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div>
+                        <label className={labelCn}>Login</label>
+                        <input
+                          className={cn(inputCn, "font-mono text-sm")}
+                          value={uUsername}
+                          onChange={(e) => setUUsername(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelCn}>Ad soyad</label>
+                        <input
+                          className={inputCn}
+                          value={uFullName}
+                          onChange={(e) => setUFullName(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className={labelCn}>Yeni şifrə (boş saxlanılsa dəyişməz)</label>
+                      <input
+                        type="password"
+                        className={inputCn}
+                        value={uPass}
+                        onChange={(e) => setUPass(e.target.value)}
+                        autoComplete="new-password"
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <PrimaryButton
+                        type="button"
+                        className="text-sm"
+                        onClick={async () => {
+                          const body: Record<string, string> = {
+                            username: uUsername.trim(),
+                            full_name: uFullName.trim(),
+                          };
+                          if (uPass) body.new_password = uPass;
+                          const res = await fetch(`/api/admin/restaurant-users/${view.user!.id}`, {
+                            method: "PATCH",
+                            headers: { ...authSuperHeaders(), "Content-Type": "application/json" },
+                            body: JSON.stringify(body),
+                          });
+                          if (!res.ok) alert(await res.text());
+                          else {
+                            load();
+                            alert("Hesab yeniləndi");
+                          }
+                        }}
+                      >
+                        Hesabı saxla
+                      </PrimaryButton>
+                      <GhostButton
+                        type="button"
+                        className="text-sm text-red-600 border-red-200 dark:border-red-900"
+                        onClick={async () => {
+                          if (!confirm("İstifadəçini silmək? Son admin silinə bilməz.")) return;
+                          const res = await fetch(`/api/admin/restaurant-users/${view.user!.id}`, {
+                            method: "DELETE",
+                            headers: authSuperHeaders(),
+                          });
+                          if (!res.ok) alert(await res.text());
+                          else {
+                            setView(null);
+                            load();
+                          }
+                        }}
+                      >
+                        <Trash2 size={16} className="inline mr-1" /> Sil
+                      </GhostButton>
+                    </div>
+                  </SurfaceCard>
+                ) : null}
+
                 <div className="flex flex-wrap gap-2 pt-2">
-                  <PrimaryButton type="button" className="text-sm" onClick={() => notify(view.restaurant.id)}>
+                  <PrimaryButton
+                    type="button"
+                    className="text-sm"
+                    onClick={() => openNotify(view.restaurant.id)}
+                  >
                     Bildiriş göndər
                   </PrimaryButton>
                   <GhostButton type="button" className="text-sm" onClick={() => planOffer(view.restaurant.id)}>
@@ -344,6 +552,98 @@ export default function UsersAdminPage() {
                   >
                     Restoran paneli
                   </Link>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {notifyOpen ? (
+          <motion.div
+            className="fixed inset-0 z-[220] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setNotifyOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.94, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              transition={{ type: "spring", damping: 26, stiffness: 320 }}
+              className="w-full max-w-md rounded-2xl border-2 border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="border-b border-gray-100 dark:border-slate-800 px-5 py-4 flex justify-between items-center">
+                <h3 className="text-lg font-bold">Bildiriş göndər</h3>
+                <button
+                  type="button"
+                  className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800"
+                  onClick={() => setNotifyOpen(false)}
+                  aria-label="Bağla"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="p-5 space-y-4">
+                <div>
+                  <label className={labelCn}>Göndərilmə tipi</label>
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    {(
+                      [
+                        ["system", "Sistem", Smartphone],
+                        ["email", "Email", Mail],
+                        ["whatsapp", "WhatsApp", MessageCircle],
+                      ] as const
+                    ).map(([id, lab, Icon]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setNotifyForm((f) => ({ ...f, channel: id }))}
+                        className={cn(
+                          "flex flex-col items-center gap-1 rounded-xl border-2 py-3 px-2 text-xs font-semibold transition-all",
+                          notifyForm.channel === id
+                            ? "border-rose-500 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-200"
+                            : "border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-400 hover:border-gray-300"
+                        )}
+                      >
+                        <Icon size={20} strokeWidth={2} />
+                        {lab}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-2">
+                    Email və WhatsApp hazırda qeydə alınır; çatdırılma sonrakı integrasiyalarla
+                    aktivləşə bilər.
+                  </p>
+                </div>
+                <div>
+                  <label className={labelCn}>Başlıq</label>
+                  <input
+                    className={inputCn}
+                    value={notifyForm.title}
+                    onChange={(e) => setNotifyForm((f) => ({ ...f, title: e.target.value }))}
+                    placeholder="Məs: Plan yenilənməsi"
+                  />
+                </div>
+                <div>
+                  <label className={labelCn}>Mesaj</label>
+                  <textarea
+                    className={cn(inputCn, "min-h-[6rem] resize-y")}
+                    value={notifyForm.body}
+                    onChange={(e) => setNotifyForm((f) => ({ ...f, body: e.target.value }))}
+                    placeholder="Ətraflı mətn…"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <PrimaryButton type="button" className="flex-1" onClick={() => void sendNotify()}>
+                    Göndər
+                  </PrimaryButton>
+                  <GhostButton type="button" className="flex-1" onClick={() => setNotifyOpen(false)}>
+                    Bağla
+                  </GhostButton>
                 </div>
               </div>
             </motion.div>

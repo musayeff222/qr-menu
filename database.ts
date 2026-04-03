@@ -550,6 +550,15 @@ export async function initDatabase() {
       });
     }
 
+    if (!(await db.schema.hasTable("analytics_daily"))) {
+      await db.schema.createTable("analytics_daily", (table) => {
+        table.string("day", 10).notNullable();
+        table.string("metric", 64).notNullable();
+        table.integer("value").notNullable().defaultTo(0);
+        table.primary(["day", "metric"]);
+      });
+    }
+
     if (!(await db.schema.hasTable("plan_upgrade_requests"))) {
       await db.schema.createTable("plan_upgrade_requests", (table) => {
         table.increments("id");
@@ -628,6 +637,12 @@ export async function initDatabase() {
       await ensureColumn("restaurants", "onboarding_completed", (table) => {
         table.boolean("onboarding_completed").defaultTo(true);
       });
+      await ensureColumn("restaurants", "subscription_ends_at", (table) => {
+        table.timestamp("subscription_ends_at").nullable();
+      });
+      await ensureColumn("restaurants", "subscription_overrides", (table) => {
+        table.text("subscription_overrides").nullable();
+      });
     }
 
     if (await db.schema.hasTable("restaurant_users")) {
@@ -636,6 +651,30 @@ export async function initDatabase() {
       });
       await ensureColumn("restaurant_users", "last_login_at", (table) => {
         table.timestamp("last_login_at").nullable();
+      });
+    }
+
+    if (await db.schema.hasTable("subscription_plans")) {
+      await ensureColumn("subscription_plans", "original_price_monthly", (table) => {
+        table.decimal("original_price_monthly", 10, 2).nullable();
+      });
+      await ensureColumn("subscription_plans", "is_featured", (table) => {
+        table.boolean("is_featured").defaultTo(false);
+      });
+    }
+
+    if (await db.schema.hasTable("promo_coupons")) {
+      await ensureColumn("promo_coupons", "discount_type", (table) => {
+        table.string("discount_type", 16).defaultTo("percent");
+      });
+      await ensureColumn("promo_coupons", "discount_value", (table) => {
+        table.decimal("discount_value", 10, 2).defaultTo(0);
+      });
+    }
+
+    if (await db.schema.hasTable("owner_notifications")) {
+      await ensureColumn("owner_notifications", "channel", (table) => {
+        table.string("channel", 24).defaultTo("system");
       });
     }
 
