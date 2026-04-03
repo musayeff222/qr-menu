@@ -50,6 +50,10 @@ export interface MenuTemplateTheme {
   headerLayout?: HeaderLayout;
   productLayout?: ProductLayout;
   iconStyle?: IconStyle;
+  /** Unikal vizual konsept identifikatoru (50 şablon üçün) */
+  renderMode?: string;
+  /** Şablon üçün unikal Google font cütlüyü (varsa fontPair əvəz olunur) */
+  customFonts?: { heading: string; body: string };
 }
 
 export interface MenuTemplateDef {

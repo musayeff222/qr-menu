@@ -13,3 +13,26 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Menyu şablonları — neon, dərinlıq, şüşə, orqanik formalar */
+@layer utilities {
+  .mt-neon-skin .mt-product-card:hover {
+    box-shadow:
+      0 0 26px color-mix(in srgb, var(--mt-primary) 42%, transparent),
+      0 0 2px color-mix(in srgb, var(--mt-accent) 70%, transparent);
+  }
+  .mt-depth-skin .mt-product-card {
+    box-shadow: 0 20px 44px -14px rgba(0, 0, 0, 0.42);
+  }
+  .mt-glass-skin header nav[aria-label="Menu categories"] {
+    backdrop-filter: blur(16px);
+  }
+  .mt-organic-skin .mt-product-card {
+    border-radius: 1.65rem 2.1rem 1.45rem 2rem;
+  }
+  .mt-retro-skin .mt-product-card {
+    border-width: 3px;
+    border-style: solid;
+    border-color: color-mix(in srgb, var(--mt-primary) 35%, transparent);
+  }
+}

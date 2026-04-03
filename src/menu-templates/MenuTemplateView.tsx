@@ -15,6 +15,7 @@ import {
 import type { MenuTemplateDef } from "./types";
 import type { FontPairKey } from "./types";
 import { cn } from "./cn";
+import { productCardSkin, templateRootSkin } from "./templateSkin";
 
 const FONT_STACKS: Record<
   FontPairKey,
@@ -203,6 +204,13 @@ export function MenuTemplateView({
   const headerLayout = th.headerLayout ?? "centered";
   const productLayout = th.productLayout ?? "list";
   const iconStyle = th.iconStyle ?? "rounded";
+  const rm = th.renderMode ?? "";
+  const storyCategories = rm === "story-mode-menu";
+  const useSidebarNav = rm === "sidebar-menu-style";
+  const instagramGrid = rm === "instagram-feed-menu";
+  const tiktokVertical = rm === "tiktok-vertical-menu";
+  const fullImageBgMenu = rm === "full-image-background-menu";
+  const icon3d = rm === "icon-3d-ui";
 
   const waOrderUrl =
     allowWa && whatsapp
@@ -221,7 +229,7 @@ export function MenuTemplateView({
   const densityPad =
     th.density === "compact" ? "p-2.5" : th.density === "spacious" ? "p-5" : "p-3.5";
 
-  const fonts = FONT_STACKS[th.fontPair];
+  const fonts = th.customFonts ?? FONT_STACKS[th.fontPair];
 
   const fixCard = cn(
     th.cardStyle === "elevated" && "shadow-lg border-0",
@@ -336,16 +344,22 @@ export function MenuTemplateView({
   };
 
   const iconShell = (() => {
-    const base = "flex flex-col items-center justify-center active:scale-95 transition-transform";
+    const base =
+      "flex flex-col items-center justify-center active:scale-95 transition-transform motion-safe:transition-transform";
+    const lift3d = icon3d
+      ? "shadow-[0_10px_30px_-8px_rgba(0,0,0,0.45)] sm:hover:-translate-y-1 sm:hover:shadow-xl"
+      : "";
     switch (iconStyle) {
       case "line":
         return cn(
           base,
+          lift3d,
           "w-12 h-12 sm:w-14 sm:h-14 border-2 border-[var(--mt-primary)] bg-transparent text-[var(--mt-primary)] shadow-none rounded-2xl"
         );
       case "filled":
         return cn(
           base,
+          lift3d,
           "w-12 h-12 sm:w-14 sm:h-14 bg-[var(--mt-primary)] text-white border-0 shadow-lg rounded-2xl"
         );
       case "minimal":
@@ -356,6 +370,7 @@ export function MenuTemplateView({
       default:
         return cn(
           base,
+          lift3d,
           "w-12 h-12 sm:w-14 sm:h-14",
           r,
           "bg-[var(--mt-surface)]/90 text-[var(--mt-text)] shadow-sm border border-black/5"
@@ -487,6 +502,7 @@ export function MenuTemplateView({
   );
 
   const renderProductArticle = (prod: Record<string, unknown>, layout: "list" | "grid" | "card" | "slider") => {
+    const layoutEff: typeof layout = tiktokVertical ? "list" : layout;
     const pname =
       ((prod.translations as Record<string, { name?: string }> | undefined)?.[currentLang]?.name) ||
       String(prod.name);
@@ -497,51 +513,79 @@ export function MenuTemplateView({
     const vars = variantsOf(prod);
     const showFrom = vars.length > 0;
     const innerAdd = allowWa ? (
-      <button
+      <motion.button
         type="button"
         onClick={(e) => handleAddProduct(prod, e)}
         disabled={!ordersAllowed}
+        whileTap={{ scale: 0.92 }}
+        whileHover={{ scale: 1.04 }}
         className={cn(
-          "w-10 h-10 flex items-center justify-center text-white shadow-md active:scale-90 transition-transform shrink-0",
+          "w-10 h-10 flex items-center justify-center text-white shadow-md shrink-0 relative overflow-hidden",
+          "before:absolute before:inset-0 before:rounded-[inherit] before:bg-white/20 before:scale-0 before:opacity-0",
+          "hover:before:scale-150 hover:before:opacity-30 before:transition before:duration-500",
           !ordersAllowed && "opacity-40 pointer-events-none",
           RADIUS_MAP.full
         )}
         style={{ backgroundColor: "var(--mt-primary)" }}
         aria-label={`${t("add_product")} ${pname}`}
       >
-        <Plus size={20} />
-      </button>
+        <Plus size={20} className="relative z-10" />
+      </motion.button>
     ) : null;
 
-    if (layout === "card") {
+    const imgBox = (aspectCls: string) => (
+      <motion.div
+        className={cn(
+          aspectCls,
+          "w-full overflow-hidden bg-gradient-to-br from-[var(--mt-secondary)] to-[var(--mt-primary)]/30",
+          pir
+        )}
+        whileHover={{ scale: instagramGrid ? 1.03 : 1.06 }}
+        transition={{ type: "spring", stiffness: 380, damping: 22 }}
+      >
+        {img ? (
+          <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+        ) : null}
+      </motion.div>
+    );
+
+    if (layoutEff === "card") {
       return (
         <motion.article
           key={prod.id as number}
           layout
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={cn("flex flex-col overflow-hidden", fixCard, th.cardStyle === "glass" && "bg-[var(--mt-surface)]/80")}
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-32px" }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className={cn(
+            "flex flex-col overflow-hidden",
+            fixCard,
+            productCardSkin(th.renderMode),
+            th.cardStyle === "glass" && "bg-[var(--mt-surface)]/80"
+          )}
           style={th.cardStyle === "glass" ? undefined : { backgroundColor: "var(--mt-surface)" }}
         >
-          <div
-            className={cn(
-              "aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-[var(--mt-secondary)] to-[var(--mt-primary)]/30",
-              pir
-            )}
-          >
-            {img ? (
-              <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-            ) : null}
-          </div>
+          {imgBox(instagramGrid ? "aspect-square max-h-44" : "aspect-[4/3]")}
           <div className={cn("flex flex-col flex-1", densityPad)}>
             <h2
-              className={cn("text-base sm:text-lg leading-tight", th.headingWeight)}
+              className={cn(
+                instagramGrid ? "text-xs sm:text-sm" : "text-base sm:text-lg",
+                "leading-tight",
+                th.headingWeight
+              )}
               style={{ fontFamily: fonts.heading }}
             >
               {pname}
             </h2>
             {pdesc ? (
-              <p className="text-xs sm:text-sm mt-1 line-clamp-3 flex-1" style={{ color: "var(--mt-muted)" }}>
+              <p
+                className={cn(
+                  instagramGrid ? "text-[10px] line-clamp-2" : "text-xs sm:text-sm line-clamp-3",
+                  "mt-1 flex-1"
+                )}
+                style={{ color: "var(--mt-muted)" }}
+              >
                 {pdesc}
               </p>
             ) : null}
@@ -562,31 +606,25 @@ export function MenuTemplateView({
       );
     }
 
-    if (layout === "grid") {
+    if (layoutEff === "grid") {
       return (
         <motion.article
           key={prod.id as number}
           layout
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, scale: 0.96 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true, margin: "-28px" }}
+          transition={{ type: "spring", stiffness: 320, damping: 26 }}
           className={cn(
             "flex flex-col gap-2",
             fixCard,
             densityPad,
+            productCardSkin(th.renderMode),
             th.cardStyle === "glass" && "bg-[var(--mt-surface)]/80"
           )}
           style={th.cardStyle === "glass" ? undefined : { backgroundColor: "var(--mt-surface)" }}
         >
-          <div
-            className={cn(
-              "w-full aspect-square max-h-36 overflow-hidden bg-gradient-to-br from-[var(--mt-secondary)] to-[var(--mt-primary)]/30",
-              pir
-            )}
-          >
-            {img ? (
-              <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-            ) : null}
-          </div>
+          {imgBox("w-full aspect-square max-h-36")}
           <h2
             className={cn("text-sm font-semibold leading-tight line-clamp-2", th.headingWeight)}
             style={{ fontFamily: fonts.heading }}
@@ -613,27 +651,37 @@ export function MenuTemplateView({
       <motion.article
         key={prod.id as number}
         layout
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 14 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-32px" }}
+        transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
         className={cn(
-          "flex gap-3 sm:gap-4",
+          "flex",
+          tiktokVertical ? "flex-col gap-3" : "flex-row gap-3 sm:gap-4",
           fixCard,
           densityPad,
-          layout === "slider" && "min-w-[min(88vw,320px)] snap-start shrink-0",
+          productCardSkin(th.renderMode),
+          layoutEff === "slider" && "min-w-[min(88vw,320px)] snap-start shrink-0",
           th.cardStyle === "glass" && "bg-[var(--mt-surface)]/80"
         )}
         style={th.cardStyle === "glass" ? undefined : { backgroundColor: "var(--mt-surface)" }}
       >
-        <div
-          className={cn(
-            "w-24 h-24 sm:w-28 sm:h-28 shrink-0 overflow-hidden bg-gradient-to-br from-[var(--mt-secondary)] to-[var(--mt-primary)]/30",
-            pir
-          )}
-        >
-          {img ? (
-            <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-          ) : null}
-        </div>
+        {tiktokVertical ? (
+          imgBox("w-full aspect-[9/16] max-h-[min(72vh,520px)]")
+        ) : (
+          <motion.div
+            className={cn(
+              "w-24 h-24 sm:w-28 sm:h-28 shrink-0 overflow-hidden bg-gradient-to-br from-[var(--mt-secondary)] to-[var(--mt-primary)]/30",
+              pir
+            )}
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: "spring", stiffness: 400, damping: 24 }}
+          >
+            {img ? (
+              <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+            ) : null}
+          </motion.div>
+        )}
         <div className="flex-1 flex flex-col justify-between min-w-0">
           <div>
             <h2
@@ -710,14 +758,31 @@ export function MenuTemplateView({
   return (
     <div
       id="menu-template-root"
-      className="mt-menu min-h-screen pb-28 antialiased"
+      className={cn(
+        "mt-menu min-h-screen pb-28 antialiased relative",
+        templateRootSkin(th.renderMode),
+        fullImageBgMenu && "min-h-[120vh]"
+      )}
       style={{
         ...cssVars,
-        backgroundColor: "var(--mt-bg)",
+        backgroundColor: fullImageBgMenu ? "transparent" : "var(--mt-bg)",
         color: "var(--mt-text)",
         fontFamily: fonts.body,
       }}
     >
+      {fullImageBgMenu ? (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 -z-10 opacity-[0.22] bg-cover bg-center scale-105"
+          style={{ backgroundImage: `url(${heroImageSrc})` }}
+        />
+      ) : null}
+      {!fullImageBgMenu ? null : (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-b from-[var(--mt-bg)] via-[var(--mt-bg)]/88 to-[var(--mt-bg)]"
+        />
+      )}
       <a
         href="#main-menu"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:bg-white focus:p-2 focus:rounded"
@@ -1009,46 +1074,149 @@ export function MenuTemplateView({
         )}
       </header>
 
-      <main id="main-menu">
-        <nav
-          aria-label="Menu categories"
-          className={cn(
-            "sticky top-0 z-40 backdrop-blur-lg border-b border-black/5",
-            th.categoryNav === "scroll" && "overflow-x-auto scrollbar-hide"
-          )}
-          style={{ backgroundColor: `${th.background}ee` }}
-        >
-          <div
+      <main id="main-menu" className={cn(useSidebarNav && "md:flex md:flex-row md:items-start")}>
+        {useSidebarNav ? (
+          <>
+            <nav
+              aria-label="Menu categories"
+              className={cn(
+                "md:hidden sticky top-0 z-40 backdrop-blur-lg border-b border-black/5",
+                th.categoryNav === "scroll" && "overflow-x-auto scrollbar-hide"
+              )}
+              style={{ backgroundColor: `${th.background}ee` }}
+            >
+              <div
+                className={cn(
+                  "flex gap-2 px-3 py-3",
+                  th.categoryNav === "scroll" && "w-max min-w-full flex-nowrap",
+                  th.categoryNav !== "scroll" && "flex-wrap justify-center"
+                )}
+              >
+                {categories.map((cat) => (
+                  <React.Fragment key={cat.id as number}>
+                    <CategoryButton
+                      cat={cat}
+                      active={Number(cat.id) === Number(activeCategory)}
+                    />
+                  </React.Fragment>
+                ))}
+              </div>
+            </nav>
+            <aside
+              aria-label="Kateqoriyalar"
+              className="hidden md:flex flex-col w-44 shrink-0 sticky top-0 z-30 max-h-[88vh] overflow-y-auto border-r border-black/10 dark:border-white/10 py-4 px-2 gap-1 motion-safe:scroll-smooth"
+              style={{ backgroundColor: `color-mix(in srgb, ${th.surface} 94%, transparent)` }}
+            >
+              {categories.map((cat) => {
+                const cname =
+                  ((cat.translations as Record<string, string> | undefined)?.[currentLang] as string) ||
+                  String(cat.name);
+                const active = Number(cat.id) === Number(activeCategory);
+                return (
+                  <button
+                    key={cat.id as number}
+                    type="button"
+                    onClick={() => setActiveCategory(cat.id as number)}
+                    className={cn(
+                      "w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                      active
+                        ? "text-white shadow-lg"
+                        : "text-[var(--mt-text)] hover:bg-black/5 dark:hover:bg-white/10"
+                    )}
+                    style={active ? { backgroundColor: "var(--mt-primary)" } : undefined}
+                  >
+                    {cname}
+                  </button>
+                );
+              })}
+            </aside>
+          </>
+        ) : (
+          <nav
+            aria-label="Menu categories"
             className={cn(
-              "flex gap-2 px-3 py-3",
-              th.categoryNav === "scroll" && "w-max min-w-full sm:justify-center flex-nowrap",
-              th.categoryNav !== "scroll" && "flex-wrap justify-center"
+              "sticky top-0 z-40 backdrop-blur-lg border-b border-black/5 mt-glass-skin",
+              th.categoryNav === "scroll" && "overflow-x-auto scrollbar-hide"
+            )}
+            style={{ backgroundColor: `${th.background}ee` }}
+          >
+            {storyCategories ? (
+              <div className="flex gap-4 px-3 py-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory">
+                {categories.map((cat) => {
+                  const cname =
+                    ((cat.translations as Record<string, string> | undefined)?.[currentLang] as string) ||
+                    String(cat.name);
+                  const active = Number(cat.id) === Number(activeCategory);
+                  const letter = cname.trim().slice(0, 1).toUpperCase() || "?";
+                  return (
+                    <button
+                      key={cat.id as number}
+                      type="button"
+                      onClick={() => setActiveCategory(cat.id as number)}
+                      className="flex flex-col items-center gap-1.5 shrink-0 snap-start min-w-[4.5rem]"
+                    >
+                      <span
+                        className={cn(
+                          "w-16 h-16 rounded-full border-[3px] flex items-center justify-center text-lg font-bold shadow-lg transition-transform motion-safe:duration-200",
+                          active
+                            ? "border-[var(--mt-primary)] scale-105 text-white"
+                            : "border-white/40 text-white/95 dark:border-white/20"
+                        )}
+                        style={{
+                          backgroundColor: active ? "var(--mt-primary)" : "rgba(0,0,0,0.35)",
+                          boxShadow: active
+                            ? "0 12px 28px color-mix(in srgb, var(--mt-primary) 45%, transparent)"
+                            : undefined,
+                        }}
+                      >
+                        {letter}
+                      </span>
+                      <span className="text-[10px] font-semibold text-center leading-tight line-clamp-2 text-[var(--mt-text)] max-w-[4.75rem]">
+                        {cname}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div
+                className={cn(
+                  "flex gap-2 px-3 py-3",
+                  th.categoryNav === "scroll" && "w-max min-w-full sm:justify-center flex-nowrap",
+                  th.categoryNav !== "scroll" && "flex-wrap justify-center"
+                )}
+              >
+                {categories.map((cat) => (
+                  <React.Fragment key={cat.id as number}>
+                    <CategoryButton
+                      cat={cat}
+                      active={Number(cat.id) === Number(activeCategory)}
+                    />
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
+          </nav>
+        )}
+
+        <div className={cn("flex-1 min-w-0 w-full")}>
+          <section
+            aria-label="Menu items"
+            className={cn(
+              "px-3 sm:px-4 py-4",
+              instagramGrid && "grid grid-cols-3 gap-1.5 sm:gap-2",
+              !instagramGrid && productLayout === "grid" && "grid grid-cols-1 sm:grid-cols-2 gap-3",
+              !instagramGrid && productLayout === "card" && "grid grid-cols-1 sm:grid-cols-2 gap-4",
+              !instagramGrid &&
+                productLayout === "slider" &&
+                "flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 -mx-1 px-1 scrollbar-hide scroll-smooth",
+              !instagramGrid && productLayout === "list" && "space-y-3",
+              !instagramGrid && tiktokVertical && "flex flex-col gap-5 max-w-lg mx-auto"
             )}
           >
-            {categories.map((cat) => (
-              <React.Fragment key={cat.id as number}>
-                <CategoryButton
-                  cat={cat}
-                  active={Number(cat.id) === Number(activeCategory)}
-                />
-              </React.Fragment>
-            ))}
-          </div>
-        </nav>
-
-        <section
-          aria-label="Menu items"
-          className={cn(
-            "px-3 sm:px-4 py-4",
-            productLayout === "grid" && "grid grid-cols-1 sm:grid-cols-2 gap-3",
-            productLayout === "card" && "grid grid-cols-1 sm:grid-cols-2 gap-4",
-            productLayout === "slider" &&
-              "flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 -mx-1 px-1 scrollbar-hide scroll-smooth",
-            productLayout === "list" && "space-y-3"
-          )}
-        >
-          {filteredProducts.map((prod) => renderProductArticle(prod, productLayout))}
-        </section>
+            {filteredProducts.map((prod) => renderProductArticle(prod, productLayout))}
+          </section>
+        </div>
       </main>
 
       {allowWa && th.showFab && waOrderUrl && (
