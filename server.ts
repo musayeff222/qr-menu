@@ -8,7 +8,8 @@ import multer from "multer";
 import QRCode from "qrcode";
 import { db, initDatabase, getUiTranslationsForApi, getDbDriver } from "./database.js";
 import { templateSelectionError } from "./planTemplatePolicy.js";
-import { DEMO_AZ_SLUG, seedDemoAzMenu } from "./demoMenuSeed.js";
+import { DEMO_AZ_SLUG, DEMO_QR_PUBLIC_SLUG } from "./demoConstants.js";
+import { seedDemoAzMenu } from "./demoMenuSeed.js";
 
 console.log("Server script started.");
 
@@ -235,6 +236,27 @@ async function startServer() {
       const p = String(req.body?.path ?? "/").slice(0, 120);
       const metric = p === "/" || p === "" ? "landing_hit" : `page:${p}`;
       await bumpAnalyticsMetric(metric);
+      res.json({ ok: true });
+    } catch {
+      res.status(500).json({ ok: false });
+    }
+  });
+
+  app.post("/api/public/demo-visit", async (req, res) => {
+    try {
+      const slug = String(req.body?.slug || DEMO_QR_PUBLIC_SLUG).trim().slice(0, 64);
+      if (!slug) {
+        res.status(400).json({ ok: false });
+        return;
+      }
+      const sessionKey = req.body?.sessionKey
+        ? String(req.body.sessionKey).trim().slice(0, 80)
+        : null;
+      await db("demo_link_visits").insert({
+        demo_slug: slug,
+        session_key: sessionKey || null,
+      });
+      await bumpAnalyticsMetric("demo_link_hit");
       res.json({ ok: true });
     } catch {
       res.status(500).json({ ok: false });
@@ -659,6 +681,150 @@ async function startServer() {
         .merge();
     }
     res.json({ success: true });
+  });
+
+  async function getDemoRestaurantRow() {
+    return db("restaurants").where({ slug: DEMO_AZ_SLUG }).first();
+  }
+
+  async function ensureDemoRestaurantExists(): Promise<{ id: number }> {
+    const existing = await getDemoRestaurantRow();
+    if (existing) return { id: Number((existing as { id: number }).id) };
+    const vipPlan = await db("subscription_plans").where({ slug: "vip" }).first();
+    const coverDemo =
+      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600&q=80&auto=format&fit=crop";
+    const logoDemo =
+      "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=80&auto=format&fit=crop";
+    const ids = await db("restaurants").insert({
+      name: "Nümunə Azərbaycan Menyusu",
+      slug: DEMO_AZ_SLUG,
+      whatsapp_number: "994501234567",
+      primary_color: "#b45309",
+      theme: "modern",
+      plan: "vip",
+      subscription_plan_id: vipPlan?.id ?? null,
+      menu_template: "modern-01",
+      tagline: "Milli mətbəx · QR kod ilə canlı menyuya baxın",
+      maps_url: "https://maps.google.com/?q=Baku+Azerbaijan",
+      phone: "+994 12 555 00 00",
+      reservation_url: "https://example.com/book",
+      instagram: "https://instagram.com",
+      tiktok: "https://tiktok.com",
+      cover_image_url: coverDemo,
+      logo_url: logoDemo,
+    });
+    const newRid = Number(Array.isArray(ids) ? ids[0] : ids);
+    await seedDemoAzMenu(db, newRid);
+    const ruDemo = await db("restaurant_users").where({ restaurant_id: newRid }).first();
+    if (!ruDemo) {
+      await db("restaurant_users").insert({
+        restaurant_id: newRid,
+        username: "demo",
+        password: "demo123",
+        full_name: "Demo istifadəçi",
+      });
+    }
+    return { id: newRid };
+  }
+
+  async function resetDemoRestaurantMenu(): Promise<void> {
+    const row = await getDemoRestaurantRow();
+    if (!row) throw new Error("Demo restoran tapılmadı");
+    const rid = Number((row as { id: number }).id);
+    const pids = (await db("products").where({ restaurant_id: rid }).pluck("id")) as number[];
+    if (pids.length) {
+      await db("product_variants").whereIn("product_id", pids).delete();
+    }
+    await db("products").where({ restaurant_id: rid }).delete();
+    await db("categories").where({ restaurant_id: rid }).delete();
+    await seedDemoAzMenu(db, rid);
+  }
+
+  app.get("/api/admin/demo-qr", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    const row = await getDemoRestaurantRow();
+    const catRow = row
+      ? await db("categories").where({ restaurant_id: (row as { id: number }).id }).count("* as c").first()
+      : { c: 0 };
+    const prodRow = row
+      ? await db("products").where({ restaurant_id: (row as { id: number }).id }).count("* as c").first()
+      : { c: 0 };
+    const host = req.get("host") || "";
+    const proto = (req.headers["x-forwarded-proto"] as string) || "http";
+    const base = host ? `${proto}://${host}` : "";
+
+    const slug = DEMO_QR_PUBLIC_SLUG;
+    const totalRow = await db("demo_link_visits").where({ demo_slug: slug }).count("* as c").first();
+    const distinctRow = await db("demo_link_visits")
+      .where({ demo_slug: slug })
+      .whereNotNull("session_key")
+      .countDistinct("session_key as c")
+      .first();
+    const startToday = new Date();
+    startToday.setUTCHours(0, 0, 0, 0);
+    const todayRow = await db("demo_link_visits")
+      .where({ demo_slug: slug })
+      .where("visited_at", ">=", startToday.toISOString())
+      .count("* as c")
+      .first();
+    const d7 = new Date(Date.now() - 7 * 86400000);
+    const last7Row = await db("demo_link_visits")
+      .where({ demo_slug: slug })
+      .where("visited_at", ">=", d7.toISOString())
+      .count("* as c")
+      .first();
+    const recentRows = await db("demo_link_visits")
+      .where({ demo_slug: slug })
+      .orderBy("visited_at", "desc")
+      .limit(150)
+      .select("id", "visited_at", "session_key");
+
+    res.json({
+      internalSlug: DEMO_AZ_SLUG,
+      publicDemoPath: `/demo/${DEMO_QR_PUBLIC_SLUG}`,
+      fullDemoUrl: base ? `${base}/demo/${DEMO_QR_PUBLIC_SLUG}` : `/demo/${DEMO_QR_PUBLIC_SLUG}`,
+      legacyPreviewUrl: base ? `${base}/r/${DEMO_AZ_SLUG}?preview=true` : `/r/${DEMO_AZ_SLUG}?preview=true`,
+      restaurantId: row ? Number((row as { id: number }).id) : null,
+      categoryCount: Number((catRow as { c?: string | number })?.c ?? 0),
+      productCount: Number((prodRow as { c?: string | number })?.c ?? 0),
+      exists: !!row,
+      visits: {
+        totalOpens: Number((totalRow as { c?: string | number })?.c ?? 0),
+        approxUniqueSessions: Number((distinctRow as { c?: string | number })?.c ?? 0),
+        todayOpens: Number((todayRow as { c?: string | number })?.c ?? 0),
+        last7DaysOpens: Number((last7Row as { c?: string | number })?.c ?? 0),
+        recent: recentRows.map((r: Record<string, unknown>) => ({
+          id: r.id,
+          visitedAt: r.visited_at,
+          sessionKeyShort:
+            r.session_key && String(r.session_key).length > 0
+              ? `${String(r.session_key).slice(0, 8)}…`
+              : null,
+        })),
+      },
+    });
+  });
+
+  app.post("/api/admin/demo-qr/ensure", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    try {
+      const { id } = await ensureDemoRestaurantExists();
+      res.json({ success: true, restaurantId: id });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: String(e) });
+    }
+  });
+
+  app.post("/api/admin/demo-qr/reset", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    try {
+      await resetDemoRestaurantMenu();
+      res.json({ success: true });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      res.status(400).json({ error: msg });
+    }
   });
 
   app.get("/api/qrcode", async (req, res) => {

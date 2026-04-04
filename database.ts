@@ -1,6 +1,7 @@
 import "dotenv/config";
 import knex, { type Knex } from "knex";
-import { DEMO_AZ_SLUG, seedDemoAzMenu } from "./demoMenuSeed.js";
+import { DEMO_AZ_SLUG } from "./demoConstants.js";
+import { seedDemoAzMenu } from "./demoMenuSeed.js";
 
 function mysqlConnectionFromEnv():
   | { host: string; port: number; user: string; password: string; database: string }
@@ -556,6 +557,15 @@ export async function initDatabase() {
         table.string("metric", 64).notNullable();
         table.integer("value").notNullable().defaultTo(0);
         table.primary(["day", "metric"]);
+      });
+    }
+
+    if (!(await db.schema.hasTable("demo_link_visits"))) {
+      await db.schema.createTable("demo_link_visits", (table) => {
+        table.increments("id");
+        table.string("demo_slug", 64).notNullable().index();
+        table.string("session_key", 80).nullable().index();
+        table.timestamp("visited_at").defaultTo(db.fn.now());
       });
     }
 

@@ -1,0 +1,273 @@
+import React, { useEffect, useState } from "react";
+import { ExternalLink, Copy, RefreshCw, Wrench } from "lucide-react";
+import { motion } from "motion/react";
+import { authSuperHeaders } from "../lib/headers";
+import { DEMO_QR_PUBLIC_SLUG } from "../demoMenuSlug";
+import { GhostButton, PrimaryButton, SurfaceCard, cn } from "./designSystem";
+
+type DemoVisitRecent = {
+  id: number;
+  visitedAt: string;
+  sessionKeyShort: string | null;
+};
+
+type DemoStatus = {
+  internalSlug: string;
+  publicDemoPath: string;
+  fullDemoUrl: string;
+  legacyPreviewUrl: string;
+  restaurantId: number | null;
+  categoryCount: number;
+  productCount: number;
+  exists: boolean;
+  visits?: {
+    totalOpens: number;
+    approxUniqueSessions: number;
+    todayOpens: number;
+    last7DaysOpens: number;
+    recent: DemoVisitRecent[];
+  };
+};
+
+export default function DemoQrMenuAdminPage() {
+  const [st, setSt] = useState<DemoStatus | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState("");
+
+  const load = () => {
+    setErr("");
+    fetch("/api/admin/demo-qr", { headers: authSuperHeaders() })
+      .then((r) => {
+        if (!r.ok) throw new Error(r.statusText);
+        return r.json();
+      })
+      .then(setSt)
+      .catch((e) => setErr(String(e)));
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const copy = (text: string) => {
+    void navigator.clipboard.writeText(text);
+    alert("Kopyalandı");
+  };
+
+  const ensure = async () => {
+    setBusy("ensure");
+    setErr("");
+    try {
+      const r = await fetch("/api/admin/demo-qr/ensure", {
+        method: "POST",
+        headers: authSuperHeaders(),
+      });
+      if (!r.ok) throw new Error(await r.text());
+      await load();
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const reset = async () => {
+    if (!confirm("Demo menyunu ilkin Azərbaycan nümunəsinə sıfırlamaq?")) return;
+    setBusy("reset");
+    setErr("");
+    try {
+      const r = await fetch("/api/admin/demo-qr/reset", {
+        method: "POST",
+        headers: authSuperHeaders(),
+      });
+      if (!r.ok) throw new Error(await r.text());
+      await load();
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const rel =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/demo/${DEMO_QR_PUBLIC_SLUG}`
+      : st?.fullDemoUrl ?? "";
+
+  const v = st?.visits;
+
+  return (
+    <div className="space-y-6 max-w-4xl">
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+        <h1 className="text-2xl font-bold">Demo QR Menu</h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+          Müştərilərə göndərmək üçün xüsusi demo keçid. Məlumat real sistemdə ayrıca{" "}
+          <span className="font-mono text-xs">{st?.internalSlug ?? "demo-az-menu"}</span> restoranı ilə saxlanılır
+          (digər tenantlardan müstəqil məzmun).
+        </p>
+      </motion.div>
+
+      {err ? (
+        <SurfaceCard className="p-4 border-red-200 text-red-700 dark:border-red-900 dark:text-red-300 text-sm">
+          {err}
+        </SurfaceCard>
+      ) : null}
+
+      <SurfaceCard className="p-6 space-y-4" hoverLift={false}>
+        {!st ? (
+          <p className="text-gray-500">Yüklənir…</p>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-2">
+              <span
+                className={cn(
+                  "text-xs font-bold px-2 py-1 rounded-full",
+                  st.exists ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-900"
+                )}
+              >
+                {st.exists ? "Demo restoran aktiv" : "Demo yaradılmayıb"}
+              </span>
+              <span className="text-xs text-gray-500">
+                Kateqoriya: {st.categoryCount} · Məhsul: {st.productCount}
+              </span>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                Müştəri keçidi (paylaş)
+              </p>
+              <div className="flex flex-wrap gap-2 items-center">
+                <code className="flex-1 min-w-[200px] text-sm bg-gray-100 dark:bg-slate-800 px-3 py-2 rounded-lg break-all">
+                  {rel || st.fullDemoUrl}
+                </code>
+                <GhostButton type="button" onClick={() => copy(rel || st.fullDemoUrl)}>
+                  <Copy size={16} /> Kopyala
+                </GhostButton>
+                <a
+                  href={rel || st.publicDemoPath}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-semibold"
+                >
+                  <ExternalLink size={16} /> Aç
+                </a>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Path: <span className="font-mono">{st.publicDemoPath}</span> · Daxili slug:{" "}
+                <span className="font-mono">{st.internalSlug}</span>
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-2">
+              <PrimaryButton type="button" disabled={!!busy} onClick={() => void ensure()}>
+                <Wrench size={16} />
+                {busy === "ensure" ? "…" : "Demo restoranı yarat / yoxla"}
+              </PrimaryButton>
+              <GhostButton
+                type="button"
+                disabled={!!busy || !st.exists}
+                onClick={() => void reset()}
+                className="border-amber-300 text-amber-800 dark:text-amber-300"
+              >
+                <RefreshCw size={16} />
+                {busy === "reset" ? "…" : "Menyunu sıfırla"}
+              </GhostButton>
+            </div>
+          </>
+        )}
+      </SurfaceCard>
+
+      {st && v ? (
+        <SurfaceCard className="p-6 space-y-4" hoverLift={false}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Demo keçid statistikası</h2>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+              Hər səhifə açılışı qeydə alınır. Sessiya təxmini: eyni brauzer tabı üçün bir UUID (unikal
+              ziyarətçi deyil, amma təkrar yükləmələri ayırmağa kömək edir).
+            </p>
+            </div>
+            <GhostButton type="button" className="shrink-0 text-xs" onClick={() => load()}>
+              <RefreshCw size={14} /> Yenilə
+            </GhostButton>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: "Ümumi açılış", val: v.totalOpens },
+              { label: "Bu gün", val: v.todayOpens },
+              { label: "Son 7 gün", val: v.last7DaysOpens },
+              { label: "Təxmini unikal sessiya", val: v.approxUniqueSessions },
+            ].map((x) => (
+              <div
+                key={x.label}
+                className="rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50/80 dark:bg-slate-800/50 p-4"
+              >
+                <p className="text-[11px] font-semibold uppercase text-gray-500 dark:text-slate-400">
+                  {x.label}
+                </p>
+                <p className="text-2xl font-bold tabular-nums text-rose-600 dark:text-rose-400 mt-1">
+                  {x.val}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
+            <div className="bg-gray-50 dark:bg-slate-800/80 px-4 py-2 text-xs font-semibold text-gray-600 dark:text-slate-300">
+              Son girişlər (ən yeni üstə) · max 150
+            </div>
+            <div className="max-h-[360px] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
+                  <tr className="text-left text-xs text-gray-500 dark:text-slate-400">
+                    <th className="px-4 py-2 font-semibold">#</th>
+                    <th className="px-4 py-2 font-semibold">Tarix / saat</th>
+                    <th className="px-4 py-2 font-semibold">Sessiya (qısa)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                  {v.recent.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-8 text-center text-gray-500">
+                        Hələ qeyd yoxdur. Demo linki açılanda bura düşəcək.
+                      </td>
+                    </tr>
+                  ) : (
+                    v.recent.map((row) => (
+                      <tr key={row.id} className="hover:bg-rose-50/30 dark:hover:bg-slate-800/40">
+                        <td className="px-4 py-2 font-mono text-xs text-gray-500">{row.id}</td>
+                        <td className="px-4 py-2 whitespace-nowrap">
+                          {row.visitedAt
+                            ? new Date(row.visitedAt).toLocaleString(undefined, {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              })
+                            : "—"}
+                        </td>
+                        <td className="px-4 py-2 font-mono text-xs text-gray-600 dark:text-slate-400">
+                          {row.sessionKeyShort ?? "—"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </SurfaceCard>
+      ) : null}
+
+      <SurfaceCard className="p-5 text-sm text-gray-600 dark:text-slate-400 space-y-2" hoverLift={false}>
+        <p className="font-semibold text-gray-900 dark:text-white">Qeyd</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>Demo səhifədə onboarding, şablon keçidi və CTA var.</li>
+          <li>Menyu məzmunu «demoMenuSeed» ilə uyğun Azərbaycan nümunəsidir.</li>
+          <li>
+            Önizləmə üçün əlavə: klassik keçid{" "}
+            {st ? <span className="font-mono text-xs">{st.legacyPreviewUrl}</span> : null}.
+          </li>
+        </ul>
+      </SurfaceCard>
+    </div>
+  );
+}

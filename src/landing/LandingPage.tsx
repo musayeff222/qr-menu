@@ -25,7 +25,7 @@ import {
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { MENU_TEMPLATES } from "../menu-templates";
-import { DEMO_MENU_PREVIEW_SLUG } from "../demoMenuSlug";
+import { DEMO_MENU_PREVIEW_SLUG, DEMO_QR_PUBLIC_SLUG } from "../demoMenuSlug";
 import { useI18nBundle } from "../i18n/bundleContext";
 import type { LandingCms, LandingCmsCopy } from "../lib/landingCms";
 import { CMS_COPY_I18N_KEYS, parseLandingCms, sectionEnabled } from "../lib/landingCms";
@@ -204,6 +204,7 @@ export default function LandingPage() {
 
   const showcaseTemplates = MENU_TEMPLATES.slice(0, 12);
   const demoBase = `/r/${DEMO_MENU_PREVIEW_SLUG}?preview=true`;
+  const demoLeadUrl = `/demo/${DEMO_QR_PUBLIC_SLUG}`;
 
   const proIx = plans.findIndex((p) => p.slug === "pro" || p.slug === "standart");
   const popularPlanIndex =
@@ -323,7 +324,7 @@ export default function LandingPage() {
                   </span>
                 </RippleLink>
                 <a
-                  href={`${demoBase}&previewTemplate=modern-01`}
+                  href={demoLeadUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/5 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition hover:border-white/35 hover:bg-white/10"
@@ -650,9 +651,9 @@ export default function LandingPage() {
                   </Link>
                 </li>
                 <li>
-                  <a href={`${demoBase}&previewTemplate=modern-01`} className="hover:text-white">
+                  <Link to={demoLeadUrl} className="hover:text-white">
                     {tc("cta_demo")}
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>

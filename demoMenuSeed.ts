@@ -1,7 +1,8 @@
 import type { Knex } from "knex";
+import { DEMO_AZ_SLUG } from "./demoConstants.js";
 
-/** Şablon önizləməsi və demo üçün ümumi slug */
-export const DEMO_AZ_SLUG = "demo-az-menu";
+export { DEMO_AZ_SLUG } from "./demoConstants.js";
+export { DEMO_QR_PUBLIC_SLUG } from "./demoConstants.js";
 
 type DemoItem = {
   name: string;

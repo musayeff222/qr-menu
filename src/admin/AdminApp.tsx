@@ -40,6 +40,7 @@ import {
   CalendarClock,
   Star,
   Ban,
+  Sparkles,
 } from "lucide-react";
 import { motion } from "motion/react";
 import clsx from "clsx";
@@ -48,6 +49,7 @@ import { authSuperHeaders } from "../lib/headers";
 import { MENU_TEMPLATES, type MenuTemplateDef } from "../menu-templates";
 import WebsiteCmsPage from "./WebsiteCmsPage";
 import UsersAdminPage from "./UsersAdminPage";
+import DemoQrMenuAdminPage from "./DemoQrMenuAdminPage";
 
 function cn(...i: (string | boolean | undefined)[]) {
   return twMerge(clsx(i));
@@ -236,6 +238,9 @@ function AdminLayoutShell() {
           </NavLink>
           <NavLink to="/admin/templates" className={navCls}>
             <Palette size={20} /> {itemLabel("Şablonlar")}
+          </NavLink>
+          <NavLink to="/admin/demo-qr-menu" className={navCls}>
+            <Sparkles size={20} /> {itemLabel("Demo QR Menu")}
           </NavLink>
           <NavLink to="/admin/statistics" className={navCls}>
             <BarChart3 size={20} /> {itemLabel("Statistikalar")}
@@ -2047,6 +2052,7 @@ export default function AdminApp() {
         <Route path="plan-requests" element={<PlanRequestsPage />} />
         <Route path="restaurants" element={<RestaurantsAdminPage />} />
         <Route path="templates" element={<AdminTemplatesPage />} />
+        <Route path="demo-qr-menu" element={<DemoQrMenuAdminPage />} />
         <Route path="statistics" element={<StatisticsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="settings" element={<SettingsPage />} />
