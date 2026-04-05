@@ -1154,11 +1154,25 @@ async function startServer() {
       };
     }
 
+    const maxCategories = Number(plan?.max_categories ?? -1);
+    const maxProducts = Number(plan?.max_products ?? -1);
+    const maxTemplates = Number(plan?.max_templates ?? -1);
+    const usedCategories = parsedCategories.length;
+    const usedProducts = parsedProducts.length;
+    const usedTemplates = restaurant.menu_template ? 1 : 0;
+    const remaining = (used: number, max: number) => (max < 0 ? null : Math.max(0, max - used));
+    const planUsage = {
+      categories: { used: usedCategories, max: maxCategories, remaining: remaining(usedCategories, maxCategories) },
+      products: { used: usedProducts, max: maxProducts, remaining: remaining(usedProducts, maxProducts) },
+      templates: { used: usedTemplates, max: maxTemplates, remaining: remaining(usedTemplates, maxTemplates) },
+    };
+
     res.json({
       restaurant,
       categories: parsedCategories,
       products: parsedProducts,
       plan,
+      planUsage,
       customTemplates,
       pendingPlanRequest,
     });
@@ -1197,9 +1211,13 @@ async function startServer() {
 
   app.get("/api/admin/plan-requests", async (req, res) => {
     if (!requireSuper(req, res)) return;
+    const includeCompleted = String(req.query.all || "") === "1";
     const rows = await db("plan_upgrade_requests as pr")
       .join("restaurants as r", "pr.restaurant_id", "r.id")
       .join("subscription_plans as sp", "pr.subscription_plan_id", "sp.id")
+      .modify((qb) => {
+        if (!includeCompleted) qb.whereIn("pr.status", ["pending", "processing"]);
+      })
       .select(
         "pr.id",
         "pr.restaurant_id",

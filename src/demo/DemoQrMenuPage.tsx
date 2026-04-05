@@ -1,11 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Navigate, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { ChevronRight, Palette, Sparkles, X } from "lucide-react";
+import { ChevronRight, Sparkles, X } from "lucide-react";
 import CustomerMenuView from "../CustomerMenuView";
 import { DEMO_MENU_PREVIEW_SLUG, DEMO_QR_PUBLIC_SLUG } from "../demoMenuSlug";
-import { templatesByCategory } from "../menu-templates";
-import type { MenuTemplateDef } from "../menu-templates/types";
 import { cn } from "../menu-templates/cn";
 
 const ONBOARD_KEY = "qrmenu_lead_demo_onboarding_v1";
@@ -18,30 +16,15 @@ const ONBOARD_STEPS = [
   "WhatsApp ilə sifariş göndərilir",
 ] as const;
 
-function pickDemoTemplates(): MenuTemplateDef[] {
-  const byCat = templatesByCategory();
-  const order = ["Modern", "Luxury", "Minimal", "Fast Food", "Cafe"] as const;
-  const out: MenuTemplateDef[] = [];
-  for (const c of order) {
-    const first = byCat[c]?.[0];
-    if (first) out.push(first);
-    const second = byCat[c]?.[1];
-    if (second && out.length < 10) out.push(second);
-  }
-  return out.slice(0, 10);
-}
-
 /**
  * `/demo/restaurant-demo` — real demo menyusu, onboarding, şablon keçidi, CTA.
  */
 export default function DemoQrMenuPage() {
   const { demoSlug } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [tpl, setTpl] = useState(() => searchParams.get("tpl") || "modern-01");
+  const [tpl] = useState(() => searchParams.get("tpl") || "modern-01");
   const [onboardOpen, setOnboardOpen] = useState(false);
   const [onboardIdx, setOnboardIdx] = useState(0);
-
-  const demoTemplates = useMemo(() => pickDemoTemplates(), []);
 
   useEffect(() => {
     if (demoSlug !== DEMO_QR_PUBLIC_SLUG) return;
@@ -80,6 +63,16 @@ export default function DemoQrMenuPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (!onboardOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [onboardOpen]);
+
   if (demoSlug !== DEMO_QR_PUBLIC_SLUG) {
     return <Navigate to="/" replace />;
   }
@@ -95,8 +88,8 @@ export default function DemoQrMenuPage() {
   };
 
   return (
-    <div className="relative min-h-screen pb-[14rem] sm:pb-[12rem]">
-      <CustomerMenuView slug={DEMO_MENU_PREVIEW_SLUG} preview previewTemplateId={tpl} />
+    <div className="relative min-h-screen">
+      <CustomerMenuView slug={DEMO_MENU_PREVIEW_SLUG} preview previewTemplateId={tpl} demoMode />
 
       <AnimatePresence>
         {onboardOpen ? (
@@ -164,67 +157,17 @@ export default function DemoQrMenuPage() {
         ) : null}
       </AnimatePresence>
 
-      <div className="fixed bottom-0 left-0 right-0 z-[230] border-t border-white/10 bg-slate-950/95 backdrop-blur-md text-white shadow-[0_-8px_32px_rgba(0,0,0,0.35)]">
-        <div className="max-w-4xl mx-auto px-3 pt-3 pb-1">
-          <div className="flex items-center gap-2 text-xs font-semibold text-rose-300 mb-2">
-            <Palette size={14} />
-            Canlı şablon seçimi
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
-            {demoTemplates.map((def) => (
-              <button
-                key={def.id}
-                type="button"
-                onClick={() => setTpl(def.id)}
-                className={cn(
-                  "shrink-0 px-3 py-2 rounded-xl text-xs font-bold border transition-all",
-                  tpl === def.id
-                    ? "bg-rose-500 border-rose-400 text-white"
-                    : "bg-white/5 border-white/15 text-slate-200 hover:bg-white/10"
-                )}
-              >
-                {def.name}
-              </button>
-            ))}
-          </div>
-          <div className="border-t border-white/10 pt-3 pb-4 space-y-2">
-            <p className="text-center text-xs text-slate-400 px-2">
-              Siz də restoranınız üçün belə bir QR Menu yarada bilərsiniz.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2 sm:justify-center">
-              <Link
-                to="/register"
-                className="inline-flex justify-center items-center rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-bold text-sm py-3.5 px-5 shadow-lg"
-              >
-                Öz restoranını yarat
-              </Link>
-              <Link
-                to="/register"
-                className="inline-flex justify-center items-center rounded-xl border-2 border-white/25 hover:bg-white/10 font-bold text-sm py-3.5 px-5"
-              >
-                Pulsuz başla
-              </Link>
-            </div>
-            <p className="text-center text-[10px] text-slate-500">
-              Daxili menyuya baxış:{" "}
-              <Link className="underline text-slate-400 hover:text-white" to={`/r/${DEMO_MENU_PREVIEW_SLUG}?preview=true`}>
-                /r/{DEMO_MENU_PREVIEW_SLUG}
-              </Link>
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                localStorage.removeItem(ONBOARD_KEY);
-                setOnboardIdx(0);
-                setOnboardOpen(true);
-              }}
-              className="block mx-auto text-[10px] text-slate-500 hover:text-slate-300 underline"
-            >
-              Addım-addım təlimatı yenidən göstər
-            </button>
-          </div>
-        </div>
-      </div>
+      <button
+        type="button"
+        onClick={() => {
+          localStorage.removeItem(ONBOARD_KEY);
+          setOnboardIdx(0);
+          setOnboardOpen(true);
+        }}
+        className="fixed z-[230] bottom-4 right-4 text-[11px] rounded-full bg-black/55 text-white px-3 py-1.5 hover:bg-black/70"
+      >
+        Təlimatı yenidən göstər
+      </button>
     </div>
   );
 }

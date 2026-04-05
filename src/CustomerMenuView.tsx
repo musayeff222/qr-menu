@@ -17,6 +17,7 @@ export type CustomerMenuViewProps = {
   slug: string;
   preview?: boolean;
   previewTemplateId?: string;
+  demoMode?: boolean;
 };
 
 /**
@@ -26,6 +27,7 @@ export default function CustomerMenuView({
   slug,
   preview = false,
   previewTemplateId = "",
+  demoMode = false,
 }: CustomerMenuViewProps) {
   const bundle = useI18nBundle();
   const [data, setData] = useState<any>(null);
@@ -93,6 +95,7 @@ export default function CustomerMenuView({
     variantId?: number;
     variantLabel?: string;
     unitPrice: number;
+    note?: string;
   }) => {
     const lineId = newLineId();
     setCart((c) => [
@@ -104,7 +107,7 @@ export default function CustomerMenuView({
         variantId: item.variantId,
         variantLabel: item.variantLabel,
         unitPrice: item.unitPrice,
-        note: "",
+        note: item.note || "",
       },
     ]);
   };
@@ -195,6 +198,7 @@ export default function CustomerMenuView({
         ordersClosedHint={ordersClosedHint}
         menuView={menuView}
         onMenuViewChange={setMenuView}
+        demoMode={demoMode}
         t={t}
         planFeatures={{
           whatsapp_order: plan_features?.whatsapp_order !== false,

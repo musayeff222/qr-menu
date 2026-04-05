@@ -88,6 +88,7 @@ export type MenuTemplateViewProps = {
     variantId?: number;
     variantLabel?: string;
     unitPrice: number;
+    note?: string;
   }) => void;
   updateCartLineNote: (lineId: string, note: string) => void;
   removeCartLine: (lineId: string) => void;
@@ -102,6 +103,7 @@ export type MenuTemplateViewProps = {
   /** Full-screen cart vs inline peek (customer menu). */
   menuView?: "browse" | "cart";
   onMenuViewChange?: (v: "browse" | "cart") => void;
+  demoMode?: boolean;
 };
 
 const RADIUS_MAP = {
@@ -142,6 +144,7 @@ export function MenuTemplateView({
   planFeatures,
   menuView = "browse",
   onMenuViewChange,
+  demoMode = false,
 }: MenuTemplateViewProps) {
   const allowWa = planFeatures?.whatsapp_order !== false;
   const allowRes = planFeatures?.reservation !== false;
@@ -150,6 +153,8 @@ export function MenuTemplateView({
   const [fly, setFly] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(
     null
   );
+  const [noteOpenByProductId, setNoteOpenByProductId] = useState<Record<number, boolean>>({});
+  const [noteDraftByProductId, setNoteDraftByProductId] = useState<Record<number, string>>({});
 
   useEffect(() => {
     if (cart.length === 0 && menuView === "cart") onMenuViewChange?.("browse");
@@ -166,6 +171,30 @@ export function MenuTemplateView({
     }
     setFly({ x0: clientX, y0: clientY, x1, y1 });
     window.setTimeout(() => setFly(null), 550);
+  };
+  const playAddedSound = () => {
+    try {
+      const Ctx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "triangle";
+      o.frequency.setValueAtTime(620, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(420, ctx.currentTime + 0.08);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.1);
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.11);
+      window.setTimeout(() => {
+        void ctx.close();
+      }, 160);
+    } catch {
+      /* sound is optional */
+    }
   };
   const th = template.theme;
   const r = RADIUS_MAP[th.radius];
@@ -432,7 +461,14 @@ export function MenuTemplateView({
       return;
     }
     if ("clientX" in (e || {}) && e) triggerFly(e.clientX, e.clientY);
-    addToCart({ product: prod, unitPrice: Number(prod.price) });
+    playAddedSound();
+    const pid = Number(prod.id);
+    addToCart({
+      product: prod,
+      unitPrice: Number(prod.price),
+      note: noteDraftByProductId[pid] || "",
+    });
+    setNoteDraftByProductId((m) => ({ ...m, [pid]: "" }));
   };
 
   const pickVariant = (
@@ -441,12 +477,16 @@ export function MenuTemplateView({
     e?: React.MouseEvent
   ) => {
     if (e) triggerFly(e.clientX, e.clientY);
+    playAddedSound();
+    const pid = Number(prod.id);
     addToCart({
       product: prod,
       variantId: Number(v.id),
       variantLabel: String(v.name),
       unitPrice: Number(v.price),
+      note: noteDraftByProductId[pid] || "",
     });
+    setNoteDraftByProductId((m) => ({ ...m, [pid]: "" }));
     setVariantPick(null);
   };
 
@@ -511,6 +551,7 @@ export function MenuTemplateView({
       String(prod.description ?? "");
     const img = prod.image_url ? String(prod.image_url) : "";
     const vars = variantsOf(prod);
+    const pid = Number(prod.id);
     const showFrom = vars.length > 0;
     const innerAdd = allowWa ? (
       <motion.button
@@ -548,6 +589,51 @@ export function MenuTemplateView({
         ) : null}
       </motion.div>
     );
+
+    const noteEditor = allowWa ? (
+      <div className="mt-2">
+        {!noteOpenByProductId[pid] ? (
+          <button
+            type="button"
+            className="text-xs font-semibold text-[var(--mt-primary)] underline underline-offset-2"
+            onClick={() =>
+              setNoteOpenByProductId((m) => ({
+                ...m,
+                [pid]: true,
+              }))
+            }
+          >
+            Qeyd əlavə et
+          </button>
+        ) : (
+          <div className="space-y-1">
+            <input
+              className="w-full text-xs p-2 rounded-lg border border-black/10 bg-transparent"
+              placeholder="Məs: Az duzlu olsun"
+              value={noteDraftByProductId[pid] || ""}
+              onChange={(e) =>
+                setNoteDraftByProductId((m) => ({
+                  ...m,
+                  [pid]: e.target.value,
+                }))
+              }
+            />
+            <button
+              type="button"
+              className="text-[11px] text-[var(--mt-muted)] underline"
+              onClick={() =>
+                setNoteOpenByProductId((m) => ({
+                  ...m,
+                  [pid]: false,
+                }))
+              }
+            >
+              Gizlət
+            </button>
+          </div>
+        )}
+      </div>
+    ) : null;
 
     if (layoutEff === "card") {
       return (
@@ -601,6 +687,7 @@ export function MenuTemplateView({
               </span>
               {innerAdd}
             </div>
+            {noteEditor}
           </div>
         </motion.article>
       );
@@ -643,6 +730,7 @@ export function MenuTemplateView({
             </span>
             {innerAdd}
           </div>
+          {noteEditor}
         </motion.article>
       );
     }
@@ -708,13 +796,14 @@ export function MenuTemplateView({
             </span>
             {innerAdd}
           </div>
+          {noteEditor}
         </div>
       </motion.article>
     );
   };
 
   const showFullCart = allowWa && cart.length > 0 && menuView === "cart";
-  const showCompactCartDrawer = allowWa && cart.length > 0 && menuView !== "cart";
+  const showCompactCartDrawer = !demoMode && allowWa && cart.length > 0 && menuView !== "cart";
 
   const cartLineBlocks = cart.map((line) => {
     const tr = line.product.translations as Record<string, { name?: string }> | undefined;
@@ -794,13 +883,15 @@ export function MenuTemplateView({
         {fly ? (
           <motion.div
             key="fly"
-            className="pointer-events-none fixed z-[320] h-4 w-4 rounded-full bg-emerald-400 shadow-lg"
-            initial={{ left: fly.x0, top: fly.y0, opacity: 1, scale: 1.1 }}
-            animate={{ left: fly.x1, top: fly.y1, opacity: 0.15, scale: 0.35 }}
+            className="pointer-events-none fixed z-[320] h-7 w-7 rounded-full bg-emerald-500/90 shadow-xl grid place-items-center text-white text-[10px] font-black"
+            initial={{ left: fly.x0, top: fly.y0, opacity: 1, scale: 1 }}
+            animate={{ left: fly.x1, top: fly.y1, opacity: 0.1, scale: 0.25, rotate: 18 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.52, ease: [0.25, 0.46, 0.45, 0.94] }}
             style={{ position: "fixed" }}
-          />
+          >
+            +
+          </motion.div>
         ) : null}
       </AnimatePresence>
 
@@ -1219,15 +1310,12 @@ export function MenuTemplateView({
         </div>
       </main>
 
-      {allowWa && th.showFab && waOrderUrl && (
+      {allowWa && th.showFab && waOrderUrl && (!demoMode || cart.length > 0) && (
         cart.length > 0 ? (
           <button
             ref={fabRef}
             type="button"
-            onClick={() =>
-              ordersAllowed &&
-              (menuView === "browse" ? onMenuViewChange?.("cart") : onCheckout())
-            }
+            onClick={() => ordersAllowed && cart.length > 0 && onMenuViewChange?.("cart")}
             className={cn(
               "fixed bottom-24 right-4 z-50 w-14 h-14 flex items-center justify-center text-white shadow-2xl active:scale-95 transition-transform",
               RADIUS_MAP.full,
@@ -1278,11 +1366,7 @@ export function MenuTemplateView({
           <button
             ref={navCartRef}
             type="button"
-            onClick={() =>
-              allowWa &&
-              ordersAllowed &&
-              (cart.length > 0 ? onMenuViewChange?.("cart") : onCheckout())
-            }
+            onClick={() => allowWa && ordersAllowed && cart.length > 0 && onMenuViewChange?.("cart")}
             className="flex flex-col items-center text-[10px] text-[var(--mt-muted)]"
           >
             <ShoppingCart size={22} />

@@ -471,6 +471,11 @@ const RestaurantPanel = () => {
   const [dashStats, setDashStats] = useState<{ scans: number; pageViews: number; topProducts: any[] } | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [planRow, setPlanRow] = useState<Record<string, unknown> | null>(null);
+  const [planUsage, setPlanUsage] = useState<{
+    categories: { used: number; max: number; remaining: number | null };
+    products: { used: number; max: number; remaining: number | null };
+    templates: { used: number; max: number; remaining: number | null };
+  } | null>(null);
   const [pendingPlanRequest, setPendingPlanRequest] = useState<{
     id: number;
     status: string;
@@ -523,6 +528,7 @@ const RestaurantPanel = () => {
       setCategories(data.categories);
       setProducts(data.products);
       setPlanRow((data.plan as Record<string, unknown>) ?? null);
+      setPlanUsage(data.planUsage ?? null);
       setPendingPlanRequest(data.pendingPlanRequest ?? null);
       const r = data.restaurant;
       setProfile({
@@ -573,6 +579,25 @@ const RestaurantPanel = () => {
   }, [id, section]);
 
   useEffect(() => {
+    if (!id || section !== "plan") return;
+    const reloadPlanData = async () => {
+      const res = await fetch(`/api/admin/restaurants/${id}/menu`, {
+        headers: authAnyStaffHeaders(),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setPlanRow((data.plan as Record<string, unknown>) ?? null);
+      setPlanUsage(data.planUsage ?? null);
+      setPendingPlanRequest(data.pendingPlanRequest ?? null);
+    };
+    void reloadPlanData();
+    const intv = setInterval(() => {
+      void reloadPlanData();
+    }, 10000);
+    return () => clearInterval(intv);
+  }, [id, section]);
+
+  useEffect(() => {
     fetch("/api/public/settings")
       .then((r) => r.json())
       .then((s: { default_language?: string }) => {
@@ -595,6 +620,7 @@ const RestaurantPanel = () => {
   const closeMobileNav = () => setMobileNavOpen(false);
 
   const lim = (n: number) => (n < 0 ? "∞" : String(n));
+  const isLimitReached = (row: { remaining: number | null } | null | undefined) => row?.remaining === 0;
 
   const submitPlanRequest = async () => {
     if (!selectedUpgradePlanId) return;
@@ -608,6 +634,8 @@ const RestaurantPanel = () => {
       setPlanSuccessOpen(true);
       const reload = await fetch(`/api/admin/restaurants/${id}/menu`, { headers: authAnyStaffHeaders() });
       const d = await reload.json();
+      setPlanRow((d.plan as Record<string, unknown>) ?? null);
+      setPlanUsage(d.planUsage ?? null);
       setPendingPlanRequest(d.pendingPlanRequest ?? null);
     } else {
       const err = await res.json().catch(() => ({}));
@@ -670,6 +698,10 @@ const RestaurantPanel = () => {
   };
 
   const addCategory = async () => {
+    if (!newCat.trim()) {
+      alert("Kateqoriya adını yazın");
+      return;
+    }
     const res = await fetch("/api/admin/categories", {
       method: "POST",
       headers: authAnyStaffHeaders(),
@@ -679,6 +711,26 @@ const RestaurantPanel = () => {
       const data = await res.json();
       setCategories([...categories, data]);
       setNewCat("");
+      setPlanUsage((u) =>
+        u
+          ? {
+              ...u,
+              categories: {
+                ...u.categories,
+                used: u.categories.used + 1,
+                remaining: u.categories.remaining == null ? null : Math.max(0, u.categories.remaining - 1),
+              },
+            }
+          : u
+      );
+    } else {
+      const err = await res.json().catch(() => ({} as { error?: string }));
+      const msg = err.error || "Kateqoriya əlavə edilə bilmədi";
+      alert(msg);
+      if (msg.toLowerCase().includes("limit")) {
+        setSelectedUpgradePlanId(null);
+        setPlanUpgradeOpen(true);
+      }
     }
   };
 
@@ -716,6 +768,18 @@ const RestaurantPanel = () => {
     if (res.ok) {
       const data = await res.json();
       setProducts([...products, data]);
+      setPlanUsage((u) =>
+        u
+          ? {
+              ...u,
+              products: {
+                ...u.products,
+                used: u.products.used + 1,
+                remaining: u.products.remaining == null ? null : Math.max(0, u.products.remaining - 1),
+              },
+            }
+          : u
+      );
       setNewProd({
         name: "",
         price: "",
@@ -728,6 +792,14 @@ const RestaurantPanel = () => {
       });
       setNewProdVariants([]);
       if (productsNew) navigate(`${basePath}/products`);
+    } else {
+      const err = await res.json().catch(() => ({} as { error?: string }));
+      const msg = err.error || "Məhsul əlavə edilə bilmədi";
+      alert(msg);
+      if (msg.toLowerCase().includes("limit")) {
+        setSelectedUpgradePlanId(null);
+        setPlanUpgradeOpen(true);
+      }
     }
   };
 
@@ -799,8 +871,28 @@ const RestaurantPanel = () => {
       headers: authAnyStaffHeaders(),
     });
     if (res.ok) {
+      const removedProducts = products.filter((x) => x.category_id === cid).length;
       setCategories((c) => c.filter((x) => x.id !== cid));
       setProducts((p) => p.filter((x) => x.category_id !== cid));
+      setPlanUsage((u) =>
+        u
+          ? {
+              ...u,
+              categories: {
+                ...u.categories,
+                used: Math.max(0, u.categories.used - 1),
+                remaining:
+                  u.categories.remaining == null ? null : Math.min(u.categories.max, u.categories.remaining + 1),
+              },
+              products: {
+                ...u.products,
+                used: Math.max(0, u.products.used - removedProducts),
+                remaining:
+                  u.products.remaining == null ? null : Math.min(u.products.max, u.products.remaining + removedProducts),
+              },
+            }
+          : u
+      );
     }
   };
 
@@ -810,7 +902,21 @@ const RestaurantPanel = () => {
       method: "DELETE",
       headers: authAnyStaffHeaders(),
     });
-    if (res.ok) setProducts((p) => p.filter((x) => x.id !== pid));
+    if (res.ok) {
+      setProducts((p) => p.filter((x) => x.id !== pid));
+      setPlanUsage((u) =>
+        u
+          ? {
+              ...u,
+              products: {
+                ...u.products,
+                used: Math.max(0, u.products.used - 1),
+                remaining: u.products.remaining == null ? null : Math.min(u.products.max, u.products.remaining + 1),
+              },
+            }
+          : u
+      );
+    }
   };
 
   const sidebarCls = ({ isActive }: { isActive: boolean }) =>
@@ -1058,14 +1164,37 @@ const RestaurantPanel = () => {
               <ul className="space-y-2 text-sm text-gray-600">
                 <li>
                   {t("plan_max_categories")}: <strong>{lim(Number(planRow.max_categories))}</strong>
+                  {planUsage ? (
+                    <span className="ml-2 text-xs text-gray-500">
+                      (İstifadə: {planUsage.categories.used} · Qalıb:{" "}
+                      {planUsage.categories.remaining == null ? "∞" : planUsage.categories.remaining})
+                    </span>
+                  ) : null}
                 </li>
                 <li>
                   {t("plan_max_products")}: <strong>{lim(Number(planRow.max_products))}</strong>
+                  {planUsage ? (
+                    <span className="ml-2 text-xs text-gray-500">
+                      (İstifadə: {planUsage.products.used} · Qalıb:{" "}
+                      {planUsage.products.remaining == null ? "∞" : planUsage.products.remaining})
+                    </span>
+                  ) : null}
                 </li>
                 <li>
                   {t("plan_max_templates")}: <strong>{lim(Number(planRow.max_templates))}</strong>
+                  {planUsage ? (
+                    <span className="ml-2 text-xs text-gray-500">
+                      (İstifadə: {planUsage.templates.used} · Qalıb:{" "}
+                      {planUsage.templates.remaining == null ? "∞" : planUsage.templates.remaining})
+                    </span>
+                  ) : null}
                 </li>
               </ul>
+              {isLimitReached(planUsage?.products) || isLimitReached(planUsage?.categories) ? (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  Plan limitiniz dolub. Daha çox məhsul/kateqoriya üçün planı yüksəldin.
+                </div>
+              ) : null}
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Button
                   type="button"
@@ -1400,6 +1529,21 @@ const RestaurantPanel = () => {
         {section === "categories" && (
             <Card className="p-6 max-w-xl mb-8">
               <h3 className="font-bold mb-4">{t("add_category")}</h3>
+              {isLimitReached(planUsage?.categories) ? (
+                <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  Kateqoriya limitiniz dolub. Planı yüksəldin.
+                  <button
+                    type="button"
+                    className="ml-2 underline font-semibold"
+                    onClick={() => {
+                      setSelectedUpgradePlanId(null);
+                      setPlanUpgradeOpen(true);
+                    }}
+                  >
+                    Plan yüksəlt
+                  </button>
+                </div>
+              ) : null}
               <div className="flex gap-2">
                 <input 
                   placeholder={t("name")} 
@@ -1433,6 +1577,23 @@ const RestaurantPanel = () => {
 
         {section === "products" && !productsNew && (
           <div className="space-y-6">
+            {isLimitReached(planUsage?.products) ? (
+              <Card className="p-4 border-amber-200 bg-amber-50">
+                <p className="text-sm text-amber-900">
+                  Məhsul limitiniz dolub. Yeni məhsul üçün planı yüksəltməlisiniz.
+                </p>
+                <Button
+                  type="button"
+                  className="mt-2 bg-amber-600 text-white"
+                  onClick={() => {
+                    setSelectedUpgradePlanId(null);
+                    setPlanUpgradeOpen(true);
+                  }}
+                >
+                  Plan yüksəlt
+                </Button>
+              </Card>
+            ) : null}
             <Link
               to={`${basePath}/products/new`}
               className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm"
@@ -1525,6 +1686,11 @@ const RestaurantPanel = () => {
         {productsNew && (
             <Card className="p-6 mb-6 max-w-2xl">
               <h3 className="font-bold mb-4">{t("add_product")}</h3>
+              {isLimitReached(planUsage?.products) ? (
+                <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  Məhsul limiti dolub. Plan yüksəltmədən yeni məhsul əlavə etmək olmur.
+                </div>
+              ) : null}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <input 
                   placeholder="Məhsul adını yazın"
@@ -1674,7 +1840,14 @@ const RestaurantPanel = () => {
                 <Button type="button" onClick={() => navigate(`${basePath}/products`)} className="border">
                   {t("onboarding_back")}
                 </Button>
-                <Button type="button" onClick={addProduct} className="bg-red-600 text-white">{t("add_product")}</Button>
+                <Button
+                  type="button"
+                  onClick={addProduct}
+                  disabled={isLimitReached(planUsage?.products)}
+                  className="bg-red-600 text-white"
+                >
+                  {t("add_product")}
+                </Button>
               </div>
             </Card>
         )}
