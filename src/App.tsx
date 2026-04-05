@@ -31,6 +31,10 @@ import {
   ShoppingCart,
   MessageSquare,
   Globe,
+  Settings,
+  Upload,
+  Clock3,
+  Pencil,
   ShieldCheck,
   Wifi,
   LogIn,
@@ -81,6 +85,8 @@ interface Restaurant {
   reservation_url?: string;
   instagram?: string;
   tiktok?: string;
+  opening_hours?: string;
+  strict_opening_hours?: boolean;
 }
 
 interface Category {
@@ -110,6 +116,9 @@ interface Product {
   is_available: boolean;
   translations?: Record<string, { name?: string; desc?: string }>;
   variants?: ProductVariantRow[];
+  active_hours_enabled?: boolean;
+  active_from?: string;
+  active_to?: string;
 }
 
 // --- Components ---
@@ -414,10 +423,23 @@ const RestaurantPanel = () => {
   const [newCat, setNewCat] = useState("");
   const [newProd, setNewProd] = useState({
     name: "",
-    price: 0,
+    price: "",
     category_id: 0,
     description: "",
     image_url: "",
+    active_hours_enabled: false,
+    active_from: "",
+    active_to: "",
+  });
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editProd, setEditProd] = useState({
+    name: "",
+    price: "",
+    description: "",
+    image_url: "",
+    active_hours_enabled: false,
+    active_from: "",
+    active_to: "",
   });
   const [newProdVariants, setNewProdVariants] = useState<Array<{ name: string; price: string }>>([]);
   const [qrCode, setQrCode] = useState("");
@@ -435,6 +457,8 @@ const RestaurantPanel = () => {
     tiktok: "",
     logo_url: "",
     cover_image_url: "",
+    opening_hours: "",
+    strict_opening_hours: false,
   });
   const [editingTranslations, setEditingTranslations] = useState<{ type: 'category' | 'product', id: number, data: any } | null>(null);
   const [currentLang, setCurrentLang] = useState(() => {
@@ -515,6 +539,8 @@ const RestaurantPanel = () => {
         tiktok: r.tiktok || "",
         logo_url: r.logo_url || "",
         cover_image_url: r.cover_image_url || "",
+        opening_hours: r.opening_hours || "",
+        strict_opening_hours: !!r.strict_opening_hours,
       });
       const menuUrl = `${window.location.origin}/r/${r.slug}`;
       const qr = await fetch(`/api/qrcode?url=${encodeURIComponent(menuUrl)}`).then((x) => x.json());
@@ -657,6 +683,19 @@ const RestaurantPanel = () => {
   };
 
   const addProduct = async () => {
+    const parsedPrice = Number(newProd.price);
+    if (!newProd.name.trim()) {
+      alert("Məhsul adını yazın");
+      return;
+    }
+    if (!newProd.category_id) {
+      alert("Kateqoriya seçin");
+      return;
+    }
+    if (newProd.price === "" || Number.isNaN(parsedPrice)) {
+      alert("Qiyməti daxil edin");
+      return;
+    }
     const variants = newProdVariants
       .filter((v) => v.name.trim() && v.price.trim() !== "")
       .map((v) => ({ name: v.name.trim(), price: Number(v.price) }))
@@ -666,6 +705,10 @@ const RestaurantPanel = () => {
       headers: authAnyStaffHeaders(),
       body: JSON.stringify({
         ...newProd,
+        price: parsedPrice,
+        active_hours_enabled: newProd.active_hours_enabled,
+        active_from: newProd.active_hours_enabled ? newProd.active_from || null : null,
+        active_to: newProd.active_hours_enabled ? newProd.active_to || null : null,
         restaurant_id: Number(id),
         variants: variants.length ? variants : undefined,
       }),
@@ -673,10 +716,80 @@ const RestaurantPanel = () => {
     if (res.ok) {
       const data = await res.json();
       setProducts([...products, data]);
-      setNewProd({ name: "", price: 0, category_id: 0, description: "", image_url: "" });
+      setNewProd({
+        name: "",
+        price: "",
+        category_id: 0,
+        description: "",
+        image_url: "",
+        active_hours_enabled: false,
+        active_from: "",
+        active_to: "",
+      });
       setNewProdVariants([]);
       if (productsNew) navigate(`${basePath}/products`);
     }
+  };
+
+  const openEditProduct = (prod: Product) => {
+    setEditingProduct(prod);
+    setEditProd({
+      name: prod.name || "",
+      price: prod.price != null ? String(prod.price) : "",
+      description: prod.description || "",
+      image_url: prod.image_url || "",
+      active_hours_enabled: !!prod.active_hours_enabled,
+      active_from: prod.active_from || "",
+      active_to: prod.active_to || "",
+    });
+  };
+
+  const saveEditedProduct = async () => {
+    if (!editingProduct) return;
+    const parsedPrice = Number(editProd.price);
+    if (!editProd.name.trim()) {
+      alert("Məhsul adını yazın");
+      return;
+    }
+    if (editProd.price === "" || Number.isNaN(parsedPrice)) {
+      alert("Qiyməti daxil edin");
+      return;
+    }
+    const res = await fetch(`/api/admin/products/${editingProduct.id}`, {
+      method: "PUT",
+      headers: authAnyStaffHeaders(),
+      body: JSON.stringify({
+        name: editProd.name,
+        description: editProd.description,
+        price: parsedPrice,
+        image_url: editProd.image_url,
+        active_hours_enabled: editProd.active_hours_enabled,
+        active_from: editProd.active_hours_enabled ? editProd.active_from || null : null,
+        active_to: editProd.active_hours_enabled ? editProd.active_to || null : null,
+        translations: editingProduct.translations || null,
+      }),
+    });
+    if (!res.ok) {
+      alert("Məhsul yenilənmədi");
+      return;
+    }
+    setProducts((rows) =>
+      rows.map((p) =>
+        p.id === editingProduct.id
+          ? {
+              ...p,
+              name: editProd.name,
+              description: editProd.description,
+              price: parsedPrice,
+              image_url: editProd.image_url,
+              active_hours_enabled: editProd.active_hours_enabled,
+              active_from: editProd.active_hours_enabled ? editProd.active_from : "",
+              active_to: editProd.active_hours_enabled ? editProd.active_to : "",
+            }
+          : p
+      )
+    );
+    setEditingProduct(null);
   };
 
   const deleteCategory = async (cid: number) => {
@@ -754,7 +867,7 @@ const RestaurantPanel = () => {
         <ShoppingCart size={18} /> {t("orders_section_title")}
       </NavLink>
       <NavLink to={`${basePath}/settings`} className={sidebarCls} onClick={closeMobileNav}>
-        <Globe size={18} /> {t("settings")}
+        <Settings size={18} /> {t("settings")}
       </NavLink>
       <a
         href={`/r/${restaurant.slug}`}
@@ -786,7 +899,7 @@ const RestaurantPanel = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row pb-safe">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-slate-50 to-rose-50/40 flex flex-col md:flex-row pb-safe">
       <div className="md:hidden sticky top-0 z-30 flex items-center gap-2 border-b border-gray-200 bg-white/95 px-3 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/80">
         <button
           type="button"
@@ -838,7 +951,7 @@ const RestaurantPanel = () => {
         ) : null}
       </AnimatePresence>
 
-      <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-gray-200 bg-white p-4">
+      <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-gray-200 bg-white/95 backdrop-blur p-4">
         <div className="mb-4 flex items-center gap-2 px-1 text-lg font-bold text-red-600">
           <Utensils /> <span className="truncate max-w-[10rem]">{restaurant.name}</span>
         </div>
@@ -857,6 +970,15 @@ const RestaurantPanel = () => {
             {section === "orders" && t("orders_section_title")}
           </h1>
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate(`${basePath}/settings`)}
+              className="inline-flex items-center justify-center h-10 w-10 rounded-xl border border-gray-200 bg-white text-gray-700 shadow-sm hover:shadow-md hover:border-red-200 hover:text-red-600 transition-all"
+              title="Ayarlar"
+              aria-label="Ayarlar"
+            >
+              <Settings size={18} />
+            </button>
             <select 
               className="p-2 border rounded-lg bg-white text-sm"
               value={currentLang}
@@ -1050,40 +1172,106 @@ const RestaurantPanel = () => {
         ) : null}
 
         {section === "settings" && (
-        <Card className="p-4 sm:p-6 mb-8 border-red-100">
-          <h3 className="font-bold mb-3 flex items-center gap-2">
-            <QrCode size={20} className="text-red-600" /> {t("your_link")}
-          </h3>
-          <p className="text-xs text-gray-500 mb-4 font-mono break-all">
-            {typeof window !== "undefined" ? `${window.location.origin}/r/${profile.slug}` : ""}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input
-              className="p-2 border rounded-lg text-sm"
-              placeholder={t("name")}
-              value={profile.name}
-              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-            />
-            <input
-              className="p-2 border rounded-lg text-sm font-mono"
-              placeholder={t("slug_label")}
-              value={profile.slug}
-              onChange={(e) => setProfile({ ...profile, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-            />
-            <input
-              className="p-2 border rounded-lg text-sm"
-              placeholder={t("whatsapp")}
-              value={profile.whatsapp_number}
-              onChange={(e) => setProfile({ ...profile, whatsapp_number: e.target.value })}
-            />
-            <textarea
-              className="p-2 border rounded-lg text-sm sm:col-span-2"
-              placeholder="Tagline / short description"
-              rows={2}
-              value={profile.tagline}
-              onChange={(e) => setProfile({ ...profile, tagline: e.target.value })}
-            />
-            <div className="sm:col-span-2 grid sm:grid-cols-2 gap-4">
+        <div className="space-y-5 mb-8">
+          <Card className="p-4 sm:p-6 border-red-100">
+            <h3 className="font-bold mb-3 flex items-center gap-2">
+              <QrCode size={20} className="text-red-600" /> {t("your_link")}
+            </h3>
+            <p className="text-xs text-gray-500 font-mono break-all">
+              {typeof window !== "undefined" ? `${window.location.origin}/r/${profile.slug}` : ""}
+            </p>
+          </Card>
+
+          <div className="grid lg:grid-cols-2 gap-5">
+            <Card className="p-5 space-y-4">
+              <h3 className="text-base font-bold text-gray-900">Ümumi məlumatlar</h3>
+              <input
+                className="w-full p-2.5 border rounded-lg text-sm"
+                placeholder={t("name")}
+                value={profile.name}
+                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+              />
+              <input
+                className="w-full p-2.5 border rounded-lg text-sm font-mono"
+                placeholder={t("slug_label")}
+                value={profile.slug}
+                onChange={(e) => setProfile({ ...profile, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
+              />
+              <textarea
+                className="w-full p-2.5 border rounded-lg text-sm"
+                placeholder="Qısa restoran açıqlaması"
+                rows={3}
+                value={profile.tagline}
+                onChange={(e) => setProfile({ ...profile, tagline: e.target.value })}
+              />
+            </Card>
+
+            <Card className="p-5 space-y-4">
+              <h3 className="text-base font-bold text-gray-900">Sosial şəbəkələr</h3>
+              <input
+                className="w-full p-2.5 border rounded-lg text-sm"
+                placeholder="Instagram URL"
+                value={profile.instagram}
+                onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
+              />
+              <input
+                className="w-full p-2.5 border rounded-lg text-sm"
+                placeholder="TikTok URL"
+                value={profile.tiktok}
+                onChange={(e) => setProfile({ ...profile, tiktok: e.target.value })}
+              />
+            </Card>
+
+            <Card className="p-5 space-y-4">
+              <h3 className="text-base font-bold text-gray-900">İş saatları</h3>
+              <input
+                className="w-full p-2.5 border rounded-lg text-sm"
+                placeholder="Məsələn: Hər gün 09:00 - 23:00"
+                value={profile.opening_hours}
+                onChange={(e) => setProfile({ ...profile, opening_hours: e.target.value })}
+              />
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={profile.strict_opening_hours}
+                  onChange={(e) => setProfile({ ...profile, strict_opening_hours: e.target.checked })}
+                />
+                Menyu bu saatlardan kənarda sifarişi bağlasın
+              </label>
+            </Card>
+
+            <Card className="p-5 space-y-4">
+              <h3 className="text-base font-bold text-gray-900">Kontakt məlumatları</h3>
+              <input
+                className="w-full p-2.5 border rounded-lg text-sm"
+                placeholder={t("whatsapp")}
+                value={profile.whatsapp_number}
+                onChange={(e) => setProfile({ ...profile, whatsapp_number: e.target.value })}
+              />
+              <input
+                className="w-full p-2.5 border rounded-lg text-sm"
+                placeholder="Telefon nömrəsi"
+                value={profile.phone}
+                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+              />
+              <input
+                className="w-full p-2.5 border rounded-lg text-sm"
+                placeholder="Google Maps URL"
+                value={profile.maps_url}
+                onChange={(e) => setProfile({ ...profile, maps_url: e.target.value })}
+              />
+              <input
+                className="w-full p-2.5 border rounded-lg text-sm"
+                placeholder="Rezervasiya linki"
+                value={profile.reservation_url}
+                onChange={(e) => setProfile({ ...profile, reservation_url: e.target.value })}
+              />
+            </Card>
+          </div>
+
+          <Card className="p-5 space-y-4">
+            <h3 className="text-base font-bold text-gray-900">Dizayn ayarları</h3>
+            <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-gray-500 mb-1">{t("logo_upload_label")}</p>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -1143,37 +1331,7 @@ const RestaurantPanel = () => {
                 />
               </div>
             </div>
-            <input
-              className="p-2 border rounded-lg text-sm"
-              placeholder="Google Maps URL"
-              value={profile.maps_url}
-              onChange={(e) => setProfile({ ...profile, maps_url: e.target.value })}
-            />
-            <input
-              className="p-2 border rounded-lg text-sm"
-              placeholder="Phone (call)"
-              value={profile.phone}
-              onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-            />
-            <input
-              className="p-2 border rounded-lg text-sm"
-              placeholder="Reservation URL"
-              value={profile.reservation_url}
-              onChange={(e) => setProfile({ ...profile, reservation_url: e.target.value })}
-            />
-            <input
-              className="p-2 border rounded-lg text-sm"
-              placeholder="Instagram URL"
-              value={profile.instagram}
-              onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
-            />
-            <input
-              className="p-2 border rounded-lg text-sm"
-              placeholder="TikTok URL"
-              value={profile.tiktok}
-              onChange={(e) => setProfile({ ...profile, tiktok: e.target.value })}
-            />
-            <div className="flex gap-2 items-center sm:col-span-2">
+            <div className="flex gap-2 items-center">
               <input
                 type="color"
                 className="h-10 w-14 rounded border cursor-pointer"
@@ -1184,8 +1342,8 @@ const RestaurantPanel = () => {
                 {t("save_profile")}
               </Button>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
         )}
 
         {section === "settings" && (
@@ -1287,7 +1445,11 @@ const RestaurantPanel = () => {
                   <h4 className="font-bold text-gray-500 uppercase text-xs tracking-wider mb-2">{cat.translations?.[currentLang] || cat.name}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {products.filter(p => p.category_id === cat.id).map(prod => (
-                      <Card key={prod.id} className="p-4 flex gap-4">
+                      <Card
+                        key={prod.id}
+                        className="p-4 flex gap-4 border-gray-200 hover:shadow-md transition-all cursor-pointer"
+                        onClick={() => openEditProduct(prod)}
+                      >
                         <div className="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
                           {prod.image_url ? (
                             <img
@@ -1303,6 +1465,12 @@ const RestaurantPanel = () => {
                             <span className="font-bold text-red-600">₼{Number(prod.price).toFixed(2)}</span>
                           </div>
                           <p className="text-sm text-gray-500 line-clamp-2">{prod.translations?.[currentLang]?.desc || prod.description}</p>
+                          {prod.active_hours_enabled ? (
+                            <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
+                              <Clock3 size={12} />
+                              Aktiv: {prod.active_from || "--:--"} - {prod.active_to || "--:--"}
+                            </div>
+                          ) : null}
                           {prod.variants && prod.variants.length > 0 ? (
                             <ul className="mt-2 text-xs text-gray-600 space-y-0.5 list-disc list-inside">
                               {prod.variants.map((v) => (
@@ -1313,14 +1481,36 @@ const RestaurantPanel = () => {
                             </ul>
                           ) : null}
                           <div className="mt-2 flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditProduct(prod);
+                              }}
+                              className="text-gray-700 hover:text-red-600 flex items-center gap-1 text-xs font-bold"
+                            >
+                              <Pencil size={14} /> Redaktə
+                            </button>
                             <button 
                               type="button"
-                              onClick={() => setEditingTranslations({ type: 'product', id: prod.id, data: prod.translations || {} })}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingTranslations({ type: 'product', id: prod.id, data: prod.translations || {} });
+                              }}
                               className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs font-bold"
                             >
                               <Globe size={14} /> {t("translations")}
                             </button>
-                            <button type="button" onClick={() => deleteProduct(prod.id)} className="text-red-500 p-1"><Trash2 size={16} /></button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteProduct(prod.id);
+                              }}
+                              className="text-red-500 p-1"
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           </div>
                         </div>
                       </Card>
@@ -1333,21 +1523,21 @@ const RestaurantPanel = () => {
         )}
 
         {productsNew && (
-            <Card className="p-6 mb-6 max-w-xl">
+            <Card className="p-6 mb-6 max-w-2xl">
               <h3 className="font-bold mb-4">{t("add_product")}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <input 
-                  placeholder={t("name")} 
+                  placeholder="Məhsul adını yazın"
                   className="p-2 border rounded-lg"
                   value={newProd.name}
                   onChange={e => setNewProd({ ...newProd, name: e.target.value })}
                 />
                 <input 
                   type="number" 
-                  placeholder={t("price")} 
+                  placeholder="Qiyməti daxil edin"
                   className="p-2 border rounded-lg"
                   value={newProd.price}
-                  onChange={e => setNewProd({ ...newProd, price: Number(e.target.value) })}
+                  onChange={e => setNewProd({ ...newProd, price: e.target.value })}
                 />
                 <select 
                   className="p-2 border rounded-lg sm:col-span-2"
@@ -1361,21 +1551,70 @@ const RestaurantPanel = () => {
                 </select>
                 <textarea
                   className="p-2 border rounded-lg sm:col-span-2 text-sm"
-                  placeholder={t("description")}
+                  placeholder="Qısa açıqlama yazın"
                   rows={3}
                   value={newProd.description}
                   onChange={(e) => setNewProd({ ...newProd, description: e.target.value })}
                 />
+                <div className="sm:col-span-2 rounded-xl border border-gray-200 bg-gray-50/70 p-3">
+                  <label className="flex items-center justify-between gap-3 text-sm font-semibold text-gray-800">
+                    Aktiv saatlar seç
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={newProd.active_hours_enabled}
+                      onClick={() =>
+                        setNewProd((p) => ({ ...p, active_hours_enabled: !p.active_hours_enabled }))
+                      }
+                      className={cn(
+                        "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                        newProd.active_hours_enabled ? "bg-red-600" : "bg-gray-300"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "inline-block h-5 w-5 transform rounded-full bg-white transition-transform",
+                          newProd.active_hours_enabled ? "translate-x-5" : "translate-x-1"
+                        )}
+                      />
+                    </button>
+                  </label>
+                  {newProd.active_hours_enabled ? (
+                    <div className="mt-3 grid sm:grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs mb-1 text-gray-600">Başlanğıc saat</p>
+                        <input
+                          type="time"
+                          className="w-full p-2 border rounded-lg text-sm bg-white"
+                          value={newProd.active_from}
+                          onChange={(e) => setNewProd((p) => ({ ...p, active_from: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <p className="text-xs mb-1 text-gray-600">Bitiş saat</p>
+                        <input
+                          type="time"
+                          className="w-full p-2 border rounded-lg text-sm bg-white"
+                          value={newProd.active_to}
+                          onChange={(e) => setNewProd((p) => ({ ...p, active_to: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
                 <div className="sm:col-span-2">
                   <p className="text-xs font-medium text-gray-700 mb-1">{t("product_image_upload_label")}</p>
                   <div className="flex flex-wrap items-center gap-3">
                     {newProd.image_url ? (
                       <img src={newProd.image_url} alt="" className="w-16 h-16 rounded-lg object-cover border" />
                     ) : null}
-                    <input
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                      <Upload size={16} />
+                      Şəkil yüklə
+                      <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp,image/gif"
-                      className="text-xs max-w-full"
+                      className="hidden"
                       onChange={async (e) => {
                         const f = e.target.files?.[0];
                         if (!f) return;
@@ -1384,6 +1623,7 @@ const RestaurantPanel = () => {
                         e.target.value = "";
                       }}
                     />
+                    </label>
                   </div>
                 </div>
                 <div className="sm:col-span-2 border-t pt-4 mt-2">
@@ -1438,6 +1678,90 @@ const RestaurantPanel = () => {
               </div>
             </Card>
         )}
+
+        {editingProduct ? (
+          <div className="fixed inset-0 z-50 bg-black/45 flex items-center justify-center p-4">
+            <Card className="w-full max-w-xl p-5 sm:p-6">
+              <h3 className="text-lg font-bold mb-4">Məhsulu redaktə et</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  className="p-2.5 border rounded-lg sm:col-span-2"
+                  placeholder="Məhsul adını yazın"
+                  value={editProd.name}
+                  onChange={(e) => setEditProd((p) => ({ ...p, name: e.target.value }))}
+                />
+                <input
+                  type="number"
+                  className="p-2.5 border rounded-lg"
+                  placeholder="Qiyməti daxil edin"
+                  value={editProd.price}
+                  onChange={(e) => setEditProd((p) => ({ ...p, price: e.target.value }))}
+                />
+                <input
+                  className="p-2.5 border rounded-lg"
+                  placeholder="Şəkil URL (ixtiyari)"
+                  value={editProd.image_url}
+                  onChange={(e) => setEditProd((p) => ({ ...p, image_url: e.target.value }))}
+                />
+                <textarea
+                  className="p-2.5 border rounded-lg sm:col-span-2"
+                  rows={3}
+                  placeholder="Qısa açıqlama yazın"
+                  value={editProd.description}
+                  onChange={(e) => setEditProd((p) => ({ ...p, description: e.target.value }))}
+                />
+                <div className="sm:col-span-2 rounded-xl border border-gray-200 bg-gray-50 p-3">
+                  <label className="flex items-center justify-between gap-3 text-sm font-semibold text-gray-800">
+                    Aktiv saatlar seç
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={editProd.active_hours_enabled}
+                      onClick={() =>
+                        setEditProd((p) => ({ ...p, active_hours_enabled: !p.active_hours_enabled }))
+                      }
+                      className={cn(
+                        "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                        editProd.active_hours_enabled ? "bg-red-600" : "bg-gray-300"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "inline-block h-5 w-5 transform rounded-full bg-white transition-transform",
+                          editProd.active_hours_enabled ? "translate-x-5" : "translate-x-1"
+                        )}
+                      />
+                    </button>
+                  </label>
+                  {editProd.active_hours_enabled ? (
+                    <div className="mt-3 grid sm:grid-cols-2 gap-3">
+                      <input
+                        type="time"
+                        className="p-2.5 border rounded-lg bg-white"
+                        value={editProd.active_from}
+                        onChange={(e) => setEditProd((p) => ({ ...p, active_from: e.target.value }))}
+                      />
+                      <input
+                        type="time"
+                        className="p-2.5 border rounded-lg bg-white"
+                        value={editProd.active_to}
+                        onChange={(e) => setEditProd((p) => ({ ...p, active_to: e.target.value }))}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+              <div className="flex gap-2 mt-5">
+                <Button type="button" onClick={() => setEditingProduct(null)} className="flex-1 border">
+                  Ləğv
+                </Button>
+                <Button type="button" onClick={saveEditedProduct} className="flex-1 bg-red-600 text-white">
+                  Saxla
+                </Button>
+              </div>
+            </Card>
+          </div>
+        ) : null}
 
       </main>
 

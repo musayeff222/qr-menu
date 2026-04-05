@@ -404,6 +404,9 @@ export async function initDatabase() {
         table.decimal("price", 10, 2);
         table.string("image_url");
         table.boolean("is_available").defaultTo(true);
+        table.boolean("active_hours_enabled").defaultTo(false);
+        table.string("active_from", 5);
+        table.string("active_to", 5);
         table.timestamps(true, true);
       });
     }
@@ -604,6 +607,15 @@ export async function initDatabase() {
       });
       await ensureColumn("products", "description", (table) => {
         table.string("description");
+      });
+      await ensureColumn("products", "active_hours_enabled", (table) => {
+        table.boolean("active_hours_enabled").defaultTo(false);
+      });
+      await ensureColumn("products", "active_from", (table) => {
+        table.string("active_from", 5);
+      });
+      await ensureColumn("products", "active_to", (table) => {
+        table.string("active_to", 5);
       });
     }
 

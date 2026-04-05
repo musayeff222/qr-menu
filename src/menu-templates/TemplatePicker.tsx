@@ -70,7 +70,7 @@ export function TemplatePicker({
               : "bg-white text-gray-700 border-gray-200"
           )}
         >
-          All · {allTemplates.length}
+          Hamısı · {allTemplates.length}
         </button>
         {CATEGORY_ORDER.map((c) => (
           <button
@@ -133,7 +133,7 @@ export function TemplatePicker({
                   className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border border-gray-200 text-gray-800 text-sm font-medium hover:bg-gray-50"
                 >
                   <Eye size={16} />
-                  Live preview
+                  Bax
                 </a>
                 <button
                   type="button"
@@ -144,7 +144,7 @@ export function TemplatePicker({
                   )}
                 >
                   <Check size={16} />
-                  {selectedId === tpl.id ? "Selected" : "Select"}
+                  {selectedId === tpl.id ? "Seçildi" : "Seç"}
                 </button>
               </div>
             </div>

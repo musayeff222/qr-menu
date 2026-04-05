@@ -180,6 +180,22 @@ function ordersAllowedForRestaurant(r: Record<string, unknown>): boolean {
   return false;
 }
 
+function isProductActiveNow(product: Record<string, unknown>): boolean {
+  if (!asBool(product.active_hours_enabled)) return true;
+  const from = String(product.active_from || "");
+  const to = String(product.active_to || "");
+  if (!from || !to) return true;
+  const [fh, fm] = from.split(":").map((x) => Number(x));
+  const [th, tm] = to.split(":").map((x) => Number(x));
+  if ([fh, fm, th, tm].some((x) => Number.isNaN(x))) return true;
+  const now = new Date();
+  const cur = now.getHours() * 60 + now.getMinutes();
+  const start = fh * 60 + fm;
+  const end = th * 60 + tm;
+  if (start <= end) return cur >= start && cur <= end;
+  return cur >= start || cur <= end;
+}
+
 async function attachVariantsToProducts(
   parsedProducts: Array<Record<string, unknown>>
 ): Promise<Array<Record<string, unknown>>> {
@@ -1038,12 +1054,13 @@ async function startServer() {
       translations: safeJsonParse(cat.translations as string, {}),
     }));
 
-    const parsedProducts = await attachVariantsToProducts(
+    const parsedProductsAll = await attachVariantsToProducts(
       products.map((prod) => ({
         ...prod,
         translations: safeJsonParse(prod.translations as string, {}),
       }))
     );
+    const parsedProducts = parsedProductsAll.filter((prod) => isProductActiveNow(prod));
 
     const skipScan = String(req.query.preview) === "true";
     if (!skipScan) {
@@ -1269,6 +1286,9 @@ async function startServer() {
       image_url,
       translations,
       variants,
+      active_hours_enabled,
+      active_from,
+      active_to,
     } = req.body;
     const rid = Number(restaurant_id);
     if (!requireRestaurantOrSuper(req, res, rid)) return;
@@ -1288,6 +1308,9 @@ async function startServer() {
       price,
       image_url,
       translations: translations ? JSON.stringify(translations) : null,
+      active_hours_enabled: asBool(active_hours_enabled),
+      active_from: asBool(active_hours_enabled) && typeof active_from === "string" ? active_from : null,
+      active_to: asBool(active_hours_enabled) && typeof active_to === "string" ? active_to : null,
     });
     if (Array.isArray(variants) && variants.length > 0) {
       let i = 0;
@@ -1350,7 +1373,16 @@ async function startServer() {
     const prod = await db("products").where({ id: req.params.id }).first();
     if (!prod) return res.status(404).json({ error: "Not found" });
     if (!requireRestaurantOrSuper(req, res, prod.restaurant_id)) return;
-    const { name, description, price, image_url, translations } = req.body;
+    const {
+      name,
+      description,
+      price,
+      image_url,
+      translations,
+      active_hours_enabled,
+      active_from,
+      active_to,
+    } = req.body;
     await db("products")
       .where({ id: req.params.id })
       .update({
@@ -1359,6 +1391,9 @@ async function startServer() {
         price,
         image_url,
         translations: translations ? JSON.stringify(translations) : null,
+        active_hours_enabled: asBool(active_hours_enabled),
+        active_from: asBool(active_hours_enabled) && typeof active_from === "string" ? active_from : null,
+        active_to: asBool(active_hours_enabled) && typeof active_to === "string" ? active_to : null,
       });
     res.json({ success: true });
   });
