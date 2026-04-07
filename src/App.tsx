@@ -393,15 +393,18 @@ const RestaurantLoginPage = () => {
               {t("login")}
             </Button>
           </form>
-          <div className="mt-6 text-center text-sm text-gray-500 space-y-2">
-            <p>
-              <Link to="/register" className="text-red-600 font-medium hover:underline">
-                {t("register_title")}
-              </Link>
-            </p>
-            <Link to="/" className="text-red-600 hover:underline">
-              ← {t("landing_nav_start")}
+          <div className="mt-6 space-y-3">
+            <Link
+              to="/register"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-500"
+            >
+              Pulsuz başla
             </Link>
+            <div className="text-center">
+              <Link to="/" className="text-xs text-gray-500 transition-colors hover:text-red-600 hover:underline">
+                Şifrənizi unutmusunuz?
+              </Link>
+            </div>
           </div>
         </Card>
     </AuthSplitLayout>
@@ -455,11 +458,13 @@ const RestaurantPanel = () => {
     reservation_url: "",
     instagram: "",
     tiktok: "",
+    facebook: "",
     logo_url: "",
     cover_image_url: "",
     opening_hours: "",
     strict_opening_hours: false,
   });
+  const [mediaAssets, setMediaAssets] = useState<Array<{ id: number; kind: "image" | "video"; url: string; sort_order: number }>>([]);
   const [editingTranslations, setEditingTranslations] = useState<{ type: 'category' | 'product', id: number, data: any } | null>(null);
   const [currentLang, setCurrentLang] = useState(() => {
     if (typeof navigator === "undefined") return "az";
@@ -530,6 +535,7 @@ const RestaurantPanel = () => {
       setPlanRow((data.plan as Record<string, unknown>) ?? null);
       setPlanUsage(data.planUsage ?? null);
       setPendingPlanRequest(data.pendingPlanRequest ?? null);
+      setMediaAssets(Array.isArray(data.media_assets) ? data.media_assets : []);
       const r = data.restaurant;
       setProfile({
         name: r.name || "",
@@ -543,6 +549,7 @@ const RestaurantPanel = () => {
         reservation_url: r.reservation_url || "",
         instagram: r.instagram || "",
         tiktok: r.tiktok || "",
+        facebook: r.facebook || "",
         logo_url: r.logo_url || "",
         cover_image_url: r.cover_image_url || "",
         opening_hours: r.opening_hours || "",
@@ -660,6 +667,44 @@ const RestaurantPanel = () => {
       const err = await res.json().catch(() => ({}));
       alert(err.error || "Error");
     }
+  };
+
+  const refreshMediaAssets = async () => {
+    const res = await fetch(`/api/admin/restaurants/${id}/menu`, {
+      headers: authAnyStaffHeaders(),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    setMediaAssets(Array.isArray(data.media_assets) ? data.media_assets : []);
+  };
+
+  const addMediaAsset = async (kind: "image" | "video", url: string) => {
+    const res = await fetch(`/api/admin/restaurants/${id}/media-assets`, {
+      method: "POST",
+      headers: authAnyStaffHeaders(),
+      body: JSON.stringify({ kind, url }),
+    });
+    if (!res.ok) return;
+    await refreshMediaAssets();
+  };
+
+  const deleteMediaAsset = async (assetId: number) => {
+    const res = await fetch(`/api/admin/media-assets/${assetId}`, {
+      method: "DELETE",
+      headers: authAnyStaffHeaders(),
+    });
+    if (!res.ok) return;
+    await refreshMediaAssets();
+  };
+
+  const updateOrderStatus = async (orderId: number, status: string) => {
+    const res = await fetch(`/api/admin/restaurants/${id}/orders/${orderId}/status`, {
+      method: "PATCH",
+      headers: authAnyStaffHeaders(),
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) return;
+    setOrders((rows) => rows.map((r) => (r.id === orderId ? { ...r, status } : r)));
   };
 
   const staffLogout = () => {
@@ -1131,14 +1176,34 @@ const RestaurantPanel = () => {
 
         {section === "orders" && (
           <Card className="p-6">
-            <p className="text-sm text-gray-500 mb-4">{t("orders_stub_note")}</p>
+            <p className="text-sm text-gray-500 mb-4">Gələn sifarişlər və status idarəsi</p>
             {orders.length === 0 ? (
               <p className="text-gray-400 text-sm">{t("orders_empty")}</p>
             ) : (
               <ul className="text-sm space-y-2">
                 {orders.map((o) => (
                   <li key={o.id} className="border rounded-lg p-3">
-                    #{o.id} · {o.status}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="font-semibold">
+                        #{o.id} · {o.customer_name || o.payload?.customer_name || "Müştəri"}
+                      </div>
+                      <select
+                        className="text-xs border rounded-lg px-2 py-1"
+                        value={String(o.status || "accepted")}
+                        onChange={(e) => void updateOrderStatus(Number(o.id), e.target.value)}
+                      >
+                        <option value="accepted">Qəbul edildi</option>
+                        <option value="preparing">Hazırlanır</option>
+                        <option value="sent">Göndərildi</option>
+                        <option value="delivered">Çatdırıldı</option>
+                      </select>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {o.customer_phone || o.payload?.customer_phone || "-"} · {o.order_type || o.payload?.order_type || "-"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Məbləğ: ₼{Number(o.total_amount || o.payload?.total_amount || 0).toFixed(2)}
+                    </p>
                   </li>
                 ))}
               </ul>
@@ -1349,6 +1414,12 @@ const RestaurantPanel = () => {
                 value={profile.tiktok}
                 onChange={(e) => setProfile({ ...profile, tiktok: e.target.value })}
               />
+              <input
+                className="w-full p-2.5 border rounded-lg text-sm"
+                placeholder="Facebook URL"
+                value={profile.facebook}
+                onChange={(e) => setProfile({ ...profile, facebook: e.target.value })}
+              />
             </Card>
 
             <Card className="p-5 space-y-4">
@@ -1470,6 +1541,78 @@ const RestaurantPanel = () => {
               <Button onClick={saveProfile} className="bg-red-600 text-white text-sm flex-1">
                 {t("save_profile")}
               </Button>
+            </div>
+          </Card>
+
+          <Card className="p-5 space-y-4">
+            <h3 className="text-base font-bold text-gray-900">Header media slider</h3>
+            <p className="text-xs text-gray-500">FastFood şablonu üçün şəkil/video əlavə edin.</p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                Şəkil əlavə et
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    const url = await uploadAsset(f);
+                    if (url) await addMediaAsset("image", url);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                Video əlavə et
+                <input
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    const url = await uploadAsset(f);
+                    if (url) await addMediaAsset("video", url);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
+            <div className="space-y-2">
+              {mediaAssets.length === 0 ? (
+                <p className="text-xs text-gray-400">Hələ media yoxdur.</p>
+              ) : (
+                mediaAssets.map((m) => (
+                  <div key={m.id} className="flex items-center gap-2 rounded-lg border p-2">
+                    <span className="text-xs font-semibold uppercase text-gray-500 w-14">{m.kind}</span>
+                    <input
+                      className="flex-1 border rounded-md px-2 py-1 text-xs"
+                      value={m.url}
+                      onChange={(e) =>
+                        setMediaAssets((rows) =>
+                          rows.map((x) => (x.id === m.id ? { ...x, url: e.target.value } : x))
+                        )
+                      }
+                      onBlur={async () => {
+                        await fetch(`/api/admin/media-assets/${m.id}`, {
+                          method: "PUT",
+                          headers: authAnyStaffHeaders(),
+                          body: JSON.stringify({ url: m.url }),
+                        });
+                        await refreshMediaAssets();
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="text-red-600 text-xs font-semibold"
+                      onClick={() => void deleteMediaAsset(m.id)}
+                    >
+                      Sil
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </Card>
         </div>

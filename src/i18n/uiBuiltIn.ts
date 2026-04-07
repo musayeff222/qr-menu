@@ -420,7 +420,7 @@ const EXT_AZ: Record<string, string> = {
   nav_map: "Xəritə",
   nav_order: "Sifariş",
   nav_cart: "Səbət",
-  cart_back_menu: "Menyuya qayıt",
+  cart_back_menu: "Menyuya geri qayıt",
   cart_screen_title: "Səbət",
   cart_note_placeholder: "Qeyd (istəyə görə)",
   cart_remove_line: "Sil",

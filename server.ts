@@ -236,9 +236,11 @@ async function startServer() {
   });
   const upload = multer({
     storage: uploadStorage,
-    limits: { fileSize: 5 * 1024 * 1024 },
+    limits: { fileSize: 25 * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
-      const ok = /^image\/(jpeg|png|webp|gif)$/i.test(file.mimetype);
+      const ok =
+        /^image\/(jpeg|png|webp|gif)$/i.test(file.mimetype) ||
+        /^video\/(mp4|webm|quicktime)$/i.test(file.mimetype);
       cb(null, ok);
     },
   });
@@ -516,7 +518,9 @@ async function startServer() {
       return;
     }
     if (!req.file) {
-      res.status(400).json({ error: "Şəkil faylı tələb olunur (JPEG, PNG, WebP, GIF)" });
+      res
+        .status(400)
+        .json({ error: "Media faylı tələb olunur (JPEG, PNG, WebP, GIF, MP4, WebM, MOV)" });
       return;
     }
     const url = `/uploads/${req.file.filename}`;
@@ -538,6 +542,7 @@ async function startServer() {
       reservation_url,
       instagram,
       tiktok,
+      facebook,
       logo_url,
       cover_image_url,
       opening_hours,
@@ -555,6 +560,7 @@ async function startServer() {
     if (typeof reservation_url === "string") patch.reservation_url = reservation_url;
     if (typeof instagram === "string") patch.instagram = instagram;
     if (typeof tiktok === "string") patch.tiktok = tiktok;
+    if (typeof facebook === "string") patch.facebook = facebook;
     if (typeof logo_url === "string") patch.logo_url = logo_url;
     if (typeof cover_image_url === "string") patch.cover_image_url = cover_image_url;
     if (typeof opening_hours === "string") patch.opening_hours = opening_hours;
@@ -616,6 +622,7 @@ async function startServer() {
       reservation_url,
       instagram,
       tiktok,
+      facebook,
       logo_url,
       cover_image_url,
       opening_hours,
@@ -631,6 +638,7 @@ async function startServer() {
     if (typeof reservation_url === "string") patch.reservation_url = reservation_url;
     if (typeof instagram === "string") patch.instagram = instagram;
     if (typeof tiktok === "string") patch.tiktok = tiktok;
+    if (typeof facebook === "string") patch.facebook = facebook;
     if (typeof logo_url === "string") patch.logo_url = logo_url;
     if (typeof cover_image_url === "string") patch.cover_image_url = cover_image_url;
     if (typeof opening_hours === "string") patch.opening_hours = opening_hours;
@@ -1089,6 +1097,10 @@ async function startServer() {
     const custom_templates = await db("custom_menu_templates")
       .where({ is_active: true })
       .select("slug_key", "name", "category", "hero_image_url", "theme_json");
+    const media_assets = await db("restaurant_media_assets")
+      .where({ restaurant_id: restaurant.id })
+      .orderBy("sort_order")
+      .orderBy("id");
 
     const orders_allowed = ordersAllowedForRestaurant(restaurant);
 
@@ -1099,7 +1111,74 @@ async function startServer() {
       categories: parsedCategories,
       products: parsedProducts,
       custom_templates,
+      media_assets,
     });
+  });
+
+  app.post("/api/restaurants/:slug/orders", async (req, res) => {
+    const restaurant = await db("restaurants").where({ slug: req.params.slug }).first();
+    if (!restaurant) return res.status(404).json({ error: "Not found" });
+    if (!restaurant.is_active) return res.status(403).json({ error: "Restaurant inactive" });
+    if (!ordersAllowedForRestaurant(restaurant)) {
+      return res.status(403).json({ error: "Orders closed" });
+    }
+    const body = req.body as Record<string, unknown>;
+    const cart = Array.isArray(body.cart) ? body.cart : [];
+    const deviceId = String(body.device_id || "").trim().slice(0, 120);
+    const customerName = String(body.customer_name || "").trim().slice(0, 200);
+    const customerPhone = String(body.customer_phone || "").trim().slice(0, 64);
+    if (!deviceId || cart.length === 0 || !customerName || !customerPhone) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    const orderType = String(body.order_type || "pickup");
+    const paymentMethod = String(body.payment_method || "cash");
+    const orderSource = String(body.order_source || "web");
+    const addressText = String(body.address_text || "");
+    const geoUrl = String(body.geo_url || "");
+    const note = String(body.note || "");
+    const total = Number(body.total_amount || 0);
+    const payload = JSON.stringify(body);
+    const ids = await db("menu_orders").insert({
+      restaurant_id: restaurant.id,
+      payload,
+      status: "accepted",
+      device_id: deviceId,
+      order_type: orderType,
+      payment_method: paymentMethod,
+      order_source: orderSource,
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      address_text: addressText,
+      geo_url: geoUrl,
+      note,
+      total_amount: Number.isFinite(total) ? total : 0,
+    });
+    const orderId = Number(Array.isArray(ids) ? ids[0] : ids);
+    res.json({
+      success: true,
+      order: {
+        id: orderId,
+        status: "accepted",
+      },
+      message: "Sifarişiniz qeydə alındı. Ən qısa zamanda sizinlə əlaqə saxlanılacaq",
+    });
+  });
+
+  app.get("/api/restaurants/:slug/orders", async (req, res) => {
+    const restaurant = await db("restaurants").where({ slug: req.params.slug }).first();
+    if (!restaurant) return res.status(404).json({ error: "Not found" });
+    const deviceId = String(req.query.device_id || "").trim().slice(0, 120);
+    if (!deviceId) return res.status(400).json({ error: "device_id is required" });
+    const rows = await db("menu_orders")
+      .where({ restaurant_id: restaurant.id, device_id: deviceId })
+      .orderBy("id", "desc")
+      .limit(100);
+    res.json(
+      rows.map((row) => ({
+        ...row,
+        payload: safeJsonParse(row.payload as string, {}),
+      }))
+    );
   });
 
   app.get("/api/admin/restaurants/:id/menu", async (req, res) => {
@@ -1130,6 +1209,10 @@ async function startServer() {
     const customTemplates = await db("custom_menu_templates")
       .where({ is_active: true })
       .orderBy("id", "desc");
+    const mediaAssets = await db("restaurant_media_assets")
+      .where({ restaurant_id: id })
+      .orderBy("sort_order")
+      .orderBy("id");
 
     const pendingRow = await db("plan_upgrade_requests")
       .where({ restaurant_id: id })
@@ -1174,8 +1257,57 @@ async function startServer() {
       plan,
       planUsage,
       customTemplates,
+      media_assets: mediaAssets,
       pendingPlanRequest,
     });
+  });
+
+  app.post("/api/admin/restaurants/:id/media-assets", async (req, res) => {
+    const restaurantId = Number(req.params.id);
+    if (!requireRestaurantOrSuper(req, res, restaurantId)) return;
+    const kindRaw = String(req.body.kind || "image").toLowerCase();
+    const kind = kindRaw === "video" ? "video" : "image";
+    const url = String(req.body.url || "").trim();
+    const sortOrder = Number(req.body.sort_order || 0);
+    if (!url) return res.status(400).json({ error: "url is required" });
+    const ids = await db("restaurant_media_assets").insert({
+      restaurant_id: restaurantId,
+      kind,
+      url,
+      sort_order: Number.isFinite(sortOrder) ? sortOrder : 0,
+    });
+    const id = Number(Array.isArray(ids) ? ids[0] : ids);
+    const row = await db("restaurant_media_assets").where({ id }).first();
+    res.json(row);
+  });
+
+  app.put("/api/admin/media-assets/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    const row = await db("restaurant_media_assets").where({ id }).first();
+    if (!row) return res.status(404).json({ error: "Not found" });
+    if (!requireRestaurantOrSuper(req, res, Number(row.restaurant_id))) return;
+    const patch: Record<string, unknown> = {};
+    if (typeof req.body.url === "string" && req.body.url.trim()) patch.url = req.body.url.trim();
+    if (typeof req.body.kind === "string") {
+      patch.kind = req.body.kind.toLowerCase() === "video" ? "video" : "image";
+    }
+    if (req.body.sort_order !== undefined) {
+      const so = Number(req.body.sort_order);
+      if (Number.isFinite(so)) patch.sort_order = so;
+    }
+    if (Object.keys(patch).length === 0) return res.status(400).json({ error: "No fields" });
+    await db("restaurant_media_assets").where({ id }).update(patch);
+    const fresh = await db("restaurant_media_assets").where({ id }).first();
+    res.json(fresh);
+  });
+
+  app.delete("/api/admin/media-assets/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    const row = await db("restaurant_media_assets").where({ id }).first();
+    if (!row) return res.status(404).json({ error: "Not found" });
+    if (!requireRestaurantOrSuper(req, res, Number(row.restaurant_id))) return;
+    await db("restaurant_media_assets").where({ id }).delete();
+    res.json({ success: true });
   });
 
   app.post("/api/admin/restaurants/:id/plan-request", async (req, res) => {
@@ -1952,7 +2084,25 @@ async function startServer() {
     const id = Number(req.params.id);
     if (!requireRestaurantOrSuper(req, res, id)) return;
     const rows = await db("menu_orders").where({ restaurant_id: id }).orderBy("id", "desc").limit(100);
-    res.json(rows);
+    res.json(
+      rows.map((row) => ({
+        ...row,
+        payload: safeJsonParse(row.payload as string, {}),
+      }))
+    );
+  });
+
+  app.patch("/api/admin/restaurants/:id/orders/:orderId/status", async (req, res) => {
+    const id = Number(req.params.id);
+    if (!requireRestaurantOrSuper(req, res, id)) return;
+    const orderId = Number(req.params.orderId);
+    const status = String(req.body?.status || "");
+    const allowed = new Set(["accepted", "preparing", "sent", "delivered"]);
+    if (!allowed.has(status)) return res.status(400).json({ error: "Invalid status" });
+    const row = await db("menu_orders").where({ id: orderId, restaurant_id: id }).first();
+    if (!row) return res.status(404).json({ error: "Not found" });
+    await db("menu_orders").where({ id: orderId }).update({ status });
+    res.json({ success: true });
   });
 
   if (process.env.NODE_ENV !== "production") {

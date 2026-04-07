@@ -10,6 +10,7 @@ const CATEGORY_ORDER: TemplateCategory[] = [
   "Modern",
   "Luxury",
   "Minimal",
+  "Mega",
   "Fast Food",
   "Cafe",
 ];
@@ -43,6 +44,7 @@ export function TemplatePicker({
       Modern: [],
       Luxury: [],
       Minimal: [],
+      Mega: [],
       "Fast Food": [],
       Cafe: [],
     };

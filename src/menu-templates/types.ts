@@ -2,6 +2,7 @@ export type TemplateCategory =
   | "Modern"
   | "Luxury"
   | "Minimal"
+  | "Mega"
   | "Fast Food"
   | "Cafe";
 

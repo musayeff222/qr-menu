@@ -21,6 +21,7 @@ type Tone = "light" | "luxury" | "dark" | "neon" | "warm" | "pastel";
 type ConceptDim = {
   name: string;
   slug: string;
+  category?: TemplateCategory;
   tone: Tone;
   hue: number;
   headerLayout: HeaderLayout;
@@ -900,8 +901,9 @@ const CONCEPTS: ConceptDim[] = [
   },
 
   {
-    name: "Fast Food Bold UI",
-    slug: "fast-food-bold-ui",
+    name: "Mega 1",
+    slug: "fastfood-pro",
+    category: "Mega",
     tone: "light",
     hue: 8,
     headerLayout: "centered",
@@ -1336,7 +1338,7 @@ export function buildConceptMenuTemplates(): MenuTemplateDef[] {
   return MENU_TEMPLATE_IDS_ORDERED.map((id, i) => {
     const c = CONCEPTS[i]!;
     const theme = buildTheme(c);
-    const category = CATEGORY_OF_INDEX(i);
+    const category = c.category ?? CATEGORY_OF_INDEX(i);
     return {
       id,
       name: c.name,

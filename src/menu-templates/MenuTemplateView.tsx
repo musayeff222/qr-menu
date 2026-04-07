@@ -8,9 +8,15 @@ import {
   Instagram,
   Music2,
   Plus,
+  Minus,
   ShoppingCart,
   ChevronRight,
   Utensils,
+  Facebook,
+  Clock3,
+  Trash2,
+  House,
+  History,
 } from "lucide-react";
 import type { MenuTemplateDef } from "./types";
 import type { FontPairKey } from "./types";
@@ -70,6 +76,7 @@ export type CartLine = {
   variantId?: number;
   variantLabel?: string;
   unitPrice: number;
+  quantity: number;
   note?: string;
 };
 
@@ -91,8 +98,11 @@ export type MenuTemplateViewProps = {
     note?: string;
   }) => void;
   updateCartLineNote: (lineId: string, note: string) => void;
+  increaseCartLineQty: (lineId: string) => void;
+  decreaseCartLineQty: (lineId: string) => void;
   removeCartLine: (lineId: string) => void;
   onCheckout: () => void;
+  onOpenOrders?: () => void;
   ordersAllowed: boolean;
   ordersClosedHint?: string;
   t: (k: string) => string;
@@ -136,8 +146,11 @@ export function MenuTemplateView({
   cart,
   addToCart,
   updateCartLineNote,
+  increaseCartLineQty,
+  decreaseCartLineQty,
   removeCartLine,
   onCheckout,
+  onOpenOrders,
   ordersAllowed,
   ordersClosedHint,
   t,
@@ -153,8 +166,7 @@ export function MenuTemplateView({
   const [fly, setFly] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(
     null
   );
-  const [noteOpenByProductId, setNoteOpenByProductId] = useState<Record<number, boolean>>({});
-  const [noteDraftByProductId, setNoteDraftByProductId] = useState<Record<number, string>>({});
+  const [cartPulse, setCartPulse] = useState(0);
 
   useEffect(() => {
     if (cart.length === 0 && menuView === "cart") onMenuViewChange?.("browse");
@@ -228,6 +240,7 @@ export function MenuTemplateView({
     : "";
   const instagram = restaurant.instagram ? String(restaurant.instagram) : "";
   const tiktok = restaurant.tiktok ? String(restaurant.tiktok) : "";
+  const facebook = restaurant.facebook ? String(restaurant.facebook) : "";
   const coverUrl = restaurant.cover_image_url ? String(restaurant.cover_image_url) : "";
   const heroImageSrc = coverUrl || template.heroImage;
   const headerLayout = th.headerLayout ?? "centered";
@@ -240,6 +253,27 @@ export function MenuTemplateView({
   const tiktokVertical = rm === "tiktok-vertical-menu";
   const fullImageBgMenu = rm === "full-image-background-menu";
   const icon3d = rm === "icon-3d-ui";
+  const fastFoodMode = rm === "fastfood-pro";
+  const mediaAssets = Array.isArray(restaurant.media_assets)
+    ? (restaurant.media_assets as Array<{ id: number; kind: string; url: string }>)
+    : [];
+  const bannerAssets = mediaAssets.length
+    ? mediaAssets
+    : [
+        { id: 1, kind: "image", url: heroImageSrc },
+        { id: 2, kind: "image", url: template.heroImage },
+      ];
+  const [bannerIdx, setBannerIdx] = useState(0);
+
+  useEffect(() => {
+    if (!fastFoodMode || bannerAssets.length <= 1) return;
+    const intv = window.setInterval(() => {
+      setBannerIdx((i) => (i + 1) % bannerAssets.length);
+    }, 3600);
+    return () => window.clearInterval(intv);
+  }, [fastFoodMode, bannerAssets.length]);
+
+  const pulseCart = () => setCartPulse((n) => n + 1);
 
   const waOrderUrl =
     allowWa && whatsapp
@@ -439,6 +473,8 @@ export function MenuTemplateView({
   );
 
   const [variantPick, setVariantPick] = useState<Record<string, unknown> | null>(null);
+  const [noteModalLineId, setNoteModalLineId] = useState<string | null>(null);
+  const [noteModalDraft, setNoteModalDraft] = useState("");
 
   const variantsOf = (p: Record<string, unknown>) =>
     (Array.isArray(p.variants) ? p.variants : []) as Array<Record<string, unknown>>;
@@ -466,9 +502,9 @@ export function MenuTemplateView({
     addToCart({
       product: prod,
       unitPrice: Number(prod.price),
-      note: noteDraftByProductId[pid] || "",
+      note: "",
     });
-    setNoteDraftByProductId((m) => ({ ...m, [pid]: "" }));
+    pulseCart();
   };
 
   const pickVariant = (
@@ -484,13 +520,28 @@ export function MenuTemplateView({
       variantId: Number(v.id),
       variantLabel: String(v.name),
       unitPrice: Number(v.price),
-      note: noteDraftByProductId[pid] || "",
+      note: "",
     });
-    setNoteDraftByProductId((m) => ({ ...m, [pid]: "" }));
+    pulseCart();
     setVariantPick(null);
   };
 
-  const socialRow = (
+  const socialRow = fastFoodMode ? (
+    <nav aria-label="Quick actions" className="flex flex-wrap justify-center gap-6">
+      <a href={instagram || "https://instagram.com"} target="_blank" rel="noopener noreferrer" className="text-pink-600">
+        <Instagram size={24} />
+      </a>
+      <a href={tiktok || "https://tiktok.com"} target="_blank" rel="noopener noreferrer" className="text-slate-900">
+        <Music2 size={24} />
+      </a>
+      <a href={facebook || "https://facebook.com"} target="_blank" rel="noopener noreferrer" className="text-blue-600">
+        <Facebook size={24} />
+      </a>
+      <a href={phone ? `tel:${phone.replace(/\s/g, "")}` : "tel:+994501112233"} className="text-slate-700">
+        <Phone size={24} />
+      </a>
+    </nav>
+  ) : (
     <nav
       aria-label="Quick actions"
       className={cn(
@@ -516,6 +567,25 @@ export function MenuTemplateView({
       <ActionBtn href={tiktok} label="TikTok">
         <Music2 size={20} />
       </ActionBtn>
+      <ActionBtn href={facebook} label="Facebook">
+        <Facebook size={20} />
+      </ActionBtn>
+      {!instagram && !tiktok && !facebook && !phone ? (
+        <>
+          <ActionBtn href="https://instagram.com" label="Instagram demo">
+            <Instagram size={20} />
+          </ActionBtn>
+          <ActionBtn href="https://tiktok.com" label="TikTok demo">
+            <Music2 size={20} />
+          </ActionBtn>
+          <ActionBtn href="https://facebook.com" label="Facebook demo">
+            <Facebook size={20} />
+          </ActionBtn>
+          <ActionBtn href="tel:+994501112233" label="Telefon demo">
+            <Phone size={20} />
+          </ActionBtn>
+        </>
+      ) : null}
     </nav>
   );
 
@@ -574,6 +644,50 @@ export function MenuTemplateView({
       </motion.button>
     ) : null;
 
+    if (fastFoodMode) {
+      return (
+        <motion.article
+          key={prod.id as number}
+          layout
+          initial={{ opacity: 0, y: 14 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-24px" }}
+          className="flex flex-col rounded-3xl border border-gray-100 bg-white p-3 shadow-sm"
+        >
+          <div className="mb-3 h-32 w-full overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--mt-secondary)] to-[var(--mt-primary)]/20">
+            {img ? (
+              <img src={img} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+            ) : null}
+          </div>
+          <h2 className="text-sm font-bold text-slate-800 line-clamp-2" style={{ fontFamily: fonts.heading }}>
+            {pname}
+          </h2>
+          <div className="mt-auto flex items-center justify-between pt-2">
+            <span className="text-base font-black text-red-500">
+              {showFrom ? (
+                <>
+                  {t("price_from")} {formatPrice(displayMinPrice(prod))}
+                </>
+              ) : (
+                formatPrice(prod.price)
+              )}
+            </span>
+            {allowWa ? (
+              <motion.button
+                type="button"
+                onClick={(e) => handleAddProduct(prod, e)}
+                disabled={!ordersAllowed}
+                whileTap={{ scale: 0.9 }}
+                className="rounded-xl bg-orange-500 p-2 text-white shadow active:scale-90 disabled:opacity-40"
+              >
+                <Plus size={18} />
+              </motion.button>
+            ) : null}
+          </div>
+        </motion.article>
+      );
+    }
+
     const imgBox = (aspectCls: string) => (
       <motion.div
         className={cn(
@@ -589,51 +703,6 @@ export function MenuTemplateView({
         ) : null}
       </motion.div>
     );
-
-    const noteEditor = allowWa ? (
-      <div className="mt-2">
-        {!noteOpenByProductId[pid] ? (
-          <button
-            type="button"
-            className="text-xs font-semibold text-[var(--mt-primary)] underline underline-offset-2"
-            onClick={() =>
-              setNoteOpenByProductId((m) => ({
-                ...m,
-                [pid]: true,
-              }))
-            }
-          >
-            Qeyd əlavə et
-          </button>
-        ) : (
-          <div className="space-y-1">
-            <input
-              className="w-full text-xs p-2 rounded-lg border border-black/10 bg-transparent"
-              placeholder="Məs: Az duzlu olsun"
-              value={noteDraftByProductId[pid] || ""}
-              onChange={(e) =>
-                setNoteDraftByProductId((m) => ({
-                  ...m,
-                  [pid]: e.target.value,
-                }))
-              }
-            />
-            <button
-              type="button"
-              className="text-[11px] text-[var(--mt-muted)] underline"
-              onClick={() =>
-                setNoteOpenByProductId((m) => ({
-                  ...m,
-                  [pid]: false,
-                }))
-              }
-            >
-              Gizlət
-            </button>
-          </div>
-        )}
-      </div>
-    ) : null;
 
     if (layoutEff === "card") {
       return (
@@ -687,7 +756,6 @@ export function MenuTemplateView({
               </span>
               {innerAdd}
             </div>
-            {noteEditor}
           </div>
         </motion.article>
       );
@@ -730,7 +798,6 @@ export function MenuTemplateView({
             </span>
             {innerAdd}
           </div>
-          {noteEditor}
         </motion.article>
       );
     }
@@ -796,14 +863,15 @@ export function MenuTemplateView({
             </span>
             {innerAdd}
           </div>
-          {noteEditor}
         </div>
       </motion.article>
     );
   };
 
   const showFullCart = allowWa && cart.length > 0 && menuView === "cart";
-  const showCompactCartDrawer = !demoMode && allowWa && cart.length > 0 && menuView !== "cart";
+  const showCompactCartDrawer = false;
+  const cartCount = cart.reduce((s, l) => s + Number(l.quantity || 1), 0);
+  const cartTotal = cart.reduce((s, l) => s + Number(l.unitPrice) * Number(l.quantity || 1), 0);
 
   const cartLineBlocks = cart.map((line) => {
     const tr = line.product.translations as Record<string, { name?: string }> | undefined;
@@ -811,9 +879,36 @@ export function MenuTemplateView({
     const label = line.variantLabel ? `${line.variantLabel} · ${pn}` : pn;
     return (
       <div key={line.lineId} className="p-3 text-sm space-y-2 border-b border-black/5">
-        <div className="flex justify-between gap-2">
+        <div className="flex justify-between gap-2 items-start">
           <span className="font-medium line-clamp-2">{label}</span>
-          <span className="font-bold shrink-0">₼{Number(line.unitPrice).toFixed(2)}</span>
+          <span className="font-bold shrink-0">₼{(Number(line.unitPrice) * Number(line.quantity || 1)).toFixed(2)}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="inline-flex items-center gap-2 rounded-full border border-black/10 px-2 py-1">
+            <button
+              type="button"
+              className="h-6 w-6 rounded-full bg-black/5 grid place-items-center"
+              onClick={() => decreaseCartLineQty(line.lineId)}
+            >
+              <Minus size={14} />
+            </button>
+            <span className="min-w-5 text-center text-xs font-semibold">{Number(line.quantity || 1)}</span>
+            <button
+              type="button"
+              className="h-6 w-6 rounded-full bg-black/5 grid place-items-center"
+              onClick={() => increaseCartLineQty(line.lineId)}
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+          <button
+            type="button"
+            className="text-red-600"
+            onClick={() => removeCartLine(line.lineId)}
+            aria-label={t("cart_remove_line")}
+          >
+            <Trash2 size={16} />
+          </button>
         </div>
         <div className="flex gap-1 flex-wrap">
           {["az duzlu", "ədviyyatlı", "sos"].map((q) => (
@@ -827,20 +922,73 @@ export function MenuTemplateView({
             </button>
           ))}
         </div>
-        <input
-          className="w-full text-xs p-2 rounded-lg border border-black/10 bg-transparent"
-          placeholder={t("cart_note_placeholder")}
-          value={line.note || ""}
-          onChange={(e) => updateCartLineNote(line.lineId, e.target.value)}
-        />
         <button
           type="button"
-          className="text-xs text-red-600"
-          onClick={() => removeCartLine(line.lineId)}
+          className="w-full text-left text-xs p-2 rounded-lg border border-black/10 bg-transparent hover:bg-black/5"
+          onClick={() => {
+            setNoteModalLineId(line.lineId);
+            setNoteModalDraft(line.note || "");
+          }}
         >
-          {t("cart_remove_line")}
+          {line.note?.trim() ? `Qeyd: ${line.note}` : "Qeyd əlavə et"}
         </button>
       </div>
+    );
+  });
+
+  const fastFoodCartLineBlocks = cart.map((line) => {
+    const tr = line.product.translations as Record<string, { name?: string }> | undefined;
+    const pn = tr?.[currentLang]?.name || String(line.product.name ?? "");
+    const label = line.variantLabel ? `${line.variantLabel} · ${pn}` : pn;
+    return (
+      <motion.div
+        key={line.lineId}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h4 className="text-sm font-bold text-slate-800">{label}</h4>
+            <p className="text-xs font-bold text-red-500">₼{Number(line.unitPrice).toFixed(2)}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="grid h-8 w-8 place-items-center rounded-full bg-gray-100 font-bold"
+              onClick={() => decreaseCartLineQty(line.lineId)}
+            >
+              <Minus size={14} />
+            </button>
+            <span className="text-sm font-bold">{Number(line.quantity || 1)}</span>
+            <button
+              type="button"
+              className="grid h-8 w-8 place-items-center rounded-full bg-slate-800 text-white font-bold"
+              onClick={() => increaseCartLineQty(line.lineId)}
+            >
+              <Plus size={14} />
+            </button>
+            <button
+              type="button"
+              className="ml-1 text-gray-400 hover:text-red-600"
+              onClick={() => removeCartLine(line.lineId)}
+              aria-label={t("cart_remove_line")}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="mt-3 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-left text-xs text-slate-600"
+          onClick={() => {
+            setNoteModalLineId(line.lineId);
+            setNoteModalDraft(line.note || "");
+          }}
+        >
+          {line.note?.trim() ? `Qeyd: ${line.note}` : "Qeyd əlavə et"}
+        </button>
+      </motion.div>
     );
   });
 
@@ -854,7 +1002,7 @@ export function MenuTemplateView({
       )}
       style={{
         ...cssVars,
-        backgroundColor: fullImageBgMenu ? "transparent" : "var(--mt-bg)",
+        backgroundColor: fastFoodMode ? "#f1f2f6" : fullImageBgMenu ? "transparent" : "var(--mt-bg)",
         color: "var(--mt-text)",
         fontFamily: fonts.body,
       }}
@@ -898,63 +1046,165 @@ export function MenuTemplateView({
       {showFullCart ? (
         <div
           className="fixed inset-0 z-[55] flex flex-col pb-safe"
-          style={{ backgroundColor: "var(--mt-bg)", color: "var(--mt-text)" }}
+          style={{ backgroundColor: fastFoodMode ? "#f1f2f6" : "var(--mt-bg)", color: "var(--mt-text)" }}
         >
-          <div
-            className="flex shrink-0 items-center gap-3 border-b border-black/10 px-4 py-3 pt-safe"
-            style={{ backgroundColor: "var(--mt-surface)" }}
-          >
-            <button
-              type="button"
-              className="rounded-lg px-2 py-1.5 text-sm font-semibold"
-              style={{ color: "var(--mt-primary)" }}
-              onClick={() => onMenuViewChange?.("browse")}
-            >
-              ← {t("cart_back_menu")}
-            </button>
-            <h2 className="text-lg font-bold">{t("cart_screen_title")}</h2>
-          </div>
-          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 py-2">
-            <div
-              className="rounded-2xl border border-black/10 bg-[var(--mt-surface)] shadow-lg"
-              style={{ color: "var(--mt-text)" }}
-            >
-              {cartLineBlocks}
-            </div>
-            {!ordersAllowed && ordersClosedHint ? (
-              <p className="rounded-lg bg-amber-100 px-2 py-2 text-center text-xs text-amber-800">
-                {ordersClosedHint}
-              </p>
-            ) : null}
-          </div>
-          <div className="shrink-0 border-t border-black/10 p-3" style={{ backgroundColor: "var(--mt-surface)" }}>
-            <button
-              type="button"
-              onClick={() => ordersAllowed && onCheckout()}
-              disabled={!ordersAllowed}
-              className="flex w-full items-center justify-between p-4 font-bold text-white shadow-xl active:scale-[0.99] disabled:opacity-50"
-              style={{
-                backgroundColor: "var(--mt-primary)",
-                borderRadius: th.radius === "full" ? "9999px" : "1rem",
-              }}
-            >
-              <span className="flex items-center gap-3">
-                <ShoppingCart size={22} />
-                {cart.length} · ₼{cart.reduce((s, l) => s + Number(l.unitPrice), 0).toFixed(2)}
-              </span>
-              <span className="flex items-center gap-1">
-                {t("order_via_whatsapp")}
-                <ChevronRight size={20} />
-              </span>
-            </button>
-          </div>
+          {fastFoodMode ? (
+            <>
+              <div className="flex items-center px-6 pt-8 pb-5">
+                <button
+                  type="button"
+                  onClick={() => onMenuViewChange?.("browse")}
+                  className="grid h-10 w-10 place-items-center rounded-full bg-white shadow-md"
+                >
+                  <ChevronRight size={18} className="rotate-180" />
+                </button>
+                <h2 className="ml-4 text-2xl font-black text-slate-900">Səbətim</h2>
+              </div>
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-4">
+                <div className="space-y-3">{fastFoodCartLineBlocks}</div>
+              </div>
+              <div className="px-6 pb-24">
+                <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-xl">
+                  <div className="mb-4 flex items-center justify-between">
+                    <span className="text-gray-500">Cəmi:</span>
+                    <span className="text-xl font-black text-red-500">₼{cartTotal.toFixed(2)}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => ordersAllowed && onCheckout()}
+                    disabled={!ordersAllowed}
+                    className="w-full flex items-center justify-between rounded-2xl bg-slate-900 px-6 py-4 font-bold text-white disabled:opacity-50"
+                  >
+                    <span>Davam et</span>
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div
+                className="flex shrink-0 items-center gap-3 border-b border-black/10 px-4 py-3 pt-safe"
+                style={{ backgroundColor: "var(--mt-surface)" }}
+              >
+                <button
+                  type="button"
+                  className="rounded-lg px-3 py-1.5 text-sm font-semibold border border-black/10"
+                  style={{ color: "var(--mt-primary)", backgroundColor: "var(--mt-bg)" }}
+                  onClick={() => onMenuViewChange?.("browse")}
+                >
+                  ← {t("cart_back_menu")}
+                </button>
+                <h2 className="text-lg font-bold">{t("cart_screen_title")}</h2>
+              </div>
+              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 py-2">
+                <div
+                  className="rounded-2xl border border-black/10 bg-[var(--mt-surface)] shadow-lg"
+                  style={{ color: "var(--mt-text)" }}
+                >
+                  {cartLineBlocks}
+                </div>
+                {!ordersAllowed && ordersClosedHint ? (
+                  <p className="rounded-lg bg-amber-100 px-2 py-2 text-center text-xs text-amber-800">
+                    {ordersClosedHint}
+                  </p>
+                ) : null}
+              </div>
+              <div className="shrink-0 border-t border-black/10 p-3" style={{ backgroundColor: "var(--mt-surface)" }}>
+                <div className="mb-2 text-sm font-semibold text-right">Cəmi: ₼{cartTotal.toFixed(2)}</div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onMenuViewChange?.("browse")}
+                    className="rounded-xl border border-black/10 px-4 py-3 text-sm font-semibold"
+                  >
+                    →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => ordersAllowed && onCheckout()}
+                    disabled={!ordersAllowed}
+                    className="flex-1 flex items-center justify-between p-4 font-bold text-white shadow-xl active:scale-[0.99] disabled:opacity-50"
+                    style={{
+                      backgroundColor: "var(--mt-primary)",
+                      borderRadius: th.radius === "full" ? "9999px" : "1rem",
+                    }}
+                  >
+                    <span className="flex items-center gap-3">
+                      <ShoppingCart size={22} />
+                      {cartCount} · ₼{cartTotal.toFixed(2)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      Sifarişi ver
+                      <ChevronRight size={20} />
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+          {fastFoodMode && !ordersAllowed && ordersClosedHint ? (
+            <p className="px-6 pb-3 text-center text-xs text-amber-800">{ordersClosedHint}</p>
+          ) : null}
         </div>
       ) : null}
 
       {!showFullCart ? (
         <>
       <header>
-        {headerLayout === "split" ? (
+        {fastFoodMode ? (
+          <div className="relative overflow-hidden border-b border-black/10">
+            <div className="absolute right-3 top-3 z-20">{langSelect}</div>
+            <div className="relative h-64 sm:h-72">
+              {bannerAssets.map((asset, idx) => (
+                <div
+                  key={asset.id}
+                  className={cn(
+                    "absolute inset-0 transition-opacity duration-500",
+                    idx === bannerIdx ? "opacity-100" : "opacity-0"
+                  )}
+                >
+                  {String(asset.kind) === "video" ? (
+                    <video
+                      src={asset.url}
+                      className="h-full w-full object-cover"
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  ) : (
+                    <img src={asset.url} alt="" className="h-full w-full object-cover" />
+                  )}
+                </div>
+              ))}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/10" />
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                {bannerAssets.map((asset, idx) => (
+                  <span
+                    key={`dot-${asset.id}`}
+                    className={cn("h-2 w-2 rounded-full", idx === bannerIdx ? "bg-white" : "bg-white/50")}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="bg-[var(--mt-surface)] px-4 pb-6 pt-5 text-center">
+              <h1
+                className={cn("text-4xl tracking-tighter italic", th.headingWeight)}
+                style={{ fontFamily: fonts.heading }}
+              >
+                {name}
+              </h1>
+              {restaurant.opening_hours ? (
+                <div className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[var(--mt-muted)]">
+                  <Clock3 size={14} />
+                  {String(restaurant.opening_hours)}
+                </div>
+              ) : null}
+              <div className="mt-4">{socialRow}</div>
+            </div>
+          </div>
+        ) : headerLayout === "split" ? (
           <div
             className={cn(
               "relative flex flex-col md:flex-row md:min-h-[44vh] overflow-hidden",
@@ -1100,6 +1350,34 @@ export function MenuTemplateView({
               <div className="mt-5">{socialRow}</div>
             </div>
           </div>
+        ) : fastFoodMode ? (
+          <nav
+            aria-label="Menu categories"
+            className="sticky top-0 z-40 overflow-x-auto bg-white/80 px-4 py-4 backdrop-blur-md"
+          >
+            <div className="flex w-max min-w-full gap-3">
+              {categories.map((cat) => {
+                const cname =
+                  ((cat.translations as Record<string, string> | undefined)?.[currentLang] as string) ||
+                  String(cat.name);
+                const active = Number(cat.id) === Number(activeCategory);
+                return (
+                  <button
+                    key={cat.id as number}
+                    type="button"
+                    onClick={() => setActiveCategory(cat.id as number)}
+                    className={cn(
+                      "whitespace-nowrap rounded-full px-5 py-2 text-sm font-bold shadow-sm transition-all",
+                      active ? "text-white shadow-lg" : "bg-white text-slate-700"
+                    )}
+                    style={active ? { backgroundColor: "var(--mt-primary)" } : undefined}
+                  >
+                    {cname}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
         ) : (
           <div
             className={cn(
@@ -1295,6 +1573,7 @@ export function MenuTemplateView({
             aria-label="Menu items"
             className={cn(
               "px-3 sm:px-4 py-4",
+              fastFoodMode && "grid grid-cols-2 gap-4",
               instagramGrid && "grid grid-cols-3 gap-1.5 sm:gap-2",
               !instagramGrid && productLayout === "grid" && "grid grid-cols-1 sm:grid-cols-2 gap-3",
               !instagramGrid && productLayout === "card" && "grid grid-cols-1 sm:grid-cols-2 gap-4",
@@ -1310,9 +1589,9 @@ export function MenuTemplateView({
         </div>
       </main>
 
-      {allowWa && th.showFab && waOrderUrl && (!demoMode || cart.length > 0) && (
+      {allowWa && th.showFab && !fastFoodMode && waOrderUrl && (!demoMode || cart.length > 0) && (
         cart.length > 0 ? (
-          <button
+          <motion.button
             ref={fabRef}
             type="button"
             onClick={() => ordersAllowed && cart.length > 0 && onMenuViewChange?.("cart")}
@@ -1324,8 +1603,20 @@ export function MenuTemplateView({
             style={{ backgroundColor: "#22c55e" }}
             aria-label={t("nav_cart")}
           >
-            <ShoppingCart size={26} />
-          </button>
+            <motion.div
+              key={`fab-${cartPulse}`}
+              animate={{ rotate: [0, -9, 9, -6, 0], scale: [1, 1.12, 1] }}
+              transition={{ duration: 0.45 }}
+              className="relative"
+            >
+              <ShoppingCart size={26} />
+              {cartCount > 0 ? (
+                <span className="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black text-white">
+                  {cartCount}
+                </span>
+              ) : null}
+            </motion.div>
+          </motion.button>
         ) : (
           <a
             href={waOrderUrl}
@@ -1345,9 +1636,43 @@ export function MenuTemplateView({
 
       {th.showBottomNav && (
         <nav
-          className="fixed bottom-0 left-0 right-0 z-40 border-t border-black/10 bg-[var(--mt-surface)]/95 backdrop-blur flex justify-around py-2 pb-safe"
+          className={cn(
+            "fixed bottom-0 left-0 right-0 z-40 border-t border-black/10 backdrop-blur flex justify-around py-2 pb-safe",
+            fastFoodMode ? "bg-white/90 px-4" : "bg-[var(--mt-surface)]/95"
+          )}
           aria-label="Bottom navigation"
         >
+          {fastFoodMode ? (
+            <>
+              <a href={`#main-menu`} className="flex flex-col items-center text-[10px] text-slate-500">
+                <House size={22} />
+              </a>
+              <button
+                ref={navCartRef}
+                type="button"
+                onClick={() => allowWa && ordersAllowed && cart.length > 0 && onMenuViewChange?.("cart")}
+                className="relative flex flex-col items-center text-[10px] text-slate-800"
+              >
+                <motion.div
+                  key={`nav-cart-${cartPulse}`}
+                  animate={{ scale: [1, 1.18, 1], rotate: [0, -7, 7, 0] }}
+                  transition={{ duration: 0.38 }}
+                  className="relative"
+                >
+                  <ShoppingCart size={22} />
+                  {cartCount > 0 ? (
+                    <span className="absolute -right-2 -top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                      {cartCount}
+                    </span>
+                  ) : null}
+                </motion.div>
+              </button>
+              <button type="button" onClick={() => onOpenOrders?.()} className="flex flex-col items-center text-[10px] text-slate-500">
+                <History size={22} />
+              </button>
+            </>
+          ) : (
+            <>
           <a href={`#main-menu`} className="flex flex-col items-center text-[10px] text-[var(--mt-muted)]">
             <Utensils size={22} style={{ color: "var(--mt-primary)" }} />
             {t("nav_menu")}
@@ -1367,11 +1692,33 @@ export function MenuTemplateView({
             ref={navCartRef}
             type="button"
             onClick={() => allowWa && ordersAllowed && cart.length > 0 && onMenuViewChange?.("cart")}
-            className="flex flex-col items-center text-[10px] text-[var(--mt-muted)]"
+            className="relative flex flex-col items-center text-[10px] text-[var(--mt-muted)]"
           >
-            <ShoppingCart size={22} />
+            <motion.div
+              key={`nav-cart-${cartPulse}`}
+              animate={{ scale: [1, 1.18, 1], rotate: [0, -7, 7, 0] }}
+              transition={{ duration: 0.38 }}
+              className="relative"
+            >
+              <ShoppingCart size={22} />
+              {cartCount > 0 ? (
+                <span className="absolute -right-2 -top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                  {cartCount}
+                </span>
+              ) : null}
+            </motion.div>
             {t("nav_cart")}
           </button>
+          <button
+            type="button"
+            onClick={() => onOpenOrders?.()}
+            className="flex flex-col items-center text-[10px] text-[var(--mt-muted)]"
+          >
+            <Calendar size={22} />
+            Sifarişlərim
+          </button>
+            </>
+          )}
         </nav>
       )}
 
@@ -1416,11 +1763,10 @@ export function MenuTemplateView({
             >
               <span className="flex items-center gap-3">
                 <ShoppingCart size={22} />
-                {cart.length} · ₼
-                {cart.reduce((s, l) => s + Number(l.unitPrice), 0).toFixed(2)}
+                {cartCount} · ₼{cartTotal.toFixed(2)}
               </span>
               <span className="flex items-center gap-1">
-                {t("order_via_whatsapp")}
+                Sifarişi ver
                 <ChevronRight size={20} />
               </span>
             </button>
@@ -1468,6 +1814,54 @@ export function MenuTemplateView({
               >
                 {t("btn_close")}
               </button>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+      <AnimatePresence>
+        {noteModalLineId ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[90] bg-black/55 flex items-end sm:items-center justify-center p-4"
+            onClick={() => setNoteModalLineId(null)}
+          >
+            <motion.div
+              initial={{ y: 36 }}
+              animate={{ y: 0 }}
+              exit={{ y: 36 }}
+              className="w-full max-w-md rounded-2xl p-4 shadow-2xl"
+              style={{ backgroundColor: "var(--mt-surface)", color: "var(--mt-text)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-base font-bold mb-2">Qeyd</h3>
+              <textarea
+                className="w-full min-h-[100px] rounded-xl border border-black/10 bg-transparent p-3 text-sm"
+                placeholder={t("cart_note_placeholder")}
+                value={noteModalDraft}
+                onChange={(e) => setNoteModalDraft(e.target.value)}
+              />
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  className="flex-1 rounded-xl border border-black/10 py-2 text-sm font-medium"
+                  onClick={() => setNoteModalLineId(null)}
+                >
+                  Ləğv et
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 rounded-xl py-2 text-sm font-bold text-white"
+                  style={{ backgroundColor: "var(--mt-primary)" }}
+                  onClick={() => {
+                    if (noteModalLineId) updateCartLineNote(noteModalLineId, noteModalDraft);
+                    setNoteModalLineId(null);
+                  }}
+                >
+                  Yadda saxla
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         ) : null}

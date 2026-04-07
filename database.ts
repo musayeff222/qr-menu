@@ -475,6 +475,33 @@ export async function initDatabase() {
           .onDelete("CASCADE");
         table.text("payload");
         table.string("status", 32).defaultTo("new");
+        table.string("device_id", 120).index();
+        table.string("order_type", 24);
+        table.string("payment_method", 24);
+        table.string("order_source", 24);
+        table.string("customer_name", 200);
+        table.string("customer_phone", 64);
+        table.text("address_text");
+        table.text("geo_url");
+        table.text("note");
+        table.decimal("total_amount", 10, 2).defaultTo(0);
+        table.timestamps(true, true);
+      });
+    }
+
+    if (!(await db.schema.hasTable("restaurant_media_assets"))) {
+      await db.schema.createTable("restaurant_media_assets", (table) => {
+        table.increments("id");
+        table
+          .integer("restaurant_id")
+          .unsigned()
+          .notNullable()
+          .references("id")
+          .inTable("restaurants")
+          .onDelete("CASCADE");
+        table.string("kind", 16).notNullable().defaultTo("image");
+        table.string("url", 600).notNullable();
+        table.integer("sort_order").defaultTo(0);
         table.timestamps(true, true);
       });
     }
@@ -650,6 +677,9 @@ export async function initDatabase() {
       await ensureColumn("restaurants", "tiktok", (table) => {
         table.string("tiktok", 200);
       });
+      await ensureColumn("restaurants", "facebook", (table) => {
+        table.string("facebook", 200);
+      });
       await ensureColumn("restaurants", "opening_hours", (table) => {
         table.text("opening_hours");
       });
@@ -697,6 +727,39 @@ export async function initDatabase() {
     if (await db.schema.hasTable("owner_notifications")) {
       await ensureColumn("owner_notifications", "channel", (table) => {
         table.string("channel", 24).defaultTo("system");
+      });
+    }
+
+    if (await db.schema.hasTable("menu_orders")) {
+      await ensureColumn("menu_orders", "device_id", (table) => {
+        table.string("device_id", 120).index();
+      });
+      await ensureColumn("menu_orders", "order_type", (table) => {
+        table.string("order_type", 24);
+      });
+      await ensureColumn("menu_orders", "payment_method", (table) => {
+        table.string("payment_method", 24);
+      });
+      await ensureColumn("menu_orders", "order_source", (table) => {
+        table.string("order_source", 24);
+      });
+      await ensureColumn("menu_orders", "customer_name", (table) => {
+        table.string("customer_name", 200);
+      });
+      await ensureColumn("menu_orders", "customer_phone", (table) => {
+        table.string("customer_phone", 64);
+      });
+      await ensureColumn("menu_orders", "address_text", (table) => {
+        table.text("address_text");
+      });
+      await ensureColumn("menu_orders", "geo_url", (table) => {
+        table.text("geo_url");
+      });
+      await ensureColumn("menu_orders", "note", (table) => {
+        table.text("note");
+      });
+      await ensureColumn("menu_orders", "total_amount", (table) => {
+        table.decimal("total_amount", 10, 2).defaultTo(0);
       });
     }
 
