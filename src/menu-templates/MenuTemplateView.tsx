@@ -17,6 +17,7 @@ import {
   Trash2,
   House,
   History,
+  Search,
 } from "lucide-react";
 import type { MenuTemplateDef } from "./types";
 import type { FontPairKey } from "./types";
@@ -254,6 +255,7 @@ export function MenuTemplateView({
   const fullImageBgMenu = rm === "full-image-background-menu";
   const icon3d = rm === "icon-3d-ui";
   const fastFoodMode = rm === "fastfood-pro";
+  const mega2Mode = rm === "mega2-kinetic";
   const mediaAssets = Array.isArray(restaurant.media_assets)
     ? (restaurant.media_assets as Array<{ id: number; kind: string; url: string }>)
     : [];
@@ -644,6 +646,53 @@ export function MenuTemplateView({
       </motion.button>
     ) : null;
 
+    if (mega2Mode) {
+      return (
+        <motion.article
+          key={prod.id as number}
+          layout
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-20px" }}
+          className="group relative"
+        >
+          <div className="rounded-[2rem] bg-white p-6 shadow-[0_24px_48px_rgba(156,63,0,0.08)] transition-transform duration-300 group-hover:-translate-y-1">
+            <div className="relative mb-5 h-56 overflow-hidden rounded-[2rem] sm:h-64">
+              {img ? (
+                <img
+                  src={img}
+                  alt=""
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  loading="lazy"
+                  decoding="async"
+                />
+              ) : null}
+            </div>
+            <h2 className="text-xl font-bold leading-tight text-[var(--mt-text)]" style={{ fontFamily: fonts.heading }}>
+              {pname}
+            </h2>
+            {pdesc ? <p className="mt-1 text-sm text-[var(--mt-muted)] line-clamp-2">{pdesc}</p> : null}
+            <div className="mt-4 flex items-center justify-between">
+              <span className="text-2xl font-black text-orange-600">
+                {showFrom ? `${t("price_from")} ${formatPrice(displayMinPrice(prod))}` : formatPrice(prod.price)}
+              </span>
+              {allowWa ? (
+                <motion.button
+                  type="button"
+                  onClick={(e) => handleAddProduct(prod, e)}
+                  disabled={!ordersAllowed}
+                  whileTap={{ scale: 0.92 }}
+                  className="grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-[var(--mt-primary)] to-[var(--mt-accent)] text-white shadow-lg"
+                >
+                  <Plus size={20} />
+                </motion.button>
+              ) : null}
+            </div>
+          </div>
+        </motion.article>
+      );
+    }
+
     if (fastFoodMode) {
       return (
         <motion.article
@@ -1002,7 +1051,8 @@ export function MenuTemplateView({
       )}
       style={{
         ...cssVars,
-        backgroundColor: fastFoodMode ? "#f1f2f6" : fullImageBgMenu ? "transparent" : "var(--mt-bg)",
+        backgroundColor:
+          fastFoodMode ? "#f1f2f6" : mega2Mode ? "#f9f6f5" : fullImageBgMenu ? "transparent" : "var(--mt-bg)",
         color: "var(--mt-text)",
         fontFamily: fonts.body,
       }}
@@ -1046,9 +1096,50 @@ export function MenuTemplateView({
       {showFullCart ? (
         <div
           className="fixed inset-0 z-[55] flex flex-col pb-safe"
-          style={{ backgroundColor: fastFoodMode ? "#f1f2f6" : "var(--mt-bg)", color: "var(--mt-text)" }}
+          style={{
+            backgroundColor: fastFoodMode ? "#f1f2f6" : mega2Mode ? "#f9f6f5" : "var(--mt-bg)",
+            color: "var(--mt-text)",
+          }}
         >
-          {fastFoodMode ? (
+          {mega2Mode ? (
+            <>
+              <div className="fixed left-0 right-0 top-0 z-50 flex items-center justify-between bg-[var(--mt-bg)]/60 px-6 py-4 backdrop-blur-xl">
+                <button
+                  type="button"
+                  onClick={() => onMenuViewChange?.("browse")}
+                  className="grid h-12 w-12 place-items-center rounded-full bg-white shadow-sm active:scale-95"
+                >
+                  <ChevronRight size={18} className="rotate-180 text-[var(--mt-primary)]" />
+                </button>
+                <h2 className="text-xl font-extrabold">Səbətiniz</h2>
+                <div className="h-12 w-12" />
+              </div>
+              <div className="mt-20 flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-40">
+                <div className="space-y-4">{cartLineBlocks}</div>
+              </div>
+              <div className="fixed bottom-0 left-0 right-0 rounded-t-[3rem] bg-white/70 px-6 pb-10 pt-6 backdrop-blur-2xl">
+                <div className="mx-auto max-w-2xl space-y-3">
+                  <div className="flex items-center justify-between px-1 text-sm text-[var(--mt-muted)]">
+                    <span>Cəmi</span>
+                    <span>₼{cartTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-1 pt-1">
+                    <span className="text-2xl font-extrabold">Yekun</span>
+                    <span className="text-2xl font-extrabold text-[var(--mt-primary)]">₼{cartTotal.toFixed(2)}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => ordersAllowed && onCheckout()}
+                    disabled={!ordersAllowed}
+                    className="mt-2 flex w-full items-center justify-center gap-3 rounded-full bg-gradient-to-br from-[var(--mt-primary)] to-[var(--mt-accent)] py-5 text-lg font-extrabold text-white shadow-[0_24px_48px_rgba(156,63,0,0.25)] disabled:opacity-50"
+                  >
+                    Ödənişə davam et
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : fastFoodMode ? (
             <>
               <div className="flex items-center px-6 pt-8 pb-5">
                 <button
@@ -1143,7 +1234,7 @@ export function MenuTemplateView({
               </div>
             </>
           )}
-          {fastFoodMode && !ordersAllowed && ordersClosedHint ? (
+          {(fastFoodMode || mega2Mode) && !ordersAllowed && ordersClosedHint ? (
             <p className="px-6 pb-3 text-center text-xs text-amber-800">{ordersClosedHint}</p>
           ) : null}
         </div>
@@ -1152,7 +1243,40 @@ export function MenuTemplateView({
       {!showFullCart ? (
         <>
       <header>
-        {fastFoodMode ? (
+        {mega2Mode ? (
+          <div className="relative overflow-hidden">
+            <div className="fixed left-0 right-0 top-0 z-50 flex items-center justify-between bg-[var(--mt-bg)]/60 px-6 py-4 backdrop-blur-xl shadow-[0_24px_48px_rgba(156,63,0,0.08)]">
+              <span className="text-2xl font-black italic tracking-tight text-orange-600">Kinetic Gourmet</span>
+              <button
+                ref={navCartRef}
+                type="button"
+                onClick={() => allowWa && ordersAllowed && cart.length > 0 && onMenuViewChange?.("cart")}
+                className="relative text-orange-600"
+              >
+                <ShoppingCart size={24} />
+                {cartCount > 0 ? (
+                  <span className="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black text-white">
+                    {cartCount}
+                  </span>
+                ) : null}
+              </button>
+            </div>
+            <div className="relative mt-16 h-[54vh] overflow-hidden">
+              <img src={heroImageSrc} alt="" className="h-full w-full scale-105 object-cover brightness-75" />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--mt-bg)]/90" />
+            </div>
+            <section className="relative -mt-20 px-6 pb-8 text-center">
+              <h1 className="text-5xl font-black italic tracking-tighter text-[var(--mt-text)] sm:text-7xl">{name}</h1>
+              <p className="mx-auto mt-3 max-w-xl text-sm font-medium text-[var(--mt-muted)] sm:text-base">{tagline}</p>
+              {restaurant.opening_hours ? (
+                <div className="mt-4 inline-flex items-center gap-1 rounded-full bg-[var(--mt-surface)] px-4 py-2 text-xs font-semibold text-[var(--mt-muted)]">
+                  <Clock3 size={14} /> {String(restaurant.opening_hours)}
+                </div>
+              ) : null}
+              <div className="mt-5">{socialRow}</div>
+            </section>
+          </div>
+        ) : fastFoodMode ? (
           <div className="relative overflow-hidden border-b border-black/10">
             <div className="absolute right-3 top-3 z-20">{langSelect}</div>
             <div className="relative h-64 sm:h-72">
@@ -1378,6 +1502,33 @@ export function MenuTemplateView({
               })}
             </div>
           </nav>
+        ) : mega2Mode ? (
+          <nav
+            aria-label="Menu categories"
+            className="mb-8 overflow-x-auto px-6 no-scrollbar"
+          >
+            <div className="flex w-max min-w-full gap-4">
+              {categories.map((cat) => {
+                const cname =
+                  ((cat.translations as Record<string, string> | undefined)?.[currentLang] as string) ||
+                  String(cat.name);
+                const active = Number(cat.id) === Number(activeCategory);
+                return (
+                  <button
+                    key={cat.id as number}
+                    type="button"
+                    onClick={() => setActiveCategory(cat.id as number)}
+                    className={cn(
+                      "shrink-0 rounded-full px-8 py-3 text-sm font-bold transition-colors",
+                      active ? "bg-yellow-400 text-yellow-900 shadow-lg" : "bg-[var(--mt-surface)] text-[var(--mt-muted)]"
+                    )}
+                  >
+                    {cname}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
         ) : (
           <div
             className={cn(
@@ -1574,6 +1725,7 @@ export function MenuTemplateView({
             className={cn(
               "px-3 sm:px-4 py-4",
               fastFoodMode && "grid grid-cols-2 gap-4",
+              mega2Mode && "px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10",
               instagramGrid && "grid grid-cols-3 gap-1.5 sm:gap-2",
               !instagramGrid && productLayout === "grid" && "grid grid-cols-1 sm:grid-cols-2 gap-3",
               !instagramGrid && productLayout === "card" && "grid grid-cols-1 sm:grid-cols-2 gap-4",
@@ -1589,7 +1741,7 @@ export function MenuTemplateView({
         </div>
       </main>
 
-      {allowWa && th.showFab && !fastFoodMode && waOrderUrl && (!demoMode || cart.length > 0) && (
+      {allowWa && th.showFab && !fastFoodMode && !mega2Mode && waOrderUrl && (!demoMode || cart.length > 0) && (
         cart.length > 0 ? (
           <motion.button
             ref={fabRef}
@@ -1638,7 +1790,7 @@ export function MenuTemplateView({
         <nav
           className={cn(
             "fixed bottom-0 left-0 right-0 z-40 border-t border-black/10 backdrop-blur flex justify-around py-2 pb-safe",
-            fastFoodMode ? "bg-white/90 px-4" : "bg-[var(--mt-surface)]/95"
+            fastFoodMode || mega2Mode ? "bg-white/90 px-4" : "bg-[var(--mt-surface)]/95"
           )}
           aria-label="Bottom navigation"
         >
@@ -1669,6 +1821,21 @@ export function MenuTemplateView({
               </button>
               <button type="button" onClick={() => onOpenOrders?.()} className="flex flex-col items-center text-[10px] text-slate-500">
                 <History size={22} />
+              </button>
+            </>
+          ) : mega2Mode ? (
+            <>
+              <a href={`#main-menu`} className="flex flex-col items-center text-[10px] text-slate-500">
+                <Utensils size={22} />
+                <span className="mt-1 font-bold uppercase tracking-widest">Menyu</span>
+              </a>
+              <button type="button" className="flex flex-col items-center text-[10px] text-slate-500">
+                <Search size={22} />
+                <span className="mt-1 font-bold uppercase tracking-widest">Axtarış</span>
+              </button>
+              <button type="button" onClick={() => onOpenOrders?.()} className="flex flex-col items-center text-[10px] text-orange-700">
+                <History size={22} />
+                <span className="mt-1 font-bold uppercase tracking-widest">Sifarişlərim</span>
               </button>
             </>
           ) : (

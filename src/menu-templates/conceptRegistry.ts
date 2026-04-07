@@ -923,8 +923,9 @@ const CONCEPTS: ConceptDim[] = [
     fontI: 30,
   },
   {
-    name: "Street Food Style",
-    slug: "street-food-style",
+    name: "Mega 2",
+    slug: "mega2-kinetic",
+    category: "Mega",
     tone: "warm",
     hue: 28,
     headerLayout: "side",

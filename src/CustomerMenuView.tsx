@@ -105,6 +105,7 @@ export default function CustomerMenuView({
     custom_templates
   );
   const mega1Mode = template.theme.renderMode === "fastfood-pro";
+  const mega2Mode = template.theme.renderMode === "mega2-kinetic";
 
   const ordersAllowed = orders_allowed !== false;
   const ordersClosedHint = t("orders_closed_hint");
@@ -363,12 +364,12 @@ export default function CustomerMenuView({
               exit={{ y: 40 }}
               className={cn(
                 "w-full max-w-md bg-white text-gray-900 shadow-2xl max-h-[90vh] overflow-y-auto",
-                mega1Mode ? "rounded-3xl p-6" : "rounded-2xl p-5"
+                mega1Mode ? "rounded-3xl p-6" : mega2Mode ? "rounded-3xl p-6" : "rounded-2xl p-5"
               )}
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 className={cn("font-black mb-6", mega1Mode ? "text-2xl" : "text-lg")}>
-                {mega1Mode ? "Məlumatlar" : t("checkout_title")}
+              <h2 className={cn("font-black mb-6", mega1Mode || mega2Mode ? "text-2xl" : "text-lg")}>
+                {mega1Mode ? "Məlumatlar" : mega2Mode ? "Sifarişi Tamamla" : t("checkout_title")}
               </h2>
               <div className={cn("mb-4 grid grid-cols-2 gap-2", mega1Mode && "rounded-2xl bg-gray-200 p-1")}>
                 <button
@@ -376,7 +377,7 @@ export default function CustomerMenuView({
                   onClick={() => setOrderType("pickup")}
                   className={cn(
                     "rounded-xl py-3 text-sm font-bold transition-colors",
-                    mega1Mode
+                  mega1Mode || mega2Mode
                       ? orderType === "pickup"
                         ? "bg-white text-slate-900 shadow-sm"
                         : "text-gray-500"
@@ -392,7 +393,7 @@ export default function CustomerMenuView({
                   onClick={() => setOrderType("delivery")}
                   className={cn(
                     "rounded-xl py-3 text-sm font-bold transition-colors",
-                    mega1Mode
+                  mega1Mode || mega2Mode
                       ? orderType === "delivery"
                         ? "bg-white text-slate-900 shadow-sm"
                         : "text-gray-500"
@@ -408,7 +409,9 @@ export default function CustomerMenuView({
               <input
                 className={cn(
                   "w-full p-4 text-sm mb-3",
-                  mega1Mode ? "rounded-2xl border-0 shadow-sm ring-1 ring-gray-200" : "border rounded-xl"
+                  mega1Mode || mega2Mode
+                    ? "rounded-2xl border-0 shadow-sm ring-1 ring-gray-200"
+                    : "border rounded-xl"
                 )}
                 value={fullName}
                 onChange={(e) => {
@@ -421,7 +424,9 @@ export default function CustomerMenuView({
               <input
                 className={cn(
                   "w-full p-4 text-sm mb-3",
-                  mega1Mode ? "rounded-2xl border-0 shadow-sm ring-1 ring-gray-200" : "border rounded-xl"
+                  mega1Mode || mega2Mode
+                    ? "rounded-2xl border-0 shadow-sm ring-1 ring-gray-200"
+                    : "border rounded-xl"
                 )}
                 value={phoneNumber}
                 onChange={(e) => {
@@ -434,7 +439,9 @@ export default function CustomerMenuView({
               <textarea
                 className={cn(
                   "w-full p-4 text-sm mb-3 min-h-[72px]",
-                  mega1Mode ? "rounded-2xl border-0 shadow-sm ring-1 ring-gray-200" : "border rounded-xl"
+                  mega1Mode || mega2Mode
+                    ? "rounded-2xl border-0 shadow-sm ring-1 ring-gray-200"
+                    : "border rounded-xl"
                 )}
                 value={addressText}
                 onChange={(e) => {
@@ -453,7 +460,7 @@ export default function CustomerMenuView({
                 }}
                 className={cn(
                   "w-full mb-4 text-sm font-semibold disabled:opacity-60",
-                  mega1Mode
+                  mega1Mode || mega2Mode
                     ? "h-40 rounded-3xl border-4 border-white bg-slate-200 shadow-lg"
                     : "py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50"
                 )}
@@ -467,7 +474,9 @@ export default function CustomerMenuView({
               <textarea
                 className={cn(
                   "w-full p-4 text-sm mb-4 min-h-[60px]",
-                  mega1Mode ? "rounded-2xl border-0 shadow-sm ring-1 ring-gray-200" : "border rounded-xl"
+                  mega1Mode || mega2Mode
+                    ? "rounded-2xl border-0 shadow-sm ring-1 ring-gray-200"
+                    : "border rounded-xl"
                 )}
                 value={customerNote}
                 onChange={(e) => setCustomerNote(e.target.value)}
@@ -534,7 +543,13 @@ export default function CustomerMenuView({
                   disabled={checkoutBusy}
                   className={cn(
                     "flex-1 py-3 rounded-2xl text-white font-bold disabled:opacity-60",
-                    orderSource === "whatsapp" ? "bg-green-500" : mega1Mode ? "bg-indigo-600" : "bg-green-600"
+                    orderSource === "whatsapp"
+                      ? "bg-green-500"
+                      : mega1Mode
+                        ? "bg-indigo-600"
+                        : mega2Mode
+                          ? "bg-gradient-to-r from-[#9c3f00] to-[#ff7a2f]"
+                          : "bg-green-600"
                   )}
                   onClick={orderSource === "whatsapp" ? sendOrderWhatsApp : () => void sendOrderWeb()}
                 >
