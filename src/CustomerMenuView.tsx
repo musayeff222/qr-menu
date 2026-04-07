@@ -8,6 +8,7 @@ import {
   type CartLine,
 } from "./menu-templates";
 import { useI18nBundle } from "./i18n/bundleContext";
+import { orderStatusBadgeClass, orderStatusLabel } from "./lib/orderStatus";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -618,7 +619,9 @@ export default function CustomerMenuView({
                     <li key={o.id} className="rounded-xl border p-3 text-sm">
                       <div className="flex justify-between gap-2">
                         <span className="font-semibold">#{o.id}</span>
-                        <span className="text-xs text-gray-500">{String(o.status || "-")}</span>
+                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${orderStatusBadgeClass(o.status)}`}>
+                          {orderStatusLabel(o.status, currentLang)}
+                        </span>
                       </div>
                       <p className="text-xs text-gray-500 mt-1">
                         ₼{Number(o.total_amount || o.payload?.total_amount || 0).toFixed(2)}

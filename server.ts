@@ -1141,7 +1141,7 @@ async function startServer() {
     const ids = await db("menu_orders").insert({
       restaurant_id: restaurant.id,
       payload,
-      status: "accepted",
+      status: "pending",
       device_id: deviceId,
       order_type: orderType,
       payment_method: paymentMethod,
@@ -1154,11 +1154,18 @@ async function startServer() {
       total_amount: Number.isFinite(total) ? total : 0,
     });
     const orderId = Number(Array.isArray(ids) ? ids[0] : ids);
+    await db("order_status_logs").insert({
+      order_id: orderId,
+      restaurant_id: restaurant.id,
+      from_status: null,
+      to_status: "pending",
+      actor: "system",
+    });
     res.json({
       success: true,
       order: {
         id: orderId,
-        status: "accepted",
+        status: "pending",
       },
       message: "Sifarişiniz qeydə alındı. Ən qısa zamanda sizinlə əlaqə saxlanılacaq",
     });
@@ -2095,13 +2102,23 @@ async function startServer() {
   app.patch("/api/admin/restaurants/:id/orders/:orderId/status", async (req, res) => {
     const id = Number(req.params.id);
     if (!requireRestaurantOrSuper(req, res, id)) return;
+    const s = getSession(req);
     const orderId = Number(req.params.orderId);
     const status = String(req.body?.status || "");
-    const allowed = new Set(["accepted", "preparing", "sent", "delivered"]);
+    const allowed = new Set(["pending", "preparing", "ready", "sent", "delivered", "cancelled", "accepted"]);
     if (!allowed.has(status)) return res.status(400).json({ error: "Invalid status" });
     const row = await db("menu_orders").where({ id: orderId, restaurant_id: id }).first();
     if (!row) return res.status(404).json({ error: "Not found" });
-    await db("menu_orders").where({ id: orderId }).update({ status });
+    const fromStatus = String(row.status || "pending");
+    const nextStatus = status === "accepted" ? "pending" : status;
+    await db("menu_orders").where({ id: orderId }).update({ status: nextStatus });
+    await db("order_status_logs").insert({
+      order_id: orderId,
+      restaurant_id: id,
+      from_status: fromStatus,
+      to_status: nextStatus,
+      actor: s?.kind === "super" ? "super" : "restaurant",
+    });
     res.json({ success: true });
   });
 

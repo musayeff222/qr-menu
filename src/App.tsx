@@ -53,6 +53,7 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { authRestaurantHeaders, authAnyStaffHeaders } from "./lib/headers";
 import { I18nBundleContext, useI18nBundle } from "./i18n/bundleContext";
+import { ORDER_STATUS_FLOW, orderStatusBadgeClass, orderStatusLabel } from "./lib/orderStatus";
 import RestaurantOnboarding from "./RestaurantOnboarding";
 import LandingPage from "./landing/LandingPage";
 import { UI_TRANSLATIONS } from "./i18n/uiBuiltIn";
@@ -580,9 +581,15 @@ const RestaurantPanel = () => {
 
   useEffect(() => {
     if (!id || section !== "orders") return;
-    fetch(`/api/admin/restaurants/${id}/orders`, { headers: authAnyStaffHeaders() })
-      .then((r) => r.json())
-      .then(setOrders);
+    const loadOrders = () => {
+      fetch(`/api/admin/restaurants/${id}/orders`, { headers: authAnyStaffHeaders() })
+        .then((r) => r.json())
+        .then(setOrders)
+        .catch(() => {});
+    };
+    loadOrders();
+    const intv = setInterval(loadOrders, 5000);
+    return () => clearInterval(intv);
   }, [id, section]);
 
   useEffect(() => {
@@ -1187,15 +1194,19 @@ const RestaurantPanel = () => {
                       <div className="font-semibold">
                         #{o.id} · {o.customer_name || o.payload?.customer_name || "Müştəri"}
                       </div>
+                      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${orderStatusBadgeClass(o.status)}`}>
+                        {orderStatusLabel(o.status, currentLang)}
+                      </span>
                       <select
                         className="text-xs border rounded-lg px-2 py-1"
-                        value={String(o.status || "accepted")}
+                        value={String(o.status || "pending")}
                         onChange={(e) => void updateOrderStatus(Number(o.id), e.target.value)}
                       >
-                        <option value="accepted">Qəbul edildi</option>
-                        <option value="preparing">Hazırlanır</option>
-                        <option value="sent">Göndərildi</option>
-                        <option value="delivered">Çatdırıldı</option>
+                        {ORDER_STATUS_FLOW.map((st) => (
+                          <option key={st} value={st}>
+                            {orderStatusLabel(st, "az")}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
@@ -1204,6 +1215,15 @@ const RestaurantPanel = () => {
                     <p className="text-xs text-gray-500">
                       Məbləğ: ₼{Number(o.total_amount || o.payload?.total_amount || 0).toFixed(2)}
                     </p>
+                    {Array.isArray(o.payload?.cart) && o.payload.cart.length > 0 ? (
+                      <ul className="mt-2 space-y-1 text-xs text-gray-600">
+                        {o.payload.cart.map((line: any, idx: number) => (
+                          <li key={`${o.id}-${idx}`}>
+                            • {line.label || "Məhsul"} x{line.qty || 1}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </li>
                 ))}
               </ul>

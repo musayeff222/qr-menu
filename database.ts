@@ -489,6 +489,30 @@ export async function initDatabase() {
       });
     }
 
+    if (!(await db.schema.hasTable("order_status_logs"))) {
+      await db.schema.createTable("order_status_logs", (table) => {
+        table.increments("id");
+        table
+          .integer("order_id")
+          .unsigned()
+          .notNullable()
+          .references("id")
+          .inTable("menu_orders")
+          .onDelete("CASCADE");
+        table
+          .integer("restaurant_id")
+          .unsigned()
+          .notNullable()
+          .references("id")
+          .inTable("restaurants")
+          .onDelete("CASCADE");
+        table.string("from_status", 32);
+        table.string("to_status", 32).notNullable();
+        table.string("actor", 64).defaultTo("system");
+        table.timestamp("created_at").defaultTo(db.fn.now());
+      });
+    }
+
     if (!(await db.schema.hasTable("restaurant_media_assets"))) {
       await db.schema.createTable("restaurant_media_assets", (table) => {
         table.increments("id");
