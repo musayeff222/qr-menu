@@ -1041,6 +1041,67 @@ export function MenuTemplateView({
     );
   });
 
+  const mega2CartLineBlocks = cart.map((line) => {
+    const tr = line.product.translations as Record<string, { name?: string }> | undefined;
+    const pn = tr?.[currentLang]?.name || String(line.product.name ?? "");
+    const label = line.variantLabel ? `${line.variantLabel} · ${pn}` : pn;
+    const img = line.product.image_url ? String(line.product.image_url) : "";
+    return (
+      <motion.div
+        key={line.lineId}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="group relative flex items-center gap-5 overflow-hidden rounded-[2rem] bg-white p-5 shadow-[0_24px_48px_rgba(156,63,0,0.04)]"
+      >
+        <div className="absolute -right-8 top-0 h-full w-28 -skew-x-12 bg-[var(--mt-primary)]/5 transition-transform duration-500 group-hover:-translate-x-2" />
+        <div className="relative z-10 h-20 w-20 shrink-0 overflow-hidden rounded-2xl">
+          {img ? <img src={img} alt="" className="h-full w-full object-cover" /> : null}
+        </div>
+        <div className="relative z-10 min-w-0 flex-1">
+          <h4 className="line-clamp-1 text-base font-bold">{label}</h4>
+          <p className="mt-1 text-sm text-[var(--mt-muted)]">{line.note?.trim() || "Standart seçim"}</p>
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-lg font-extrabold text-[var(--mt-primary)]">
+              ₼{(Number(line.unitPrice) * Number(line.quantity || 1)).toFixed(2)}
+            </span>
+            <div className="inline-flex items-center gap-3 rounded-full bg-[var(--mt-bg)] px-2 py-1">
+              <button
+                type="button"
+                className="grid h-8 w-8 place-items-center rounded-full bg-white text-[var(--mt-primary)]"
+                onClick={() => decreaseCartLineQty(line.lineId)}
+              >
+                <Minus size={16} />
+              </button>
+              <span className="w-4 text-center text-sm font-bold">{Number(line.quantity || 1)}</span>
+              <button
+                type="button"
+                className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-[var(--mt-primary)] to-[var(--mt-accent)] text-white"
+                onClick={() => increaseCartLineQty(line.lineId)}
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
+          <div className="mt-2 flex items-center justify-between">
+            <button
+              type="button"
+              className="text-xs font-semibold text-[var(--mt-primary)] underline underline-offset-2"
+              onClick={() => {
+                setNoteModalLineId(line.lineId);
+                setNoteModalDraft(line.note || "");
+              }}
+            >
+              {line.note?.trim() ? "Qeydi dəyiş" : "Qeyd əlavə et"}
+            </button>
+            <button type="button" className="text-red-500" onClick={() => removeCartLine(line.lineId)}>
+              <Trash2 size={15} />
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    );
+  });
+
   return (
     <div
       id="menu-template-root"
@@ -1115,7 +1176,7 @@ export function MenuTemplateView({
                 <div className="h-12 w-12" />
               </div>
               <div className="mt-20 flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-40">
-                <div className="space-y-4">{cartLineBlocks}</div>
+                <div className="space-y-4">{mega2CartLineBlocks}</div>
               </div>
               <div className="fixed bottom-0 left-0 right-0 rounded-t-[3rem] bg-white/70 px-6 pb-10 pt-6 backdrop-blur-2xl">
                 <div className="mx-auto max-w-2xl space-y-3">

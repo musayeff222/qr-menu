@@ -371,6 +371,11 @@ export default function CustomerMenuView({
               <h2 className={cn("font-black mb-6", mega1Mode || mega2Mode ? "text-2xl" : "text-lg")}>
                 {mega1Mode ? "Məlumatlar" : mega2Mode ? "Sifarişi Tamamla" : t("checkout_title")}
               </h2>
+              {mega2Mode ? (
+                <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[var(--mt-primary)]">
+                  Mərhələ 2 / 2
+                </p>
+              ) : null}
               <div className={cn("mb-4 grid grid-cols-2 gap-2", mega1Mode && "rounded-2xl bg-gray-200 p-1")}>
                 <button
                   type="button"
@@ -436,21 +441,54 @@ export default function CustomerMenuView({
                 placeholder="+994..."
               />
               <label className="block text-sm font-medium mb-1">{t("checkout_address_placeholder")}</label>
-              <textarea
-                className={cn(
-                  "w-full p-4 text-sm mb-3 min-h-[72px]",
-                  mega1Mode || mega2Mode
-                    ? "rounded-2xl border-0 shadow-sm ring-1 ring-gray-200"
-                    : "border rounded-xl"
-                )}
-                value={addressText}
-                onChange={(e) => {
-                  setAddressText(e.target.value);
-                  setCheckoutErr("");
-                }}
-                placeholder={t("checkout_address_placeholder")}
-                disabled={orderType !== "delivery"}
-              />
+              {!mega2Mode ? (
+                <textarea
+                  className={cn(
+                    "w-full p-4 text-sm mb-3 min-h-[72px]",
+                    mega1Mode || mega2Mode
+                      ? "rounded-2xl border-0 shadow-sm ring-1 ring-gray-200"
+                      : "border rounded-xl"
+                  )}
+                  value={addressText}
+                  onChange={(e) => {
+                    setAddressText(e.target.value);
+                    setCheckoutErr("");
+                  }}
+                  placeholder={t("checkout_address_placeholder")}
+                  disabled={orderType !== "delivery"}
+                />
+              ) : null}
+              {mega2Mode ? (
+                <section className="mb-4 overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+                  <div className="px-4 pt-4">
+                    <h3 className="text-base font-bold">Çatdırılma Ünvanı</h3>
+                    <p className="text-xs text-gray-500">Xəritədə yeri dəqiqləşdirmək üçün toxunun</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={geoBusy}
+                    onClick={() => {
+                      setCheckoutErr("");
+                      setMapOpen(true);
+                    }}
+                    className="mt-3 h-36 w-full bg-slate-200/80 text-sm font-semibold text-slate-700"
+                  >
+                    {geoBusy ? t("checkout_location_busy") : "Xəritədən seç"}
+                  </button>
+                  <div className="p-4">
+                    <input
+                      className="w-full rounded-full bg-gray-100 px-4 py-3 text-sm outline-none"
+                      value={addressText}
+                      onChange={(e) => {
+                        setAddressText(e.target.value);
+                        setCheckoutErr("");
+                      }}
+                      placeholder="Mərtəbə, mənzil və ya nişangah daxil edin"
+                      disabled={orderType !== "delivery"}
+                    />
+                  </div>
+                </section>
+              ) : null}
               <button
                 type="button"
                 disabled={geoBusy}
@@ -464,6 +502,7 @@ export default function CustomerMenuView({
                     ? "h-40 rounded-3xl border-4 border-white bg-slate-200 shadow-lg"
                     : "py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50"
                 )}
+                style={mega2Mode ? { display: "none" } : undefined}
               >
                 {geoBusy ? t("checkout_location_busy") : "Xəritədə konum seç"}
               </button>
@@ -505,35 +544,42 @@ export default function CustomerMenuView({
                   {t("checkout_card")}
                 </button>
               </div>
-              <p className="text-sm font-medium mb-2">Göndərmə üsulu</p>
-              <div className="flex gap-2 mb-4">
-                <button
-                  type="button"
-                  onClick={() => setOrderSource("web")}
-                  className={cn(
-                    "flex-1 py-3 rounded-2xl border text-sm font-bold",
-                    orderSource === "web" ? "border-red-600 bg-red-50 text-red-800" : "border-gray-200"
-                  )}
-                >
-                  Web sayt
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOrderSource("whatsapp")}
-                  className={cn(
-                    "flex-1 py-3 rounded-2xl border text-sm font-bold",
-                    orderSource === "whatsapp" ? "border-red-600 bg-red-50 text-red-800" : "border-gray-200"
-                  )}
-                >
-                  WhatsApp
-                </button>
-              </div>
+              {!mega2Mode ? (
+                <>
+                  <p className="text-sm font-medium mb-2">Göndərmə üsulu</p>
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setOrderSource("web")}
+                      className={cn(
+                        "flex-1 py-3 rounded-2xl border text-sm font-bold",
+                        orderSource === "web" ? "border-red-600 bg-red-50 text-red-800" : "border-gray-200"
+                      )}
+                    >
+                      Web sayt
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOrderSource("whatsapp")}
+                      className={cn(
+                        "flex-1 py-3 rounded-2xl border text-sm font-bold",
+                        orderSource === "whatsapp" ? "border-red-600 bg-red-50 text-red-800" : "border-gray-200"
+                      )}
+                    >
+                      WhatsApp
+                    </button>
+                  </div>
+                </>
+              ) : null}
               {checkoutErr ? <p className="text-sm text-red-600 mb-3">{checkoutErr}</p> : null}
               {checkoutOk ? <p className="text-sm text-green-700 mb-3">{checkoutOk}</p> : null}
-              <div className="flex gap-2">
+              <div className={cn("flex gap-2", mega2Mode && "mt-3 flex-col rounded-3xl bg-slate-900 p-4")}>
                 <button
                   type="button"
-                  className="flex-1 py-3 rounded-2xl border border-gray-200 font-medium"
+                  className={cn(
+                    "flex-1 py-3 rounded-2xl border border-gray-200 font-medium",
+                    mega2Mode && "hidden"
+                  )}
                   onClick={() => setCheckoutOpen(false)}
                 >
                   {t("checkout_cancel")}
@@ -543,7 +589,7 @@ export default function CustomerMenuView({
                   disabled={checkoutBusy}
                   className={cn(
                     "flex-1 py-3 rounded-2xl text-white font-bold disabled:opacity-60",
-                    orderSource === "whatsapp"
+                    !mega2Mode && orderSource === "whatsapp"
                       ? "bg-green-500"
                       : mega1Mode
                         ? "bg-indigo-600"
@@ -551,10 +597,20 @@ export default function CustomerMenuView({
                           ? "bg-gradient-to-r from-[#9c3f00] to-[#ff7a2f]"
                           : "bg-green-600"
                   )}
-                  onClick={orderSource === "whatsapp" ? sendOrderWhatsApp : () => void sendOrderWeb()}
+                  onClick={mega2Mode ? () => void sendOrderWeb() : orderSource === "whatsapp" ? sendOrderWhatsApp : () => void sendOrderWeb()}
                 >
-                  {checkoutBusy ? "..." : orderSource === "whatsapp" ? t("checkout_send") : "Sifarişi ver"}
+                  {checkoutBusy ? "..." : mega2Mode ? "Web vasitəsilə tamamla" : orderSource === "whatsapp" ? t("checkout_send") : "Sifarişi ver"}
                 </button>
+                {mega2Mode ? (
+                  <button
+                    type="button"
+                    disabled={checkoutBusy}
+                    className="flex-1 py-3 rounded-2xl border border-white/10 bg-white/10 text-white font-bold backdrop-blur-md disabled:opacity-60"
+                    onClick={sendOrderWhatsApp}
+                  >
+                    WhatsApp vasitəsilə sifariş et
+                  </button>
+                ) : null}
               </div>
             </motion.div>
           </motion.div>
@@ -622,24 +678,50 @@ export default function CustomerMenuView({
               initial={{ y: 40 }}
               animate={{ y: 0 }}
               exit={{ y: 40 }}
-              className="w-full max-w-md rounded-2xl bg-white text-gray-900 shadow-2xl p-5 max-h-[90vh] overflow-y-auto"
+              className={cn(
+                "w-full max-h-[90vh] overflow-y-auto text-gray-900 shadow-2xl",
+                mega2Mode ? "max-w-lg rounded-[2rem] bg-[#f9f6f5] p-0" : "max-w-md rounded-2xl bg-white p-5"
+              )}
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 className="text-lg font-bold mb-3">Sifarişlərim</h2>
-              {ordersHistory.length === 0 ? (
-                <p className="text-sm text-gray-500">Bu cihaz üçün sifariş tapılmadı.</p>
+              {mega2Mode ? (
+                <div className="sticky top-0 z-10 rounded-t-[2rem] bg-[#f9f6f5]/95 px-5 pb-4 pt-5 backdrop-blur-xl">
+                  <h2 className="text-2xl font-black tracking-tight">Sifariş Tarixçəsi</h2>
+                  <p className="text-xs text-gray-500">Bu cihazdan verilən sifarişlər</p>
+                </div>
               ) : (
-                <ul className="space-y-2">
+                <h2 className="text-lg font-bold mb-3">Sifarişlərim</h2>
+              )}
+              {ordersHistory.length === 0 ? (
+                <p className={cn("text-sm text-gray-500", mega2Mode && "px-5 pb-5")}>Bu cihaz üçün sifariş tapılmadı.</p>
+              ) : (
+                <ul className={cn("space-y-2", mega2Mode && "px-5 pb-5 space-y-4")}>
                   {ordersHistory.map((o) => (
-                    <li key={o.id} className="rounded-xl border p-3 text-sm">
-                      <div className="flex justify-between gap-2">
-                        <span className="font-semibold">#{o.id}</span>
+                    <li
+                      key={o.id}
+                      className={cn(
+                        "text-sm",
+                        mega2Mode
+                          ? "rounded-[1.5rem] bg-white p-4 shadow-[0_18px_35px_rgba(156,63,0,0.06)]"
+                          : "rounded-xl border p-3"
+                      )}
+                    >
+                      <div className="flex justify-between gap-2 items-start">
+                        <div>
+                          <span className="font-semibold">Sifariş #{o.id}</span>
+                          <p className="mt-1 text-xs text-gray-500">
+                            {(o.payload?.items || [])
+                              .slice(0, 2)
+                              .map((it: { name?: string; qty?: number }) => `${Number(it.qty || 1)}x ${it.name || "Məhsul"}`)
+                              .join(", ") || "Məhsul məlumatı yoxdur"}
+                          </p>
+                        </div>
                         <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${orderStatusBadgeClass(o.status)}`}>
                           {orderStatusLabel(o.status, currentLang)}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        ₼{Number(o.total_amount || o.payload?.total_amount || 0).toFixed(2)}
+                      <p className={cn("text-xs mt-2", mega2Mode ? "font-bold text-[var(--mt-primary)]" : "text-gray-500")}>
+                        Cəmi: ₼{Number(o.total_amount || o.payload?.total_amount || 0).toFixed(2)}
                       </p>
                     </li>
                   ))}
