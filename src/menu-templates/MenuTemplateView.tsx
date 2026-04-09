@@ -135,6 +135,21 @@ const IMG_R_MAP = {
   "2xl": "rounded-3xl",
 } as const;
 
+function WhatsAppIcon({ size = 24, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="currentColor"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M20.52 3.48A11.88 11.88 0 0 0 12.06 0C5.5 0 .16 5.34.16 11.9c0 2.1.55 4.15 1.59 5.96L0 24l6.31-1.65a11.8 11.8 0 0 0 5.74 1.46h.01c6.56 0 11.9-5.34 11.9-11.9 0-3.18-1.24-6.17-3.44-8.43Zm-8.46 18.3h-.01a9.8 9.8 0 0 1-4.99-1.36l-.36-.21-3.75.98 1-3.66-.24-.38a9.83 9.83 0 0 1-1.51-5.24c0-5.44 4.43-9.87 9.87-9.87a9.8 9.8 0 0 1 6.98 2.9 9.81 9.81 0 0 1 2.89 6.98c0 5.44-4.43 9.87-9.87 9.87Zm5.41-7.4c-.3-.16-1.78-.88-2.06-.98-.28-.1-.48-.16-.68.16-.2.3-.78.97-.95 1.17-.18.2-.35.22-.65.07-.3-.16-1.26-.46-2.4-1.47-.89-.79-1.49-1.76-1.67-2.06-.17-.3-.02-.46.13-.61.14-.14.3-.35.44-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.08-.16-.68-1.64-.94-2.25-.24-.57-.49-.49-.68-.5h-.58c-.2 0-.52.07-.8.37-.27.3-1.04 1.01-1.04 2.47 0 1.46 1.06 2.87 1.2 3.07.15.2 2.08 3.18 5.03 4.46.7.3 1.25.48 1.67.62.7.22 1.34.19 1.84.12.56-.08 1.78-.73 2.03-1.43.25-.7.25-1.3.17-1.43-.07-.12-.27-.2-.57-.35Z" />
+    </svg>
+  );
+}
+
 export function MenuTemplateView({
   template,
   restaurant,
@@ -239,9 +254,22 @@ export function MenuTemplateView({
   const reservationUrl = restaurant.reservation_url
     ? String(restaurant.reservation_url)
     : "";
-  const instagram = restaurant.instagram ? String(restaurant.instagram) : "";
-  const tiktok = restaurant.tiktok ? String(restaurant.tiktok) : "";
-  const facebook = restaurant.facebook ? String(restaurant.facebook) : "";
+  const socialVisible = (k: "social_instagram_visible" | "social_tiktok_visible" | "social_facebook_visible") => {
+    const v = restaurant[k];
+    return v !== false && v !== 0 && v !== "0";
+  };
+  const instagram =
+    socialVisible("social_instagram_visible") && restaurant.instagram
+      ? String(restaurant.instagram)
+      : "";
+  const tiktok =
+    socialVisible("social_tiktok_visible") && restaurant.tiktok
+      ? String(restaurant.tiktok)
+      : "";
+  const facebook =
+    socialVisible("social_facebook_visible") && restaurant.facebook
+      ? String(restaurant.facebook)
+      : "";
   const coverUrl = restaurant.cover_image_url ? String(restaurant.cover_image_url) : "";
   const heroImageSrc = coverUrl || template.heroImage;
   const headerLayout = th.headerLayout ?? "centered";
@@ -256,6 +284,7 @@ export function MenuTemplateView({
   const icon3d = rm === "icon-3d-ui";
   const fastFoodMode = rm === "fastfood-pro";
   const mega2Mode = rm === "mega2-kinetic";
+  const mega4Mode = rm === "mega4-gusto-premium";
   const mediaAssets = Array.isArray(restaurant.media_assets)
     ? (restaurant.media_assets as Array<{ id: number; kind: string; url: string }>)
     : [];
@@ -645,6 +674,53 @@ export function MenuTemplateView({
         <Plus size={20} className="relative z-10" />
       </motion.button>
     ) : null;
+
+    if (mega4Mode) {
+      return (
+        <motion.article
+          key={prod.id as number}
+          layout
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-20px" }}
+          className="group flex h-[110px] overflow-hidden rounded-[20px] border border-[#222] bg-[#161616]"
+        >
+          <div className="h-full w-[100px] shrink-0 bg-[#222]">
+            {img ? (
+              <img
+                src={img}
+                alt=""
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                loading="lazy"
+                decoding="async"
+              />
+            ) : null}
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col justify-between p-3">
+            <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-white" style={{ fontFamily: fonts.heading }}>
+              {pname}
+            </h3>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-bold text-[#d4af37]">
+                {showFrom ? `${t("price_from")} ${formatPrice(displayMinPrice(prod))}` : formatPrice(prod.price)}
+              </span>
+              {allowWa ? (
+                <motion.button
+                  type="button"
+                  onClick={(e) => handleAddProduct(prod, e)}
+                  disabled={!ordersAllowed}
+                  whileTap={{ scale: 0.92 }}
+                  className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#d4af37] text-[#0a0a0a] shadow-md disabled:opacity-40"
+                  aria-label={`${t("add_product")} ${pname}`}
+                >
+                  <Plus size={18} strokeWidth={2.5} />
+                </motion.button>
+              ) : null}
+            </div>
+          </div>
+        </motion.article>
+      );
+    }
 
     if (mega2Mode) {
       return (
@@ -1102,6 +1178,516 @@ export function MenuTemplateView({
     );
   });
 
+  const mega4Products = filteredProducts.length > 0 ? filteredProducts : products;
+  const mega4Lang = ["az", "en", "ru", "tr"].includes(currentLang) ? currentLang : "az";
+  const mega4Text = {
+    az: {
+      heroKicker: "Hər loxmada bir hekayə",
+      heroTop: "Yüksək Səviyyəli",
+      heroBottom: "Dad Təcrübəsi",
+      menuCta: "Menyuya Bax",
+      explore: "Kəşf Et",
+      location: "Bizim Məkan",
+      locationHint: "Google xəritədə ünvanı açın",
+      waVia: "WhatsApp-la",
+      waOrder: "Sifariş",
+      followUs: "Bizi İzlə",
+      menuLead: "Dadı hiss et",
+      menuTitle: "Menyu",
+      navMenu: "Menyu",
+      navCart: "Səbət",
+      navHistory: "Tarixçə",
+      cartTitle: "Səbət",
+      amount: "Məbləğ",
+      total: "Cəmi",
+      memory: "Yaddaş",
+      history: "Tarixçə",
+      viewAll: "Hamısına bax",
+      lastOrder: "Son sifariş",
+      prevOrder: "Əvvəlki sifariş",
+      completed: "TAMAMLANDI",
+      cancelled: "LƏĞV EDİLDİ",
+      items3: "3 məhsul",
+      items1: "1 məhsul",
+      finishOrder: "Sifarişi Tamamla",
+      openHours: "Açıqdır",
+      mapsLine: "Ünvan və xəritə",
+      mapsBtn: "Ünvan",
+      callBtn: "Zəng et",
+      cartBarItems: "məhsul",
+    },
+    en: {
+      heroKicker: "A story in every bite",
+      heroTop: "High-End",
+      heroBottom: "Taste Experience",
+      menuCta: "View Menu",
+      explore: "Explore",
+      location: "Our Location",
+      locationHint: "Open address in Google Maps",
+      waVia: "via WhatsApp",
+      waOrder: "Order",
+      followUs: "Follow Us",
+      menuLead: "Feel the flavor",
+      menuTitle: "Menu",
+      navMenu: "Menu",
+      navCart: "Cart",
+      navHistory: "History",
+      cartTitle: "Cart",
+      amount: "Amount",
+      total: "Total",
+      memory: "Memory",
+      history: "History",
+      viewAll: "View all",
+      lastOrder: "Last order",
+      prevOrder: "Previous order",
+      completed: "COMPLETED",
+      cancelled: "CANCELLED",
+      items3: "3 items",
+      items1: "1 item",
+      finishOrder: "Complete Order",
+      openHours: "Open",
+      mapsLine: "Address & map",
+      mapsBtn: "Directions",
+      callBtn: "Call",
+      cartBarItems: "items",
+    },
+    ru: {
+      heroKicker: "История в каждом укусе",
+      heroTop: "Премиальный",
+      heroBottom: "Вкус и опыт",
+      menuCta: "Открыть меню",
+      explore: "Смотреть",
+      location: "Наш адрес",
+      locationHint: "Открыть адрес в Google Maps",
+      waVia: "через WhatsApp",
+      waOrder: "Заказ",
+      followUs: "Подписаться",
+      menuLead: "Почувствуйте вкус",
+      menuTitle: "Меню",
+      navMenu: "Меню",
+      navCart: "Корзина",
+      navHistory: "История",
+      cartTitle: "Корзина",
+      amount: "Сумма",
+      total: "Итого",
+      memory: "Память",
+      history: "История",
+      viewAll: "Смотреть все",
+      lastOrder: "Последний заказ",
+      prevOrder: "Предыдущий заказ",
+      completed: "ЗАВЕРШЕН",
+      cancelled: "ОТМЕНЕН",
+      items3: "3 позиции",
+      items1: "1 позиция",
+      finishOrder: "Оформить заказ",
+      openHours: "Открыто",
+      mapsLine: "Адрес на карте",
+      mapsBtn: "Карта",
+      callBtn: "Позвонить",
+      cartBarItems: "поз.",
+    },
+    tr: {
+      heroKicker: "Her lokmada bir hikaye",
+      heroTop: "Üst Seviye",
+      heroBottom: "Lezzet Deneyimi",
+      menuCta: "Menüyü Gör",
+      explore: "Keşfet",
+      location: "Konumumuz",
+      locationHint: "Adresi Google Maps'te aç",
+      waVia: "WhatsApp ile",
+      waOrder: "Sipariş",
+      followUs: "Bizi Takip Et",
+      menuLead: "Lezzeti hisset",
+      menuTitle: "Menü",
+      navMenu: "Menü",
+      navCart: "Sepet",
+      navHistory: "Geçmiş",
+      cartTitle: "Sepet",
+      amount: "Tutar",
+      total: "Toplam",
+      memory: "Kayıt",
+      history: "Geçmiş",
+      viewAll: "Tümünü gör",
+      lastOrder: "Son sipariş",
+      prevOrder: "Önceki sipariş",
+      completed: "TAMAMLANDI",
+      cancelled: "İPTAL EDİLDİ",
+      items3: "3 ürün",
+      items1: "1 ürün",
+      finishOrder: "Siparişi Tamamla",
+      openHours: "Açık",
+      mapsLine: "Adres ve harita",
+      mapsBtn: "Konum",
+      callBtn: "Ara",
+      cartBarItems: "ürün",
+    },
+  }[mega4Lang];
+  const mega4CartLineBlocks = cart.map((line) => {
+    const tr = line.product.translations as Record<string, { name?: string }> | undefined;
+    const pn = tr?.[currentLang]?.name || String(line.product.name ?? "");
+    const label = line.variantLabel ? `${line.variantLabel} · ${pn}` : pn;
+    const img = line.product.image_url ? String(line.product.image_url) : "";
+    return (
+      <div
+        key={line.lineId}
+        className="group flex items-center gap-4 border-b border-white/10 py-4 first:pt-0"
+      >
+        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#222]">
+          {img ? <img src={img} alt="" className="h-full w-full object-cover" /> : null}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <h4 className="line-clamp-2 font-bold text-white" style={{ fontFamily: fonts.heading }}>
+              {label}
+            </h4>
+            <button
+              type="button"
+              className="shrink-0 text-[#a0a0a0] transition-colors hover:text-red-400"
+              onClick={() => removeCartLine(line.lineId)}
+              aria-label={t("cart_remove_line")}
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-[#a0a0a0]">{line.note?.trim() || "—"}</p>
+          <div className="mt-2 flex items-center justify-between">
+            <span className="font-bold text-[#d4af37]">
+              ₼{(Number(line.unitPrice) * Number(line.quantity || 1)).toFixed(2)}
+            </span>
+            <div className="inline-flex items-center gap-3 rounded-xl bg-[#222] px-2 py-1">
+              <button
+                type="button"
+                className="text-lg font-bold text-[#d4af37]"
+                onClick={() => decreaseCartLineQty(line.lineId)}
+              >
+                −
+              </button>
+              <span className="min-w-[1.25rem] text-center text-sm font-bold text-white">
+                {Number(line.quantity || 1)}
+              </span>
+              <button
+                type="button"
+                className="text-lg font-bold text-[#d4af37]"
+                onClick={() => increaseCartLineQty(line.lineId)}
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  });
+
+  if (mega4Mode) {
+    const taglineStr = restaurant.tagline ? String(restaurant.tagline) : "";
+    return (
+      <div
+        id="menu-template-root"
+        className="mt-menu min-h-screen overflow-x-clip bg-[#0a0a0a] pb-8 text-white antialiased"
+        style={{ fontFamily: fonts.body }}
+      >
+        {!showFullCart ? (
+          <>
+            <div className="pointer-events-none absolute left-0 right-0 top-0 z-[100] flex items-center justify-between px-5 pb-2 pt-[max(1.25rem,env(safe-area-inset-top,0px))]">
+              <div className="pointer-events-auto flex gap-2">
+                {instagram ? (
+                  <a
+                    href={instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.08] text-white ring-1 ring-white/10 backdrop-blur-md"
+                    aria-label="Instagram"
+                  >
+                    <Instagram size={18} />
+                  </a>
+                ) : null}
+                {tiktok ? (
+                  <a
+                    href={tiktok}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.08] text-white ring-1 ring-white/10 backdrop-blur-md"
+                    aria-label="TikTok"
+                  >
+                    <Music2 size={18} />
+                  </a>
+                ) : null}
+              </div>
+              <div className="pointer-events-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onOpenOrders?.()}
+                  className="grid h-9 w-9 place-items-center rounded-full bg-white/[0.08] ring-1 ring-white/10 backdrop-blur-md"
+                  aria-label={mega4Text.navHistory}
+                >
+                  <History size={18} className="text-[#d4af37]" />
+                </button>
+                <label className="sr-only" htmlFor="mega4-lang">
+                  Dil
+                </label>
+                <select
+                  id="mega4-lang"
+                  value={currentLang}
+                  onChange={(e) => setCurrentLang(e.target.value)}
+                  className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md outline-none"
+                >
+                  <option value="az">AZ</option>
+                  <option value="en">EN</option>
+                  <option value="ru">RU</option>
+                  <option value="tr">TR</option>
+                </select>
+              </div>
+            </div>
+
+            <section
+              className="relative flex min-h-[55vh] flex-col justify-end px-6 pb-6 pt-[4.5rem]"
+              style={{
+                backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.2), #0a0a0a), url(${heroImageSrc})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            >
+              <div className="relative z-10 w-full">
+                <h1
+                  className="text-4xl font-bold leading-tight tracking-tight text-[#d4af37] sm:text-5xl"
+                  style={{ fontFamily: fonts.heading }}
+                >
+                  {String(restaurant.name ?? "")}
+                </h1>
+                <div className="mt-5 rounded-[20px] border border-white/10 bg-white/[0.08] p-4 backdrop-blur-[15px]">
+                  {restaurant.opening_hours ? (
+                    <div className="mb-2 flex items-start gap-2.5 text-sm text-white">
+                      <Clock3 size={16} className="mt-0.5 shrink-0 text-[#d4af37]" />
+                      <span>
+                        {mega4Text.openHours}: {String(restaurant.opening_hours)}
+                      </span>
+                    </div>
+                  ) : null}
+                  <div className="mb-3 flex items-start gap-2.5 text-sm text-white">
+                    <MapPin size={16} className="mt-0.5 shrink-0 text-[#d4af37]" />
+                    <span className="min-w-0 leading-snug">
+                      {taglineStr || mega4Text.mapsLine}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {mapsUrl ? (
+                      <a
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 rounded-xl bg-[#d4af37] py-2.5 text-center text-xs font-bold text-[#0a0a0a]"
+                      >
+                        <MapPin size={14} />
+                        {mega4Text.mapsBtn}
+                      </a>
+                    ) : (
+                      <span className="flex items-center justify-center rounded-xl bg-[#161616] py-2.5 text-center text-[11px] text-[#a0a0a0]">
+                        —
+                      </span>
+                    )}
+                    {phone ? (
+                      <a
+                        href={`tel:${phone.replace(/\s/g, "")}`}
+                        className="flex items-center justify-center gap-2 rounded-xl bg-[#d4af37] py-2.5 text-center text-xs font-bold text-[#0a0a0a]"
+                      >
+                        <Phone size={14} />
+                        {mega4Text.callBtn}
+                      </a>
+                    ) : (
+                      <span className="flex items-center justify-center rounded-xl bg-[#161616] py-2.5 text-center text-[11px] text-[#a0a0a0]">
+                        —
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div id="main-menu" className="sticky top-0 z-[90] border-b border-[#222] bg-[#0a0a0a] py-3">
+              <div className="scrollbar-hide flex gap-2.5 overflow-x-auto px-5">
+                {categories.map((cat) => {
+                  const cname =
+                    ((cat.translations as Record<string, string> | undefined)?.[currentLang] as string) ||
+                    String(cat.name);
+                  const active = Number(cat.id) === Number(activeCategory);
+                  return (
+                    <button
+                      key={cat.id as number}
+                      type="button"
+                      onClick={() => setActiveCategory(cat.id as number)}
+                      className={cn(
+                        "shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold transition-colors",
+                        active
+                          ? "border-[#d4af37] bg-[#d4af37] text-[#0a0a0a]"
+                          : "border-[#333] bg-[#161616] text-white"
+                      )}
+                    >
+                      {cname}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-4 px-5 pb-36 pt-5">
+              {mega4Products.map((prod) => renderProductArticle(prod, "list"))}
+            </div>
+
+            {allowWa && ordersAllowed && cart.length > 0 ? (
+              <button
+                type="button"
+                ref={navCartRef}
+                onClick={() => onMenuViewChange?.("cart")}
+                className="fixed bottom-6 left-5 right-5 z-[100] flex h-[60px] items-center justify-between rounded-[20px] bg-[#d4af37] px-5 text-sm font-extrabold text-[#0a0a0a] shadow-[0_10px_30px_rgba(212,175,55,0.3)] sm:text-base"
+              >
+                <span className="flex items-center gap-2">
+                  <ShoppingCart size={20} />
+                  {cartCount} {mega4Text.cartBarItems}
+                </span>
+                <span>₼{cartTotal.toFixed(2)}</span>
+              </button>
+            ) : null}
+          </>
+        ) : (
+          <div className="min-h-screen bg-[#0a0a0a]">
+            <div className="fixed left-0 right-0 top-0 z-50 flex items-center justify-between border-b border-white/10 bg-[#0a0a0a]/90 px-5 py-4 backdrop-blur-xl pt-[max(0.5rem,env(safe-area-inset-top,0px))]">
+              <button type="button" onClick={() => onMenuViewChange?.("browse")} className="text-[#d4af37]">
+                <ChevronRight size={22} className="rotate-180" />
+              </button>
+              <h2 className="text-xl font-extrabold tracking-tight text-[#d4af37]" style={{ fontFamily: fonts.heading }}>
+                {mega4Text.cartTitle}
+              </h2>
+              <div className="h-8 w-8" />
+            </div>
+            <div className="mx-auto mt-20 max-w-lg px-5 pb-44 pt-2">
+              <div className="max-h-[min(52vh,420px)] overflow-y-auto pr-1">{mega4CartLineBlocks}</div>
+              <div className="mt-8 rounded-[20px] border border-white/10 bg-[#161616] p-5">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm text-[#a0a0a0]">
+                    <span>{mega4Text.amount}</span>
+                    <span>₼{cartTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-white/10 pt-3">
+                    <span className="text-lg font-bold text-white" style={{ fontFamily: fonts.heading }}>
+                      {mega4Text.total}
+                    </span>
+                    <span className="text-2xl font-extrabold text-[#d4af37]" style={{ fontFamily: fonts.heading }}>
+                      ₼{cartTotal.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <section className="mt-10">
+                <div className="mb-4 flex items-end justify-between">
+                  <div>
+                    <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-[#a0a0a0]">
+                      {mega4Text.memory}
+                    </span>
+                    <h3 className="text-2xl font-extrabold tracking-tight text-white" style={{ fontFamily: fonts.heading }}>
+                      {mega4Text.history}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onOpenOrders?.()}
+                    className="rounded-full bg-[#d4af37]/15 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-[#d4af37]"
+                  >
+                    {mega4Text.viewAll}
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  <div className="rounded-2xl border-l-4 border-[#d4af37] bg-[#161616] p-4">
+                    <div className="mb-2 flex items-start justify-between">
+                      <div>
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-[#a0a0a0]">{mega4Text.lastOrder}</p>
+                        <p className="font-bold text-white">#EPI-2940</p>
+                      </div>
+                      <span className="rounded bg-[#d4af37]/20 px-2 py-1 text-[10px] font-bold text-[#d4af37]">
+                        {mega4Text.completed}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-[#a0a0a0]">
+                      <span>{mega4Text.items3}</span>
+                      <span className="font-bold text-white">₼42.00</span>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-[#161616] p-4">
+                    <div className="mb-2 flex items-start justify-between">
+                      <div>
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-[#a0a0a0]">{mega4Text.prevOrder}</p>
+                        <p className="font-bold text-white">#EPI-2811</p>
+                      </div>
+                      <span className="rounded bg-white/10 px-2 py-1 text-[10px] font-bold text-[#a0a0a0]">
+                        {mega4Text.cancelled}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-[#a0a0a0]">
+                      <span>{mega4Text.items1}</span>
+                      <span className="font-bold text-white">₼8.50</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+            <div className="fixed bottom-0 left-0 right-0 border-t border-white/10 bg-[#0a0a0a]/95 px-5 pb-safe pt-4 backdrop-blur-xl">
+              <button
+                type="button"
+                onClick={() => ordersAllowed && onCheckout()}
+                disabled={!ordersAllowed}
+                className="w-full rounded-[18px] bg-[#d4af37] py-4 text-base font-extrabold text-[#0a0a0a] shadow-[0_10px_30px_rgba(212,175,55,0.25)] disabled:opacity-50"
+              >
+                {mega4Text.finishOrder}
+              </button>
+            </div>
+          </div>
+        )}
+
+        <AnimatePresence>
+          {variantPick ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[80] flex items-end justify-center bg-black/85 p-4 backdrop-blur-md sm:items-center"
+              onClick={() => setVariantPick(null)}
+            >
+              <motion.div
+                initial={{ y: 40 }}
+                animate={{ y: 0 }}
+                className="w-full max-w-md rounded-[24px_24px_0_0] border border-white/10 bg-[#111] p-5 shadow-2xl sm:rounded-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <p className="mb-2 font-bold text-white">{String(variantPick.name)}</p>
+                <p className="mb-3 text-xs text-[#a0a0a0]">{t("menu_variant_subtitle")}</p>
+                <div className="max-h-[50vh] space-y-2 overflow-y-auto">
+                  {variantsOf(variantPick).map((v) => (
+                    <button
+                      key={String(v.id)}
+                      type="button"
+                      className="flex w-full justify-between rounded-xl border border-white/10 bg-[#161616] p-3 text-left text-white"
+                      onClick={(e) => pickVariant(variantPick, v, e)}
+                    >
+                      <span>{String(v.name)}</span>
+                      <span className="font-bold text-[#d4af37]">{formatPrice(v.price)}</span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="mt-4 w-full py-2 text-sm font-semibold text-[#d4af37]"
+                  onClick={() => setVariantPick(null)}
+                >
+                  {t("btn_close")}
+                </button>
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
   return (
     <div
       id="menu-template-root"
@@ -1113,7 +1699,15 @@ export function MenuTemplateView({
       style={{
         ...cssVars,
         backgroundColor:
-          fastFoodMode ? "#f1f2f6" : mega2Mode ? "#f9f6f5" : fullImageBgMenu ? "transparent" : "var(--mt-bg)",
+          fastFoodMode
+            ? "#f1f2f6"
+            : mega2Mode
+              ? "#f9f6f5"
+              : mega4Mode
+                ? "#0a0a0a"
+                : fullImageBgMenu
+                  ? "transparent"
+                  : "var(--mt-bg)",
         color: "var(--mt-text)",
         fontFamily: fonts.body,
       }}
@@ -1198,6 +1792,100 @@ export function MenuTemplateView({
                     <ChevronRight size={20} />
                   </button>
                 </div>
+              </div>
+            </>
+          ) : mega4Mode ? (
+            <>
+              <div className="fixed left-0 right-0 top-0 z-50 flex items-center justify-between bg-[#fff8ef]/80 px-6 py-4 backdrop-blur-xl shadow-[0_12px_32px_-4px_rgba(140,113,102,0.12)]">
+                <button
+                  type="button"
+                  onClick={() => onMenuViewChange?.("browse")}
+                  className="grid h-10 w-10 place-items-center text-[#9e3d00]"
+                >
+                  <ChevronRight size={18} className="rotate-180" />
+                </button>
+                <h2 className="text-2xl font-extrabold tracking-tight text-[#1e1b13]" style={{ fontFamily: fonts.heading }}>
+                  Səbət
+                </h2>
+                <div className="h-10 w-10" />
+              </div>
+              <div className="mt-20 flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-44">
+                <div className="space-y-4">{cartLineBlocks}</div>
+                <div className="mt-8 rounded-3xl bg-[#e9e2d3]/50 p-6 backdrop-blur-sm">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm text-[#594238]">
+                      <span>Məbləğ</span>
+                      <span>₼{cartTotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-[#e0c0b2]/20 pt-3">
+                      <span className="text-lg font-bold" style={{ fontFamily: fonts.heading }}>Cəmi</span>
+                      <span className="text-2xl font-extrabold text-[#9e3d00]" style={{ fontFamily: fonts.heading }}>
+                        ₼{cartTotal.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <section className="mt-12">
+                  <div className="mb-5 flex items-end justify-between">
+                    <div>
+                      <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-[#8c7166]">
+                        Yaddaş
+                      </span>
+                      <h3 className="text-3xl font-extrabold tracking-tight text-[#1e1b13]" style={{ fontFamily: fonts.heading }}>
+                        Tarixçə
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onOpenOrders?.()}
+                      className="rounded-full bg-[#9e3d00]/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#9e3d00]"
+                    >
+                      Hamısına bax
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="rounded-2xl border-l-4 border-[#9e3d00] bg-[#fbf3e4] p-4">
+                      <div className="mb-2 flex items-start justify-between">
+                        <div>
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-[#8c7166]">Son sifariş</p>
+                          <p className="font-bold text-[#1e1b13]">Sifariş #EPI-2940</p>
+                        </div>
+                        <span className="rounded bg-[#9e3d00]/10 px-2 py-1 text-[10px] font-bold text-[#9e3d00]">
+                          TAMAMLANDI
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-[#594238]">3 məhsul</span>
+                        <span className="font-bold text-[#1e1b13]">₼42.00</span>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-[#fbf3e4] p-4">
+                      <div className="mb-2 flex items-start justify-between">
+                        <div>
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-[#8c7166]">Əvvəlki sifariş</p>
+                          <p className="font-bold text-[#1e1b13]">Sifariş #EPI-2811</p>
+                        </div>
+                        <span className="rounded bg-[#8c7166]/10 px-2 py-1 text-[10px] font-bold text-[#8c7166]">
+                          LƏĞV EDİLDİ
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-[#594238]">1 məhsul</span>
+                        <span className="font-bold text-[#1e1b13]">₼8.50</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+              <div className="fixed bottom-0 left-0 right-0 bg-[#fff8ef]/90 px-6 pb-10 pt-4 shadow-[0_-8px_24px_rgba(140,113,102,0.08)] backdrop-blur-2xl">
+                <button
+                  type="button"
+                  onClick={() => ordersAllowed && onCheckout()}
+                  disabled={!ordersAllowed}
+                  className="w-full rounded-full bg-[#9e3d00] py-4 text-base font-bold text-white shadow-[0_12px_32px_-4px_rgba(140,113,102,0.12)] disabled:opacity-50"
+                >
+                  Sifarişi Tamamla
+                </button>
               </div>
             </>
           ) : fastFoodMode ? (
@@ -1295,7 +1983,7 @@ export function MenuTemplateView({
               </div>
             </>
           )}
-          {(fastFoodMode || mega2Mode) && !ordersAllowed && ordersClosedHint ? (
+          {(fastFoodMode || mega2Mode || mega4Mode) && !ordersAllowed && ordersClosedHint ? (
             <p className="px-6 pb-3 text-center text-xs text-amber-800">{ordersClosedHint}</p>
           ) : null}
         </div>
@@ -1335,6 +2023,92 @@ export function MenuTemplateView({
                 </div>
               ) : null}
               <div className="mt-5">{socialRow}</div>
+            </section>
+          </div>
+        ) : mega4Mode ? (
+          <div>
+            <header className="fixed left-0 right-0 top-0 z-50 bg-[#fff8ef]/80 backdrop-blur-xl shadow-[0_12px_32px_-4px_rgba(140,113,102,0.12)]">
+              <div className="flex h-16 items-center justify-between px-6">
+                <button type="button" className="text-[#9e3d00]">
+                  <Search size={20} />
+                </button>
+                <h1 className="text-xl font-bold tracking-tight text-[#1e1b13]" style={{ fontFamily: fonts.heading }}>
+                  Sensory Epicurean
+                </h1>
+                <button
+                  ref={navCartRef}
+                  type="button"
+                  onClick={() => allowWa && ordersAllowed && cart.length > 0 && onMenuViewChange?.("cart")}
+                  className="relative text-[#9e3d00]"
+                >
+                  <ShoppingCart size={20} />
+                  {cartCount > 0 ? (
+                    <span className="absolute -right-2 -top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                      {cartCount}
+                    </span>
+                  ) : null}
+                </button>
+              </div>
+            </header>
+            <section className="relative mb-10 mt-16 h-[52vh] w-full overflow-hidden">
+              <img src={heroImageSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
+              <div className="absolute bottom-0 left-0 right-0 p-8">
+                <span className="mb-3 block text-xs uppercase tracking-[0.3em] text-white/80">Hər loxmada bir hekayə</span>
+                <h2 className="text-5xl font-extrabold leading-tight tracking-tighter text-white md:text-7xl" style={{ fontFamily: fonts.heading }}>
+                  Yüksək Səviyyəli <br /> Dad Təcrübəsi
+                </h2>
+              </div>
+            </section>
+            <section className="mx-auto mb-16 max-w-5xl px-6">
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+                <a
+                  href="#main-menu"
+                  className="group relative col-span-2 aspect-[2/1.2] overflow-hidden rounded-3xl bg-[#9e3d00] p-8 text-white shadow-[0_12px_32px_-4px_rgba(140,113,102,0.12)] transition-transform active:scale-95"
+                >
+                  <div className="z-10">
+                    <Utensils size={30} />
+                    <h3 className="mt-2 text-2xl font-bold" style={{ fontFamily: fonts.heading }}>Menyuya Bax</h3>
+                  </div>
+                  <span className="absolute bottom-6 left-8 text-xs uppercase tracking-widest text-white/75">
+                    Kəşf Et
+                  </span>
+                </a>
+                <a
+                  href={mapsUrl || "#"}
+                  target={mapsUrl ? "_blank" : undefined}
+                  rel={mapsUrl ? "noopener noreferrer" : undefined}
+                  className="col-span-2 aspect-[2/1.2] rounded-3xl bg-[#f5edde] p-8 transition-transform active:scale-95"
+                >
+                  <MapPin size={30} className="text-[#9e3d00]" />
+                  <h3 className="mt-2 text-2xl font-bold text-[#1e1b13]" style={{ fontFamily: fonts.heading }}>Bizim Məkan</h3>
+                  <p className="mt-2 text-sm text-[#594238]">Google xəritədə ünvanı açın</p>
+                </a>
+                <a
+                  href={waOrderUrl || "#"}
+                  target={waOrderUrl ? "_blank" : undefined}
+                  rel={waOrderUrl ? "noopener noreferrer" : undefined}
+                  className="col-span-1 flex aspect-square flex-col items-center justify-center rounded-3xl bg-[#25D366]/10 p-6 text-center transition-transform active:scale-95"
+                >
+                  <div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-[#25D366] text-white shadow-lg">
+                    <MessageCircle size={24} />
+                  </div>
+                  <p className="text-[10px] uppercase tracking-widest text-[#594238]">WhatsApp-la</p>
+                  <h4 className="text-lg font-bold text-[#1e1b13]" style={{ fontFamily: fonts.heading }}>Sifariş</h4>
+                </a>
+                <a
+                  href={tiktok || "https://tiktok.com"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="col-span-1 flex aspect-square flex-col items-center justify-center rounded-3xl bg-[#1e1b13] p-6 text-center text-white transition-transform active:scale-95"
+                >
+                  <div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-white/10">
+                    <Music2 size={24} />
+                  </div>
+                  <p className="text-[10px] uppercase tracking-widest text-white/50">Bizi İzlə</p>
+                  <h4 className="text-lg font-bold" style={{ fontFamily: fonts.heading }}>TikTok</h4>
+                </a>
+              </div>
             </section>
           </div>
         ) : fastFoodMode ? (
@@ -1590,6 +2364,30 @@ export function MenuTemplateView({
               })}
             </div>
           </nav>
+        ) : mega4Mode ? (
+          <nav aria-label="Menu categories" className="overflow-x-auto px-6 pb-8 no-scrollbar">
+            <div className="flex w-max min-w-full gap-3">
+              {categories.map((cat) => {
+                const cname =
+                  ((cat.translations as Record<string, string> | undefined)?.[currentLang] as string) ||
+                  String(cat.name);
+                const active = Number(cat.id) === Number(activeCategory);
+                return (
+                  <button
+                    key={cat.id as number}
+                    type="button"
+                    onClick={() => setActiveCategory(cat.id as number)}
+                    className={cn(
+                      "whitespace-nowrap rounded-full px-6 py-2 text-sm font-semibold transition-colors",
+                      active ? "bg-[#904800] text-white" : "bg-[#efe7d9] text-[#594238] hover:bg-[#e9e2d3]"
+                    )}
+                  >
+                    {cname}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
         ) : (
           <div
             className={cn(
@@ -1787,6 +2585,7 @@ export function MenuTemplateView({
               "px-3 sm:px-4 py-4",
               fastFoodMode && "grid grid-cols-2 gap-4",
               mega2Mode && "px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10",
+              mega4Mode && "px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8",
               instagramGrid && "grid grid-cols-3 gap-1.5 sm:gap-2",
               !instagramGrid && productLayout === "grid" && "grid grid-cols-1 sm:grid-cols-2 gap-3",
               !instagramGrid && productLayout === "card" && "grid grid-cols-1 sm:grid-cols-2 gap-4",
@@ -1802,7 +2601,7 @@ export function MenuTemplateView({
         </div>
       </main>
 
-      {allowWa && th.showFab && !fastFoodMode && !mega2Mode && waOrderUrl && (!demoMode || cart.length > 0) && (
+      {allowWa && th.showFab && !fastFoodMode && !mega2Mode && !mega4Mode && waOrderUrl && (!demoMode || cart.length > 0) && (
         cart.length > 0 ? (
           <motion.button
             ref={fabRef}
@@ -1851,7 +2650,7 @@ export function MenuTemplateView({
         <nav
           className={cn(
             "fixed bottom-0 left-0 right-0 z-40 border-t border-black/10 backdrop-blur flex justify-around py-2 pb-safe",
-            fastFoodMode || mega2Mode ? "bg-white/90 px-4" : "bg-[var(--mt-surface)]/95"
+            fastFoodMode || mega2Mode || mega4Mode ? "bg-white/90 px-4" : "bg-[var(--mt-surface)]/95"
           )}
           aria-label="Bottom navigation"
         >
@@ -1898,6 +2697,40 @@ export function MenuTemplateView({
                 <History size={22} />
                 <span className="mt-1 font-bold uppercase tracking-widest">Sifarişlərim</span>
               </button>
+            </>
+          ) : mega4Mode ? (
+            <>
+              <a href={`#main-menu`} className="flex flex-col items-center text-[10px] text-[#8c7166]">
+                <Utensils size={22} />
+                <span className="mt-1 font-bold uppercase tracking-widest">Menu</span>
+              </a>
+              <button
+                ref={navCartRef}
+                type="button"
+                onClick={() => allowWa && ordersAllowed && cart.length > 0 && onMenuViewChange?.("cart")}
+                className="relative flex flex-col items-center text-[10px] text-[#8c7166]"
+              >
+                <ShoppingCart size={22} />
+                {cartCount > 0 ? (
+                  <span className="absolute -right-2 -top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+                    {cartCount}
+                  </span>
+                ) : null}
+                <span className="mt-1 font-bold uppercase tracking-widest">Cart</span>
+              </button>
+              <button type="button" onClick={() => onOpenOrders?.()} className="flex flex-col items-center text-[10px] text-[#8c7166]">
+                <History size={22} />
+                <span className="mt-1 font-bold uppercase tracking-widest">History</span>
+              </button>
+              <a
+                href={instagram || tiktok || facebook || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center text-[10px] text-[#8c7166]"
+              >
+                <Facebook size={22} />
+                <span className="mt-1 font-bold uppercase tracking-widest">Social</span>
+              </a>
             </>
           ) : (
             <>

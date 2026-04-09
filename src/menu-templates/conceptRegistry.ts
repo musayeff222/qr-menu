@@ -137,7 +137,7 @@ const FONT_STACKS: { heading: string; body: string }[] = [
   { heading: "'Geologica', system-ui, sans-serif", body: "'Nunito', system-ui, sans-serif" },
   { heading: "'Figtree', system-ui, sans-serif", body: "'Open Sans', system-ui, sans-serif" },
   { heading: "'EB Garamond', Georgia, serif", body: "'IBM Plex Sans', system-ui, sans-serif" },
-  { heading: "'Arsenal', system-ui, sans-serif", body: "'Rubik', system-ui, sans-serif" },
+  { heading: "'Epilogue', system-ui, sans-serif", body: "'Plus Jakarta Sans', system-ui, sans-serif" },
   { heading: "'Bricolage Grotesque', system-ui, sans-serif", body: "'Inter', system-ui, sans-serif" },
   { heading: "'Chakra Petch', system-ui, sans-serif", body: "'Manrope', system-ui, sans-serif" },
   { heading: "'Bungee', system-ui, sans-serif", body: "'Outfit', system-ui, sans-serif" },
@@ -945,24 +945,25 @@ const CONCEPTS: ConceptDim[] = [
     fontI: 31,
   },
   {
-    name: "Bottom Navigation UI",
-    slug: "bottom-navigation-ui",
-    tone: "light",
-    hue: 350,
+    name: "Mega 4 · Gusto Premium",
+    slug: "mega4-gusto-premium",
+    category: "Mega",
+    tone: "luxury",
+    hue: 46,
     headerLayout: "full-hero",
-    productLayout: "grid",
-    categoryNav: "tabs",
-    cardStyle: "flat",
+    productLayout: "list",
+    categoryNav: "scroll",
+    cardStyle: "glass",
     heroVariant: "fullscreen",
-    density: "comfortable",
-    radius: "lg",
-    productImageRadius: "md",
-    heroPattern: "grid",
+    density: "compact",
+    radius: "xl",
+    productImageRadius: "lg",
+    heroPattern: "none",
     iconStyle: "filled",
     headingWeight: "font-bold",
-    showFab: true,
+    showFab: false,
     showBottomNav: true,
-    overlayPercent: 40,
+    overlayPercent: 55,
     fontI: 32,
   },
   {
@@ -1334,18 +1335,32 @@ function assertLength50() {
   }
 }
 
+const MEGA4_HERO =
+  "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=1200&q=80&auto=format&fit=crop";
+
 export function buildConceptMenuTemplates(): MenuTemplateDef[] {
   assertLength50();
   return MENU_TEMPLATE_IDS_ORDERED.map((id, i) => {
     const c = CONCEPTS[i]!;
-    const theme = buildTheme(c);
+    let theme = buildTheme(c);
+    let heroImage = HERO_IMAGES[i]!;
+    if (c.slug === "mega4-gusto-premium") {
+      heroImage = MEGA4_HERO;
+      theme = {
+        ...theme,
+        customFonts: {
+          heading: "'Playfair Display', Georgia, serif",
+          body: "'Inter', ui-sans-serif, system-ui, sans-serif",
+        },
+      };
+    }
     const category = c.category ?? CATEGORY_OF_INDEX(i);
     return {
       id,
       name: c.name,
       category,
       description: `${c.slug} · ${theme.headerLayout} · ${theme.productLayout} · ${theme.heroVariant}`,
-      heroImage: HERO_IMAGES[i]!,
+      heroImage,
       theme,
     };
   });

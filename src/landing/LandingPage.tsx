@@ -772,8 +772,8 @@ export default function LandingPage() {
               </div>
               <p className="mt-6 text-sm text-slate-500">
                 {t("landing_footer_connect")}:{" "}
-                <a href="mailto:hello@qrmenu.az" className="text-rose-300 hover:underline">
-                  hello@qrmenu.az
+                <a href="mailto:info@menugo.az" className="text-rose-300 hover:underline">
+                  info@menugo.az
                 </a>
               </p>
             </div>

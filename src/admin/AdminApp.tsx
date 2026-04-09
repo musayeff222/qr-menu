@@ -1221,18 +1221,12 @@ function RestaurantsAdminPage() {
 }
 
 function AdminTemplatesPage() {
-  const [custom, setCustom] = useState<any[]>([]);
-  const [editRow, setEditRow] = useState<any>(null);
-  const [uploadingEdit, setUploadingEdit] = useState(false);
+  const chunkByTen = (arr: MenuTemplateDef[]): MenuTemplateDef[][] => {
+    const out: MenuTemplateDef[][] = [];
+    for (let i = 0; i < arr.length; i += 10) out.push(arr.slice(i, i + 10));
+    return out;
+  };
 
-  const load = () =>
-    fetch("/api/admin/custom-templates", { headers: authSuperHeaders() })
-      .then((r) => r.json())
-      .then(setCustom);
-
-  useEffect(() => {
-    load();
-  }, []);
   const groupedBuiltins = useMemo(() => {
     const map = new Map<string, MenuTemplateDef[]>();
     for (const tpl of MENU_TEMPLATES) {
@@ -1242,192 +1236,52 @@ function AdminTemplatesPage() {
     }
     return [...map.entries()];
   }, []);
-  const groupedCustom = useMemo(() => {
-    const map = new Map<string, any[]>();
-    for (const tpl of custom) {
-      const key = String(tpl?.category || "Other");
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(tpl);
-    }
-    return [...map.entries()];
-  }, [custom]);
-
-  const uploadAsset = async (file: File) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    const token = localStorage.getItem("adminSession") || localStorage.getItem("restaurantSession");
-    if (!token) return null;
-    const res = await fetch("/api/upload", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: fd,
-    });
-    if (!res.ok) return null;
-    const j = (await res.json()) as { url?: string };
-    return j.url ?? null;
-  };
 
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold">Şablonlar</h1>
       <p className="text-sm text-gray-500">
-        {MENU_TEMPLATES.length} hazır şablon + fərdi şablonlar. Canlı baxış üçün bəzi restoranın
-        slug-ından istifadə edin.
+        {MENU_TEMPLATES.length} hazır şablon. Canlı baxış üçün bəzi restoranın slug-ından istifadə edin.
       </p>
       <div className="space-y-5 max-h-[56vh] overflow-y-auto pr-1">
         {groupedBuiltins.map(([category, items]) => (
           <div key={category} className="space-y-2">
             <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500">{category}</h3>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {items.map((tpl) => (
-                <Card key={tpl.id} className="overflow-hidden flex flex-col">
-                  <div
-                    className="h-28 bg-cover bg-center"
-                    style={{ backgroundImage: `url(${tpl.heroImage})` }}
-                  />
-                  <div className="p-3 flex-1 flex flex-col gap-2">
-                    <p className="text-xs text-amber-700 font-bold">{tpl.category}</p>
-                    <p className="font-bold text-sm">{tpl.name}</p>
-                    <a
-                      href={`/r/demo-az-menu?preview=true&previewTemplate=${encodeURIComponent(tpl.id)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs text-red-600 font-semibold inline-flex items-center gap-1 mt-auto"
-                    >
-                      <Eye size={14} /> Preview
-                    </a>
-                    <span className="text-[10px] text-gray-400">
-                      Bu şablon kod bazası registry-sindən gəlir.
-                    </span>
-                  </div>
-                </Card>
-              ))}
-            </div>
+            {chunkByTen(items).map((group, groupIx) => (
+              <div key={`${category}-${groupIx}`} className="space-y-2">
+                <p className="text-[11px] font-semibold text-gray-400">
+                  Qrup {groupIx + 1} ({groupIx * 10 + 1}-{groupIx * 10 + group.length})
+                </p>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {group.map((tpl) => (
+                    <Card key={tpl.id} className="overflow-hidden flex flex-col">
+                      <div
+                        className="h-28 bg-cover bg-center"
+                        style={{ backgroundImage: `url(${tpl.heroImage})` }}
+                      />
+                      <div className="p-3 flex-1 flex flex-col gap-2">
+                        <p className="text-xs text-amber-700 font-bold">{tpl.category}</p>
+                        <p className="font-bold text-sm">{tpl.name}</p>
+                        <a
+                          href={`/r/demo-az-menu?preview=true&previewTemplate=${encodeURIComponent(tpl.id)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-red-600 font-semibold inline-flex items-center gap-1 mt-auto"
+                        >
+                          <Eye size={14} /> Preview
+                        </a>
+                        <span className="text-[10px] text-gray-400">
+                          Bu şablon kod bazası registry-sindən gəlir.
+                        </span>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         ))}
       </div>
-
-      <div className="space-y-2">
-        <h3 className="font-bold">Fərdi şablonlar (qruplar üzrə)</h3>
-        {groupedCustom.length === 0 ? (
-          <Card className="p-4 text-sm text-gray-500">Fərdi şablon yoxdur.</Card>
-        ) : (
-          groupedCustom.map(([category, items]) => (
-            <div key={category} className="space-y-2">
-              <h4 className="text-xs font-bold uppercase tracking-wide text-gray-500">{category}</h4>
-              {items.map((c) => (
-                <Card key={c.id} className="p-4 flex flex-wrap justify-between gap-2">
-                  <div>
-                    <p className="font-medium">{c.name}</p>
-                    <p className="text-xs font-mono">{c.slug_key}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() =>
-                        window.open(
-                          `/r/demo-az-menu?preview=true&previewTemplate=${encodeURIComponent(c.slug_key)}`,
-                          "_blank"
-                        )
-                      }
-                      className="border text-sm"
-                    >
-                      <Eye size={14} className="inline mr-1" /> Preview
-                    </Button>
-                    <Button
-                      onClick={() => setEditRow(c)}
-                      className="border text-sm"
-                    >
-                      Redaktə
-                    </Button>
-                    <Button
-                      onClick={async () => {
-                        if (!confirm("Silmək?")) return;
-                        await fetch(`/api/admin/custom-templates/${c.id}`, {
-                          method: "DELETE",
-                          headers: authSuperHeaders(),
-                        });
-                        load();
-                      }}
-                      className="border text-red-600 text-sm"
-                    >
-                      Sil
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ))
-        )}
-      </div>
-
-      {editRow && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full space-y-3 border dark:border-slate-700">
-            <h3 className="font-bold">Redaktə</h3>
-            <input
-              className="w-full p-2 border rounded"
-              value={editRow.name}
-              onChange={(e) => setEditRow({ ...editRow, name: e.target.value })}
-            />
-            <input
-              className="w-full p-2 border rounded"
-              value={editRow.hero_image_url || ""}
-              placeholder="Hero şəkil URL"
-              onChange={(e) => setEditRow({ ...editRow, hero_image_url: e.target.value })}
-            />
-            <label className="inline-flex items-center gap-2 text-xs text-gray-600">
-              <input
-                type="file"
-                accept="image/*"
-                disabled={uploadingEdit}
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
-                  if (!f) return;
-                  setUploadingEdit(true);
-                  try {
-                    const url = await uploadAsset(f);
-                    if (url) setEditRow((p: any) => ({ ...p, hero_image_url: url }));
-                    else alert("Şəkil yüklənmədi");
-                  } finally {
-                    setUploadingEdit(false);
-                    e.currentTarget.value = "";
-                  }
-                }}
-              />
-              {uploadingEdit ? "Yüklənir..." : "Cihazdan şəkil seç"}
-            </label>
-            {editRow.hero_image_url ? (
-              <img
-                src={editRow.hero_image_url}
-                alt="edit hero preview"
-                className="h-32 w-full object-cover rounded-lg border border-gray-200"
-              />
-            ) : null}
-            <Button
-              onClick={async () => {
-                await fetch(`/api/admin/custom-templates/${editRow.id}`, {
-                  method: "PUT",
-                  headers: authSuperHeaders(),
-                  body: JSON.stringify({
-                    name: editRow.name,
-                    category: editRow.category,
-                    hero_image_url: editRow.hero_image_url,
-                    theme_json: editRow.theme_json,
-                  }),
-                });
-                setEditRow(null);
-                load();
-              }}
-              className="w-full bg-red-600 text-white"
-            >
-              Saxla
-            </Button>
-            <Button onClick={() => setEditRow(null)} className="w-full border">
-              Bağla
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -543,6 +543,9 @@ async function startServer() {
       instagram,
       tiktok,
       facebook,
+      social_instagram_visible,
+      social_tiktok_visible,
+      social_facebook_visible,
       logo_url,
       cover_image_url,
       opening_hours,
@@ -561,6 +564,12 @@ async function startServer() {
     if (typeof instagram === "string") patch.instagram = instagram;
     if (typeof tiktok === "string") patch.tiktok = tiktok;
     if (typeof facebook === "string") patch.facebook = facebook;
+    if (typeof social_instagram_visible === "boolean")
+      patch.social_instagram_visible = social_instagram_visible;
+    if (typeof social_tiktok_visible === "boolean")
+      patch.social_tiktok_visible = social_tiktok_visible;
+    if (typeof social_facebook_visible === "boolean")
+      patch.social_facebook_visible = social_facebook_visible;
     if (typeof logo_url === "string") patch.logo_url = logo_url;
     if (typeof cover_image_url === "string") patch.cover_image_url = cover_image_url;
     if (typeof opening_hours === "string") patch.opening_hours = opening_hours;
@@ -623,6 +632,9 @@ async function startServer() {
       instagram,
       tiktok,
       facebook,
+      social_instagram_visible,
+      social_tiktok_visible,
+      social_facebook_visible,
       logo_url,
       cover_image_url,
       opening_hours,
@@ -639,6 +651,12 @@ async function startServer() {
     if (typeof instagram === "string") patch.instagram = instagram;
     if (typeof tiktok === "string") patch.tiktok = tiktok;
     if (typeof facebook === "string") patch.facebook = facebook;
+    if (typeof social_instagram_visible === "boolean")
+      patch.social_instagram_visible = social_instagram_visible;
+    if (typeof social_tiktok_visible === "boolean")
+      patch.social_tiktok_visible = social_tiktok_visible;
+    if (typeof social_facebook_visible === "boolean")
+      patch.social_facebook_visible = social_facebook_visible;
     if (typeof logo_url === "string") patch.logo_url = logo_url;
     if (typeof cover_image_url === "string") patch.cover_image_url = cover_image_url;
     if (typeof opening_hours === "string") patch.opening_hours = opening_hours;

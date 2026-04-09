@@ -13,4 +13,5 @@ export {
 export { MenuTemplateView } from "./MenuTemplateView";
 export type { MenuTemplateViewProps, CartLine } from "./MenuTemplateView";
 export { TemplatePicker } from "./TemplatePicker";
+export { MenuPhoneMockup } from "./MenuPhoneMockup";
 export { resolveMenuTemplate, type CustomTemplateRow } from "./resolveMenuTemplate";

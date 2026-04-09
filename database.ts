@@ -720,6 +720,15 @@ export async function initDatabase() {
       await ensureColumn("restaurants", "facebook", (table) => {
         table.string("facebook", 200);
       });
+      await ensureColumn("restaurants", "social_instagram_visible", (table) => {
+        table.boolean("social_instagram_visible").defaultTo(true);
+      });
+      await ensureColumn("restaurants", "social_tiktok_visible", (table) => {
+        table.boolean("social_tiktok_visible").defaultTo(true);
+      });
+      await ensureColumn("restaurants", "social_facebook_visible", (table) => {
+        table.boolean("social_facebook_visible").defaultTo(true);
+      });
       await ensureColumn("restaurants", "opening_hours", (table) => {
         table.text("opening_hours");
       });

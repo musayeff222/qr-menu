@@ -16,6 +16,25 @@
 
 /* Menyu şablonları — neon, dərinlıq, şüşə, orqanik formalar */
 @layer utilities {
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .px-safe {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  /** Minimum horizontal padding + notch / home indicator */
+  .px-comfort {
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+  }
+
   .mt-neon-skin .mt-product-card:hover {
     box-shadow:
       0 0 26px color-mix(in srgb, var(--mt-primary) 42%, transparent),
