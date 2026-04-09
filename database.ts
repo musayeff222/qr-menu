@@ -385,7 +385,11 @@ export async function initDatabase() {
     if (!(await db.schema.hasTable("categories"))) {
       await db.schema.createTable("categories", (table) => {
         table.increments("id");
-        table.integer("restaurant_id").references("id").inTable("restaurants");
+        table
+          .integer("restaurant_id")
+          .unsigned()
+          .references("id")
+          .inTable("restaurants");
         table.string("name").notNullable();
         table.text("translations");
         table.integer("sort_order").defaultTo(0);
@@ -396,8 +400,16 @@ export async function initDatabase() {
     if (!(await db.schema.hasTable("products"))) {
       await db.schema.createTable("products", (table) => {
         table.increments("id");
-        table.integer("category_id").references("id").inTable("categories");
-        table.integer("restaurant_id").references("id").inTable("restaurants");
+        table
+          .integer("category_id")
+          .unsigned()
+          .references("id")
+          .inTable("categories");
+        table
+          .integer("restaurant_id")
+          .unsigned()
+          .references("id")
+          .inTable("restaurants");
         table.string("name").notNullable();
         table.string("description");
         table.text("translations");
@@ -414,7 +426,11 @@ export async function initDatabase() {
     if (!(await db.schema.hasTable("scans"))) {
       await db.schema.createTable("scans", (table) => {
         table.increments("id");
-        table.integer("restaurant_id").references("id").inTable("restaurants");
+        table
+          .integer("restaurant_id")
+          .unsigned()
+          .references("id")
+          .inTable("restaurants");
         table.timestamp("scanned_at").defaultTo(db.fn.now());
       });
     }
