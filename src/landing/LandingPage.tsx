@@ -28,7 +28,13 @@ import { MENU_TEMPLATES } from "../menu-templates";
 import { DEMO_MENU_PREVIEW_SLUG, DEMO_QR_PUBLIC_SLUG } from "../demoMenuSlug";
 import { useI18nBundle } from "../i18n/bundleContext";
 import type { LandingCms, LandingCmsCopy } from "../lib/landingCms";
-import { CMS_COPY_I18N_KEYS, parseLandingCms, sectionEnabled } from "../lib/landingCms";
+import {
+  CMS_COPY_I18N_KEYS,
+  DEFAULT_HERO_SHOWCASE_SLIDES,
+  DEFAULT_HERO_SHOWCASE_SLOGANS,
+  parseLandingCms,
+  sectionEnabled,
+} from "../lib/landingCms";
 
 function cn(...i: (string | boolean | undefined)[]) {
   return twMerge(clsx(i));
@@ -91,6 +97,118 @@ const stagger: Variants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.09 } },
 };
+
+function AutoMenuShowcase({ showcase }: { showcase?: LandingCms["showcase"] }) {
+  const slides =
+    Array.isArray(showcase?.slides) && showcase.slides.length > 0
+      ? showcase.slides
+      : DEFAULT_HERO_SHOWCASE_SLIDES;
+  const slogans =
+    Array.isArray(showcase?.slogans) && showcase.slogans.length > 0
+      ? showcase.slogans
+      : DEFAULT_HERO_SHOWCASE_SLOGANS;
+  const slideMs = 3200;
+  const [slide, setSlide] = useState(0);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setSlide((p) => (p + 1) % slides.length), slideMs);
+    return () => window.clearInterval(id);
+  }, [slideMs, slides.length]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 32, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+      className="relative mx-auto w-full max-w-[590px] overflow-hidden rounded-[2rem] border border-white/15 bg-gradient-to-br from-[#141826] via-[#111428] to-[#0a0e1b] p-4 shadow-[0_35px_80px_-20px_rgba(0,0,0,0.8)]"
+    >
+      <div className="absolute -left-16 -top-16 h-44 w-44 rounded-full bg-fuchsia-500/25 blur-3xl" />
+      <div className="absolute -right-12 -bottom-12 h-36 w-36 rounded-full bg-amber-400/20 blur-3xl" />
+      <motion.div
+        className="pointer-events-none absolute -left-1/3 top-0 h-full w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+        animate={{ x: ["0%", "420%"] }}
+        transition={{ duration: 4.2, ease: "easeInOut", repeat: Infinity, repeatDelay: 1.2 }}
+      />
+
+      <div className="relative mb-3 flex items-center justify-between">
+        <div className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-2.5 py-2">
+          <span className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-rose-500 to-fuchsia-600 shadow-lg shadow-rose-500/30">
+            <QrCode size={18} />
+            <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[#111428]" />
+          </span>
+          <span className="text-xs font-black uppercase tracking-[0.15em] text-rose-100">QRMENU</span>
+        </div>
+        <div className="w-20" />
+      </div>
+
+      <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-black/25 p-3">
+        <motion.div
+          key={`s-${slide}`}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-3 rounded-xl border border-rose-300/30 bg-gradient-to-r from-rose-500/20 to-fuchsia-500/20 px-3 py-2 text-sm font-bold text-rose-100"
+        >
+          {slogans[slide % slogans.length]}
+        </motion.div>
+
+        <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
+          {slides.map((tpl, i) => (
+            <motion.div
+              key={tpl.id}
+              className="absolute inset-0"
+              animate={{
+                opacity: i === slide ? 1 : 0,
+                scale: i === slide ? 1 : 1.06,
+                x: i === slide ? 0 : i < slide ? -16 : 16,
+              }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <motion.img
+                src={tpl.heroImage}
+                alt={tpl.name}
+                className="h-full w-full object-cover"
+                loading="lazy"
+                animate={i === slide ? { scale: 1.06 } : { scale: 1.02 }}
+                transition={{ duration: slideMs / 1000, ease: "linear" }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-3">
+                <p className="text-sm font-bold text-white">{tpl.name}</p>
+                <p className="text-[11px] text-slate-300">{tpl.category}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="mt-3 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            {slides.map((tpl, i) => (
+              <span
+                key={tpl.id}
+                className={cn(
+                  "h-1.5 rounded-full transition-all",
+                  i === slide ? "w-6 bg-rose-400" : "w-2 bg-white/30"
+                )}
+              />
+            ))}
+          </div>
+          <span className="text-[11px] font-semibold text-slate-300">
+            Şablon {slide + 1}/{slides.length}
+          </span>
+        </div>
+        <div className="mt-2 overflow-hidden rounded-full bg-white/10">
+          <motion.div
+            key={`p-${slide}`}
+            initial={{ width: "0%" }}
+            animate={{ width: "100%" }}
+            transition={{ duration: slideMs / 1000, ease: "linear" }}
+            className="h-1 rounded-full bg-gradient-to-r from-rose-500 via-fuchsia-500 to-amber-400"
+          />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function LandingPage() {
   const bundle = useI18nBundle();
@@ -200,6 +318,9 @@ export default function LandingPage() {
     { icon: Sparkles, t: "landing_benefit_templates_t", d: "landing_benefit_templates_d" },
     { icon: MessageSquare, t: "landing_benefit_wa_t", d: "landing_benefit_wa_d" },
     { icon: LayoutDashboard, t: "landing_benefit_panel_t", d: "landing_benefit_panel_d" },
+    { icon: Check, t: "landing_benefit_save_t", d: "landing_benefit_save_d" },
+    { icon: Globe, t: "landing_benefit_domain_t", d: "landing_benefit_domain_d" },
+    { icon: Send, t: "landing_benefit_speed_t", d: "landing_benefit_speed_d" },
   ] as const;
 
   const showcaseTemplates = MENU_TEMPLATES.slice(0, 12);
@@ -334,37 +455,7 @@ export default function LandingPage() {
               </motion.div>
             </motion.div>
 
-            {/* Phone mockup */}
-            <motion.div
-              initial={{ opacity: 0, y: 40, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-              className="relative mx-auto w-full max-w-[300px] sm:max-w-[318px] lg:max-w-[340px] lg:pt-4"
-            >
-              <div className="absolute -inset-6 rounded-[3.25rem] bg-gradient-to-tr from-fuchsia-500/35 via-rose-500/25 to-amber-400/25 blur-3xl opacity-90" />
-              <div className="relative rounded-[2.65rem] border-[14px] border-[#1a1d2e] bg-gradient-to-b from-[#252838] to-[#12141c] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-white/10">
-                <div className="absolute left-1/2 top-[11px] z-20 h-6 w-[72px] -translate-x-1/2 rounded-full bg-black/80 ring-1 ring-white/[0.07]" />
-                <div className="absolute left-3 right-3 top-9 z-10 flex h-7 items-center justify-between rounded-lg bg-black/55 px-3 text-[10px] font-semibold tracking-wide text-white/90 backdrop-blur-md">
-                  <span className="tabular-nums opacity-90">9:41</span>
-                  <span className="flex items-center gap-1 opacity-80" aria-hidden>
-                    <span className="h-2 w-3 rounded-sm border border-white/40" />
-                    <span className="h-2 w-1 rounded-[1px] bg-white/60" />
-                    <span className="h-2.5 w-5 rounded-[3px] border border-white/35 pl-[2px] pr-[2px]">
-                      <span className="block h-full w-[55%] rounded-[2px] bg-emerald-400/90" />
-                    </span>
-                  </span>
-                </div>
-                <div className="relative aspect-[9/19] overflow-hidden rounded-[2rem] bg-[#0b0c10] pt-7 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
-                  <iframe
-                    title="Menu preview"
-                    src={`${demoBase}&previewTemplate=modern-01`}
-                    className="h-full w-full scale-[0.972] border-0 origin-top"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="pointer-events-none absolute bottom-2 left-1/2 z-10 h-1 w-[28%] -translate-x-1/2 rounded-full bg-white/20" />
-              </div>
-            </motion.div>
+            <AutoMenuShowcase showcase={cms.showcase} />
           </div>
         </section>
         ) : null}
@@ -382,7 +473,7 @@ export default function LandingPage() {
               <h2 className="text-3xl font-bold sm:text-4xl">{tc("benefits_title")}</h2>
               <p className="mx-auto mt-3 max-w-2xl text-slate-400">{tc("benefits_sub")}</p>
             </motion.div>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {benefits.map((b, i) => (
                 <motion.div
                   key={i}

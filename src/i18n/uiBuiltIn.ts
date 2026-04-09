@@ -40,7 +40,7 @@ const BASE_AZ: Record<string, string> = {
   username: "İstifadəçi adı",
   password: "Şifrə",
   landing_nav_admin: "Super Admin",
-  landing_nav_start: "Başla",
+  landing_nav_start: "Ana səhifə",
   landing_hero_1: "Restoran menyunuz,",
   landing_hero_2: "rəqəmsal.",
   landing_hero_sub:
@@ -323,6 +323,15 @@ const EXT_EN: Record<string, string> = {
   landing_benefit_wa_d: "Orders go straight to your number.",
   landing_benefit_panel_t: "Easy admin panel",
   landing_benefit_panel_d: "Manage items, prices, and photos yourself.",
+  landing_benefit_save_t: "Stop print costs",
+  landing_benefit_save_d:
+    "No re-print needed for price changes; update your menu online in seconds.",
+  landing_benefit_domain_t: "Your own branded domain",
+  landing_benefit_domain_d:
+    "Use links like menu.yourbrand.az and deliver a full digital brand experience.",
+  landing_benefit_speed_t: "Faster service, more sales",
+  landing_benefit_speed_d:
+    "Guests scan, choose, and send WhatsApp orders quickly to increase table turnover.",
   landing_templates_showcase_title: "Template previews",
   landing_templates_showcase_sub: "See real menu UI before you publish.",
   landing_preview_live: "Live preview",
@@ -365,7 +374,7 @@ const EXT_AZ: Record<string, string> = {
   landing_sales_title: "Daha çox sifariş: qonaqlar skan edir, sifariş WhatsApp-a düşür",
   landing_sales_sub:
     "QR kodla menyuya saniyələr içində giriş. WhatsApp sifarişi, 50-dən çox şablon, tam mobil uyğunluq.",
-  landing_cta_free: "Pulsuz başla",
+  landing_cta_free: "Pulsuz sınağa başla",
   landing_cta_demo: "Demo bax",
   landing_feat4_t: "50-dən çox şablon",
   landing_feat4_d: "Hər şablon fərqli görünüş, rəng və şriftlə.",
@@ -385,8 +394,8 @@ const EXT_AZ: Record<string, string> = {
   server_error: "Xəta",
   db_driver: "Növ",
   response_ms: "ms",
-  rest_login_title: "Restoran girişi",
-  rest_login_sub: "Menyunuzu idarə etmək üçün daxil olun",
+  rest_login_title: "Restoran panelinə giriş",
+  rest_login_sub: "Menyu və sifarişləri idarə etmək üçün daxil olun",
   restaurant_staff_login: "Giriş",
   admin_acc_user: "Restoran admin istifadəçi adı",
   admin_acc_pass: "Restoran admin şifrəsi",
@@ -399,9 +408,9 @@ const EXT_AZ: Record<string, string> = {
   super_dashboard: "İdarə paneli",
   full_name_label: "Ad soyad",
   phone_label: "Telefon nömrəsi",
-  register_title: "Hesab yaradın",
-  register_sub: "Pulsuz başlayın — restoran və demo menyu avtomatik yaradılır",
-  register_submit: "Qeydiyyat",
+  register_title: "Restoran hesabı yaradın",
+  register_sub: "Pulsuz sınaqla başlayın — restoran və demo menyu avtomatik yaradılır",
+  register_submit: "Hesab yarat",
   register_success_note: "Hesab hazırdır. Aşağıdan daxil olun.",
   register_have_account: "Artıq hesabınız var?",
   orders_closed_hint: "Hal-hazırda sifariş qəbul edilmir (iş saatları).",
@@ -486,6 +495,15 @@ const EXT_AZ: Record<string, string> = {
   landing_benefit_wa_d: "Sifarişlər birbaşa nömrənizə düşür.",
   landing_benefit_panel_t: "Asan idarə paneli",
   landing_benefit_panel_d: "Menyu, qiymət və şəkilləri özünüz idarə edin.",
+  landing_benefit_save_t: "Çap xərclərinə son",
+  landing_benefit_save_d:
+    "Qiymət dəyişmək üçün menyunu yenidən çap etməyin, saniyələr içində onlayn yeniləyin.",
+  landing_benefit_domain_t: "Öz domen adınızla çıxış",
+  landing_benefit_domain_d:
+    "menu.brendiniz.az kimi linklərlə müştəriyə tam rəqəmsal brend təcrübəsi təqdim edin.",
+  landing_benefit_speed_t: "Daha sürətli xidmət, daha çox satış",
+  landing_benefit_speed_d:
+    "Müştəri skan edir, seçir və WhatsApp-la sifariş verir — masa dövriyyəsi sürətlənir.",
   landing_templates_showcase_title: "Şablon önizləməsi",
   landing_templates_showcase_sub: "Hazır UI ilə canlı nümunəyə baxın.",
   landing_preview_live: "Canlı bax",
@@ -647,6 +665,15 @@ const EXT_RU: Record<string, string> = {
   landing_benefit_wa_d: "Заявки прямо на ваш номер.",
   landing_benefit_panel_t: "Простая панель",
   landing_benefit_panel_d: "Управляйте меню сами.",
+  landing_benefit_save_t: "Экономия на печати",
+  landing_benefit_save_d:
+    "Не перепечатывайте меню при смене цен — обновляйте онлайн за секунды.",
+  landing_benefit_domain_t: "Собственный бренд-домен",
+  landing_benefit_domain_d:
+    "Используйте ссылки вида menu.yourbrand.az и усиливайте цифровой имидж.",
+  landing_benefit_speed_t: "Быстрее сервис, выше продажи",
+  landing_benefit_speed_d:
+    "Гости сканируют, выбирают и отправляют заказ в WhatsApp без ожидания официанта.",
   landing_templates_showcase_title: "Шаблоны",
   landing_templates_showcase_sub: "Живой предпросмотр интерфейса.",
   landing_preview_live: "Смотреть",
@@ -808,6 +835,15 @@ const EXT_TR: Record<string, string> = {
   landing_benefit_wa_d: "Siparişler numaranıza gelsin.",
   landing_benefit_panel_t: "Kolay panel",
   landing_benefit_panel_d: "Menüyü kendiniz yönetin.",
+  landing_benefit_save_t: "Baskı maliyetlerini bitirin",
+  landing_benefit_save_d:
+    "Fiyat değişince menüyü yeniden basmayın; saniyeler içinde çevrimiçi güncelleyin.",
+  landing_benefit_domain_t: "Kendi marka alan adınız",
+  landing_benefit_domain_d:
+    "menu.markaniz.az gibi bağlantılarla tam dijital marka deneyimi sunun.",
+  landing_benefit_speed_t: "Daha hızlı servis, daha çok satış",
+  landing_benefit_speed_d:
+    "Müşteri tarar, seçer, WhatsApp ile sipariş verir; masa dönüşü ve satış artar.",
   landing_templates_showcase_title: "Şablon önizleme",
   landing_templates_showcase_sub: "Canlı arayüz önizlemesi.",
   landing_preview_live: "Canlı bak",

@@ -399,11 +399,11 @@ const RestaurantLoginPage = () => {
               to="/register"
               className="inline-flex w-full items-center justify-center rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-500"
             >
-              Pulsuz başla
+              {t("landing_cta_free")}
             </Link>
             <div className="text-center">
               <Link to="/" className="text-xs text-gray-500 transition-colors hover:text-red-600 hover:underline">
-                Şifrənizi unutmusunuz?
+                ← {t("landing_nav_start")}
               </Link>
             </div>
           </div>
@@ -2224,6 +2224,8 @@ export default function App() {
           <Route path="/restaurant/:id/*" element={<RestaurantPanel />} />
           <Route path="/demo/:demoSlug" element={<DemoQrMenuPage />} />
           <Route path="/demo" element={<Navigate to={`/demo/${DEMO_QR_PUBLIC_SLUG}`} replace />} />
+          <Route path="/demoMENU" element={<Navigate to={`/demo/${DEMO_QR_PUBLIC_SLUG}`} replace />} />
+          <Route path="/demomenu" element={<Navigate to={`/demo/${DEMO_QR_PUBLIC_SLUG}`} replace />} />
           <Route path="/r/:slug" element={<CustomerMenu />} />
           <Route path="/menu/:slug" element={<CustomerMenu />} />
         </Routes>

@@ -39,26 +39,112 @@ export type LandingCmsAuth = {
   subtitle?: string;
 };
 
+export type LandingCmsShowcaseSlide = {
+  id: string;
+  name: string;
+  category: string;
+  heroImage: string;
+};
+
+export type LandingCmsShowcase = {
+  slogans?: string[];
+  slides?: LandingCmsShowcaseSlide[];
+};
+
+export const DEFAULT_HERO_SHOWCASE_SLOGANS: string[] = [
+  "Çap xərclərinə son",
+  "menu.brendiniz.az ilə prestij",
+  "Skan et, seç, WhatsApp-a göndər",
+  "Menyu anında yenilənir",
+  "Müştəri üçün daha premium təcrübə",
+  "Restoranınız üçün müasir təqdimat",
+];
+
+export const DEFAULT_HERO_SHOWCASE_SLIDES: LandingCmsShowcaseSlide[] = [
+  {
+    id: "az-grill",
+    name: "Qril Menyusu",
+    category: "Azerbaijan Kitchen",
+    heroImage:
+      "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&q=80&auto=format&fit=crop",
+  },
+  {
+    id: "az-breakfast",
+    name: "Səhər Menyusu",
+    category: "Cafe & Breakfast",
+    heroImage:
+      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&q=80&auto=format&fit=crop",
+  },
+  {
+    id: "az-dessert",
+    name: "Şirniyyat Menyusu",
+    category: "Dessert House",
+    heroImage:
+      "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=1200&q=80&auto=format&fit=crop",
+  },
+  {
+    id: "az-fastfood",
+    name: "Fast Food Menyusu",
+    category: "Street Food",
+    heroImage:
+      "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=1200&q=80&auto=format&fit=crop",
+  },
+  {
+    id: "az-steak",
+    name: "Steak Menyusu",
+    category: "Fine Dining",
+    heroImage:
+      "https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&q=80&auto=format&fit=crop",
+  },
+  {
+    id: "az-drinks",
+    name: "İçki Menyusu",
+    category: "Bar & Lounge",
+    heroImage:
+      "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=1200&q=80&auto=format&fit=crop",
+  },
+];
+
 export type LandingCms = {
   sections?: LandingCmsSections;
   copy?: LandingCmsCopy;
   auth?: LandingCmsAuth;
+  showcase?: LandingCmsShowcase;
 };
 
 export const DEFAULT_LANDING_CMS: LandingCms = {
   sections: {},
   copy: {},
   auth: {},
+  showcase: {
+    slogans: [...DEFAULT_HERO_SHOWCASE_SLOGANS],
+    slides: [...DEFAULT_HERO_SHOWCASE_SLIDES],
+  },
 };
 
 export function parseLandingCms(raw: string | null | undefined): LandingCms {
   if (!raw || !String(raw).trim()) return { ...DEFAULT_LANDING_CMS };
   try {
     const j = JSON.parse(raw) as LandingCms;
+    const slogans =
+      Array.isArray(j.showcase?.slogans) && j.showcase!.slogans!.length > 0
+        ? j.showcase!.slogans!.map((x) => String(x))
+        : [...DEFAULT_HERO_SHOWCASE_SLOGANS];
+    const slidesRaw =
+      Array.isArray(j.showcase?.slides) && j.showcase!.slides!.length > 0
+        ? j.showcase!.slides!
+        : DEFAULT_HERO_SHOWCASE_SLIDES;
+    const slides = slidesRaw.map((s, i) => ({
+      id: String((s as LandingCmsShowcaseSlide).id || `slide-${i + 1}`),
+      name: String((s as LandingCmsShowcaseSlide).name || `Slide ${i + 1}`),
+      category: String((s as LandingCmsShowcaseSlide).category || ""),
+      heroImage: String((s as LandingCmsShowcaseSlide).heroImage || ""),
+    }));
     return {
       sections: { ...DEFAULT_LANDING_CMS.sections, ...j.sections },
       copy: { ...DEFAULT_LANDING_CMS.copy, ...j.copy },
       auth: { ...DEFAULT_LANDING_CMS.auth, ...j.auth },
+      showcase: { slogans, slides },
     };
   } catch {
     return { ...DEFAULT_LANDING_CMS };

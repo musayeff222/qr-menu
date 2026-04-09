@@ -886,6 +886,7 @@ function RestaurantsAdminPage() {
   const loc = useLocation();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const nav = useNavigate();
   const createFormRef = useRef<HTMLDivElement | null>(null);
   const [createForm, setCreateForm] = useState({
@@ -981,8 +982,16 @@ function RestaurantsAdminPage() {
         plan_id: "",
         seed_demo: true,
       });
+      setShowCreateForm(false);
       load();
     } else alert(await res.text());
+  };
+
+  const openCreateForm = () => {
+    setShowCreateForm(true);
+    setTimeout(() => {
+      createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
   };
 
   return (
@@ -991,7 +1000,7 @@ function RestaurantsAdminPage() {
         <h1 className="text-2xl font-bold">İstifadəçilər & Restoranlar</h1>
         <Button
           type="button"
-          onClick={() => createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          onClick={openCreateForm}
           className="bg-red-600 text-white"
         >
           <Plus className="inline mr-1" size={16} /> Yeni restoran
@@ -1002,6 +1011,7 @@ function RestaurantsAdminPage() {
         mövcud deyil. Bloklama və plan dəyişikliyi ilə idarə edin; abunə bitmə tarixini aşağıda yeniləyə
         bilərsiniz.
       </p>
+      {showCreateForm ? (
       <div ref={createFormRef}>
       <Card className="p-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <input
@@ -1063,8 +1073,16 @@ function RestaurantsAdminPage() {
         >
           Yeni restoran yarat
         </Button>
+        <Button
+          type="button"
+          onClick={() => setShowCreateForm(false)}
+          className="sm:col-span-2 lg:col-span-3 border"
+        >
+          Bağla
+        </Button>
       </Card>
       </div>
+      ) : null}
       <Card className="p-4 flex flex-wrap gap-3">
         <div className="flex items-center gap-2 flex-1 min-w-[200px]">
           <Search className="text-gray-400" size={18} />
@@ -1192,7 +1210,7 @@ function RestaurantsAdminPage() {
       </Card>
       <button
         type="button"
-        onClick={() => createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        onClick={openCreateForm}
         className="fixed bottom-6 right-6 z-40 rounded-full shadow-xl bg-red-600 hover:bg-red-700 text-white p-4 sm:hidden"
         aria-label="Yeni restoran yarat"
       >
@@ -1204,13 +1222,8 @@ function RestaurantsAdminPage() {
 
 function AdminTemplatesPage() {
   const [custom, setCustom] = useState<any[]>([]);
-  const [form, setForm] = useState({
-    name: "",
-    category: "Modern",
-    hero_image_url: "",
-    theme_json: "",
-  });
   const [editRow, setEditRow] = useState<any>(null);
+  const [uploadingEdit, setUploadingEdit] = useState(false);
 
   const load = () =>
     fetch("/api/admin/custom-templates", { headers: authSuperHeaders() })
@@ -1229,17 +1242,29 @@ function AdminTemplatesPage() {
     }
     return [...map.entries()];
   }, []);
+  const groupedCustom = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const tpl of custom) {
+      const key = String(tpl?.category || "Other");
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(tpl);
+    }
+    return [...map.entries()];
+  }, [custom]);
 
-  const add = async () => {
-    const res = await fetch("/api/admin/custom-templates", {
+  const uploadAsset = async (file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const token = localStorage.getItem("adminSession") || localStorage.getItem("restaurantSession");
+    if (!token) return null;
+    const res = await fetch("/api/upload", {
       method: "POST",
-      headers: authSuperHeaders(),
-      body: JSON.stringify(form),
+      headers: { Authorization: `Bearer ${token}` },
+      body: fd,
     });
-    if (res.ok) {
-      setForm({ name: "", category: "Modern", hero_image_url: "", theme_json: "" });
-      load();
-    } else alert(await res.text());
+    if (!res.ok) return null;
+    const j = (await res.json()) as { url?: string };
+    return j.url ?? null;
   };
 
   return (
@@ -1272,7 +1297,7 @@ function AdminTemplatesPage() {
                       <Eye size={14} /> Preview
                     </a>
                     <span className="text-[10px] text-gray-400">
-                      “Edit” kod bazasındakı registry üçündür — fərdi şablon əlavə edin.
+                      Bu şablon kod bazası registry-sindən gəlir.
                     </span>
                   </div>
                 </Card>
@@ -1282,85 +1307,57 @@ function AdminTemplatesPage() {
         ))}
       </div>
 
-      <Card className="p-6">
-        <h2 className="font-bold mb-4">Fərdi şablon əlavə et</h2>
-        <div className="grid sm:grid-cols-2 gap-3">
-          <input
-            className="p-2 border rounded-lg"
-            placeholder="Ad"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-          <select
-            className="p-2 border rounded-lg"
-            value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value })}
-          >
-            {["Modern", "Luxury", "Minimal", "Fast Food", "Cafe"].map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-          <input
-            className="p-2 border rounded-lg sm:col-span-2"
-            placeholder="Hero şəkil URL"
-            value={form.hero_image_url}
-            onChange={(e) => setForm({ ...form, hero_image_url: e.target.value })}
-          />
-          <textarea
-            className="p-2 border rounded-lg sm:col-span-2 font-mono text-xs"
-            placeholder='İstəyə bağlı: theme JSON (theme obyektinin hissəsi)'
-            rows={4}
-            value={form.theme_json}
-            onChange={(e) => setForm({ ...form, theme_json: e.target.value })}
-          />
-        </div>
-        <Button onClick={add} className="mt-4 bg-red-600 text-white">
-          Əlavə et
-        </Button>
-      </Card>
-
       <div className="space-y-2">
-        <h3 className="font-bold">Fərdi şablonlar</h3>
-        {custom.map((c) => (
-          <Card key={c.id} className="p-4 flex flex-wrap justify-between gap-2">
-            <div>
-              <p className="font-medium">{c.name}</p>
-              <p className="text-xs font-mono">{c.slug_key}</p>
+        <h3 className="font-bold">Fərdi şablonlar (qruplar üzrə)</h3>
+        {groupedCustom.length === 0 ? (
+          <Card className="p-4 text-sm text-gray-500">Fərdi şablon yoxdur.</Card>
+        ) : (
+          groupedCustom.map(([category, items]) => (
+            <div key={category} className="space-y-2">
+              <h4 className="text-xs font-bold uppercase tracking-wide text-gray-500">{category}</h4>
+              {items.map((c) => (
+                <Card key={c.id} className="p-4 flex flex-wrap justify-between gap-2">
+                  <div>
+                    <p className="font-medium">{c.name}</p>
+                    <p className="text-xs font-mono">{c.slug_key}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() =>
+                        window.open(
+                          `/r/demo-az-menu?preview=true&previewTemplate=${encodeURIComponent(c.slug_key)}`,
+                          "_blank"
+                        )
+                      }
+                      className="border text-sm"
+                    >
+                      <Eye size={14} className="inline mr-1" /> Preview
+                    </Button>
+                    <Button
+                      onClick={() => setEditRow(c)}
+                      className="border text-sm"
+                    >
+                      Redaktə
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        if (!confirm("Silmək?")) return;
+                        await fetch(`/api/admin/custom-templates/${c.id}`, {
+                          method: "DELETE",
+                          headers: authSuperHeaders(),
+                        });
+                        load();
+                      }}
+                      className="border text-red-600 text-sm"
+                    >
+                      Sil
+                    </Button>
+                  </div>
+                </Card>
+              ))}
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() =>
-                  window.open(
-                    `/r/demo-az-menu?preview=true&previewTemplate=${encodeURIComponent(c.slug_key)}`,
-                    "_blank"
-                  )
-                }
-                className="border text-sm"
-              >
-                <Eye size={14} className="inline mr-1" /> Preview
-              </Button>
-              <Button
-                onClick={() => setEditRow(c)}
-                className="border text-sm"
-              >
-                Redaktə
-              </Button>
-              <Button
-                onClick={async () => {
-                  if (!confirm("Silmək?")) return;
-                  await fetch(`/api/admin/custom-templates/${c.id}`, {
-                    method: "DELETE",
-                    headers: authSuperHeaders(),
-                  });
-                  load();
-                }}
-                className="border text-red-600 text-sm"
-              >
-                Sil
-              </Button>
-            </div>
-          </Card>
-        ))}
+          ))
+        )}
       </div>
 
       {editRow && (
@@ -1372,6 +1369,40 @@ function AdminTemplatesPage() {
               value={editRow.name}
               onChange={(e) => setEditRow({ ...editRow, name: e.target.value })}
             />
+            <input
+              className="w-full p-2 border rounded"
+              value={editRow.hero_image_url || ""}
+              placeholder="Hero şəkil URL"
+              onChange={(e) => setEditRow({ ...editRow, hero_image_url: e.target.value })}
+            />
+            <label className="inline-flex items-center gap-2 text-xs text-gray-600">
+              <input
+                type="file"
+                accept="image/*"
+                disabled={uploadingEdit}
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  setUploadingEdit(true);
+                  try {
+                    const url = await uploadAsset(f);
+                    if (url) setEditRow((p: any) => ({ ...p, hero_image_url: url }));
+                    else alert("Şəkil yüklənmədi");
+                  } finally {
+                    setUploadingEdit(false);
+                    e.currentTarget.value = "";
+                  }
+                }}
+              />
+              {uploadingEdit ? "Yüklənir..." : "Cihazdan şəkil seç"}
+            </label>
+            {editRow.hero_image_url ? (
+              <img
+                src={editRow.hero_image_url}
+                alt="edit hero preview"
+                className="h-32 w-full object-cover rounded-lg border border-gray-200"
+              />
+            ) : null}
             <Button
               onClick={async () => {
                 await fetch(`/api/admin/custom-templates/${editRow.id}`, {
