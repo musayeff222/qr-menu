@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { ExternalLink, Copy, RefreshCw, Wrench } from "lucide-react";
 import { motion } from "motion/react";
 import { authSuperHeaders } from "../lib/headers";
-import { DEMO_QR_PUBLIC_SLUG } from "../demoMenuSlug";
 import { GhostButton, PrimaryButton, SurfaceCard, cn } from "./designSystem";
 
 type DemoVisitRecent = {
@@ -89,10 +88,7 @@ export default function DemoQrMenuAdminPage() {
     }
   };
 
-  const rel =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/demo/${DEMO_QR_PUBLIC_SLUG}`
-      : st?.fullDemoUrl ?? "";
+  const rel = "https://menugo.az/demoMENU";
 
   const v = st?.visits;
 

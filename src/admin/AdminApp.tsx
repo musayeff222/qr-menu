@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Routes,
   Route,
@@ -14,7 +14,6 @@ import {
   CreditCard,
   Store,
   Palette,
-  BarChart3,
   Bell,
   Settings,
   LogOut,
@@ -41,6 +40,7 @@ import {
   Star,
   Ban,
   Sparkles,
+  Info,
 } from "lucide-react";
 import { motion } from "motion/react";
 import clsx from "clsx";
@@ -48,7 +48,6 @@ import { twMerge } from "tailwind-merge";
 import { authSuperHeaders } from "../lib/headers";
 import { MENU_TEMPLATES, type MenuTemplateDef } from "../menu-templates";
 import WebsiteCmsPage from "./WebsiteCmsPage";
-import UsersAdminPage from "./UsersAdminPage";
 import DemoQrMenuAdminPage from "./DemoQrMenuAdminPage";
 
 function cn(...i: (string | boolean | undefined)[]) {
@@ -222,7 +221,7 @@ function AdminLayoutShell() {
             <LayoutDashboard size={20} /> {itemLabel("İdarə paneli")}
           </NavLink>
           <NavLink to="/admin/users" className={navCls}>
-            <Users size={20} /> {itemLabel("İstifadəçilər")}
+            <Users size={20} /> {itemLabel("İstifadəçilər & Restoranlar")}
           </NavLink>
           <NavLink to="/admin/coupons" className={navCls}>
             <Ticket size={20} /> {itemLabel("Kuponlar")}
@@ -233,17 +232,11 @@ function AdminLayoutShell() {
           <NavLink to="/admin/plan-requests" className={navCls}>
             <Inbox size={20} /> {itemLabel("Plan sorğuları")}
           </NavLink>
-          <NavLink to="/admin/restaurants" className={navCls}>
-            <Store size={20} /> {itemLabel("Restoranlar")}
-          </NavLink>
           <NavLink to="/admin/templates" className={navCls}>
             <Palette size={20} /> {itemLabel("Şablonlar")}
           </NavLink>
           <NavLink to="/admin/demo-qr-menu" className={navCls}>
             <Sparkles size={20} /> {itemLabel("Demo QR Menu")}
-          </NavLink>
-          <NavLink to="/admin/statistics" className={navCls}>
-            <BarChart3 size={20} /> {itemLabel("Statistikalar")}
           </NavLink>
           <NavLink to="/admin/notifications" className={navCls}>
             <Bell size={20} /> {itemLabel("Bildirişlər")}
@@ -344,6 +337,7 @@ function DashboardPage() {
       val: d.totalRestaurants,
       accent: "from-sky-500/20 to-blue-600/5",
       iconBg: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+      link: "/admin/users",
     },
     {
       icon: Server,
@@ -351,6 +345,7 @@ function DashboardPage() {
       val: d.activeRestaurants,
       accent: "from-emerald-500/25 to-emerald-600/5",
       iconBg: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+      link: "/admin/users?status=active",
     },
     {
       icon: Ban,
@@ -358,6 +353,7 @@ function DashboardPage() {
       val: d.inactiveRestaurants ?? d.totalRestaurants - d.activeRestaurants,
       accent: "from-slate-400/20 to-slate-600/5",
       iconBg: "bg-slate-500/15 text-slate-600 dark:text-slate-300",
+      link: "/admin/users?status=inactive",
     },
     {
       icon: AlertTriangle,
@@ -366,6 +362,7 @@ function DashboardPage() {
       accent: "from-amber-500/25 to-orange-600/10",
       iconBg: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
       pulse: (d.expiringSubscriptionsCount ?? 0) > 0,
+      link: "/admin/users",
     },
     {
       icon: TrendingUp,
@@ -381,6 +378,7 @@ function DashboardPage() {
       val: d.registrationsToday ?? 0,
       accent: "from-rose-500/20 to-red-600/10",
       iconBg: "bg-rose-500/15 text-rose-600 dark:text-rose-300",
+      link: "/admin/users",
     },
     {
       icon: CreditCard,
@@ -388,6 +386,7 @@ function DashboardPage() {
       val: `₼${Number(d.estimatedMonthlyRevenue).toFixed(0)}`,
       accent: "from-amber-400/25 to-yellow-600/5",
       iconBg: "bg-amber-500/15 text-amber-800 dark:text-amber-300",
+      link: "/admin/plans",
     },
     {
       icon: QrCode,
@@ -395,6 +394,7 @@ function DashboardPage() {
       val: d.totalScans,
       accent: "from-indigo-500/20 to-purple-600/10",
       iconBg: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-300",
+      link: "/admin/statistics",
     },
   ];
 
@@ -407,12 +407,6 @@ function DashboardPage() {
             Satış və platforma göstəriciləri — kartlar üzrə ani baxış, tendensiyalar və son fəaliyyət.
           </p>
         </div>
-        <Link
-          to="/admin/statistics"
-          className="text-sm font-semibold text-rose-600 dark:text-rose-400 hover:underline"
-        >
-          Tam statistika →
-        </Link>
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -560,7 +554,6 @@ function PlansPage() {
   useEffect(() => {
     load();
   }, []);
-
   const save = async (patch: any, id?: number) => {
     const url = id ? `/api/admin/plans/${id}` : "/api/admin/plans";
     const method = id ? "PUT" : "POST";
@@ -713,6 +706,12 @@ function PlanModal({
     is_featured: !!initial?.is_featured,
     sort_order: initial?.sort_order ?? 10,
   });
+  const [unlimited, setUnlimited] = useState({
+    max_products: Number(initial?.max_products ?? 20) < 0,
+    max_categories: Number(initial?.max_categories ?? 5) < 0,
+    max_templates: Number(initial?.max_templates ?? 5) < 0,
+    max_qr_codes: Number(initial?.max_qr_codes ?? 1) < 0,
+  });
 
   useEffect(() => {
     setF({
@@ -735,6 +734,12 @@ function PlanModal({
       is_active: initial?.is_active !== 0 && initial?.is_active !== false,
       is_featured: !!initial?.is_featured,
       sort_order: initial?.sort_order ?? 10,
+    });
+    setUnlimited({
+      max_products: Number(initial?.max_products ?? 20) < 0,
+      max_categories: Number(initial?.max_categories ?? 5) < 0,
+      max_templates: Number(initial?.max_templates ?? 5) < 0,
+      max_qr_codes: Number(initial?.max_qr_codes ?? 1) < 0,
     });
   }, [initial]);
 
@@ -802,10 +807,23 @@ function PlanModal({
             ["max_qr_codes", "QR limiti"],
           ].map(([k, lab]) => (
             <label key={k} className="text-sm">
-              {lab}
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span>{lab}</span>
+                <label className="inline-flex items-center gap-1 text-xs text-gray-500">
+                  <input
+                    type="checkbox"
+                    checked={unlimited[k as keyof typeof unlimited]}
+                    onChange={(e) =>
+                      setUnlimited((u) => ({ ...u, [k]: e.target.checked }))
+                    }
+                  />
+                  Limitsiz
+                </label>
+              </div>
               <input
                 type="number"
                 className="w-full p-2 border rounded-lg mt-1"
+                disabled={unlimited[k as keyof typeof unlimited]}
                 value={f[k as keyof typeof f] as number}
                 onChange={(e) =>
                   setF({ ...f, [k]: Number(e.target.value) } as any)
@@ -842,6 +860,10 @@ function PlanModal({
               onSave(
                 {
                   ...f,
+                  max_products: unlimited.max_products ? -1 : Number(f.max_products),
+                  max_categories: unlimited.max_categories ? -1 : Number(f.max_categories),
+                  max_templates: unlimited.max_templates ? -1 : Number(f.max_templates),
+                  max_qr_codes: unlimited.max_qr_codes ? -1 : Number(f.max_qr_codes),
                   original_price_monthly:
                     f.original_price_monthly === "" ? null : Number(f.original_price_monthly),
                 },
@@ -861,9 +883,11 @@ function PlanModal({
 function RestaurantsAdminPage() {
   const [rows, setRows] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
+  const loc = useLocation();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const nav = useNavigate();
+  const createFormRef = useRef<HTMLDivElement | null>(null);
   const [createForm, setCreateForm] = useState({
     name: "",
     slug: "",
@@ -888,6 +912,12 @@ function RestaurantsAdminPage() {
       .then((r) => r.json())
       .then(setPlans);
   }, []);
+
+  useEffect(() => {
+    const sp = new URLSearchParams(loc.search);
+    const s = sp.get("status");
+    if (s === "all" || s === "active" || s === "inactive") setStatus(s);
+  }, [loc.search]);
 
   useEffect(() => {
     const t = setTimeout(() => load(), q ? 320 : 0);
@@ -957,12 +987,22 @@ function RestaurantsAdminPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Restoranlar</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">İstifadəçilər & Restoranlar</h1>
+        <Button
+          type="button"
+          onClick={() => createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          className="bg-red-600 text-white"
+        >
+          <Plus className="inline mr-1" size={16} /> Yeni restoran
+        </Button>
+      </div>
       <p className="text-sm rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50/90 dark:bg-amber-950/30 text-amber-950 dark:text-amber-100 px-4 py-3">
         Restoran <strong>silinməsi</strong> siyasəti: məxfilik və data qorunması üçün birbaşa silmə menyuda
         mövcud deyil. Bloklama və plan dəyişikliyi ilə idarə edin; abunə bitmə tarixini aşağıda yeniləyə
         bilərsiniz.
       </p>
+      <div ref={createFormRef}>
       <Card className="p-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <input
           className="p-2 border rounded-lg"
@@ -1024,6 +1064,7 @@ function RestaurantsAdminPage() {
           Yeni restoran yarat
         </Button>
       </Card>
+      </div>
       <Card className="p-4 flex flex-wrap gap-3">
         <div className="flex items-center gap-2 flex-1 min-w-[200px]">
           <Search className="text-gray-400" size={18} />
@@ -1053,7 +1094,7 @@ function RestaurantsAdminPage() {
           <thead className="bg-gray-50 dark:bg-slate-800/50">
             <tr>
               <th className="text-left p-3">Ad</th>
-              <th className="text-left p-3">Slug</th>
+              <th className="text-left p-3">İstifadəçi</th>
               <th className="text-left p-3">Plan</th>
               <th className="text-left p-3 min-w-[10rem]">Abunə bitir</th>
               <th className="text-left p-3">Status</th>
@@ -1063,8 +1104,18 @@ function RestaurantsAdminPage() {
           <tbody className="divide-y dark:divide-slate-700">
             {rows.map((r) => (
               <tr key={r.id}>
-                <td className="p-3 font-medium">{r.name}</td>
-                <td className="p-3 font-mono text-xs">/r/{r.slug}</td>
+                <td className="p-3 font-medium">
+                  <div className="flex items-center gap-2">
+                    <span>{r.name}</span>
+                    {r.created_at &&
+                    Date.now() - new Date(r.created_at).getTime() < 7 * 24 * 60 * 60 * 1000 ? (
+                      <span className="inline-flex items-center rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200 px-2 py-0.5 text-[10px] font-bold uppercase">
+                        New
+                      </span>
+                    ) : null}
+                  </div>
+                </td>
+                <td className="p-3 font-mono text-xs">{r.staff_username || "-"}</td>
                 <td className="p-3">
                   <select
                     className="text-xs p-1 border rounded dark:bg-slate-800"
@@ -1139,6 +1190,14 @@ function RestaurantsAdminPage() {
           </tbody>
         </table>
       </Card>
+      <button
+        type="button"
+        onClick={() => createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        className="fixed bottom-6 right-6 z-40 rounded-full shadow-xl bg-red-600 hover:bg-red-700 text-white p-4 sm:hidden"
+        aria-label="Yeni restoran yarat"
+      >
+        <Plus size={22} />
+      </button>
     </div>
   );
 }
@@ -1161,6 +1220,15 @@ function AdminTemplatesPage() {
   useEffect(() => {
     load();
   }, []);
+  const groupedBuiltins = useMemo(() => {
+    const map = new Map<string, MenuTemplateDef[]>();
+    for (const tpl of MENU_TEMPLATES) {
+      const key = tpl.category || "Other";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(tpl);
+    }
+    return [...map.entries()];
+  }, []);
 
   const add = async () => {
     const res = await fetch("/api/admin/custom-templates", {
@@ -1181,29 +1249,36 @@ function AdminTemplatesPage() {
         {MENU_TEMPLATES.length} hazır şablon + fərdi şablonlar. Canlı baxış üçün bəzi restoranın
         slug-ından istifadə edin.
       </p>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[50vh] overflow-y-auto pr-1">
-        {MENU_TEMPLATES.map((tpl: MenuTemplateDef) => (
-          <Card key={tpl.id} className="overflow-hidden flex flex-col">
-            <div
-              className="h-28 bg-cover bg-center"
-              style={{ backgroundImage: `url(${tpl.heroImage})` }}
-            />
-            <div className="p-3 flex-1 flex flex-col gap-2">
-              <p className="text-xs text-amber-700 font-bold">{tpl.category}</p>
-              <p className="font-bold text-sm">{tpl.name}</p>
-              <a
-                href={`/r/demo-az-menu?preview=true&previewTemplate=${encodeURIComponent(tpl.id)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-red-600 font-semibold inline-flex items-center gap-1 mt-auto"
-              >
-                <Eye size={14} /> Preview
-              </a>
-              <span className="text-[10px] text-gray-400">
-                “Edit” kod bazasındakı registry üçündür — fərdi şablon əlavə edin.
-              </span>
+      <div className="space-y-5 max-h-[56vh] overflow-y-auto pr-1">
+        {groupedBuiltins.map(([category, items]) => (
+          <div key={category} className="space-y-2">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500">{category}</h3>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {items.map((tpl) => (
+                <Card key={tpl.id} className="overflow-hidden flex flex-col">
+                  <div
+                    className="h-28 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${tpl.heroImage})` }}
+                  />
+                  <div className="p-3 flex-1 flex flex-col gap-2">
+                    <p className="text-xs text-amber-700 font-bold">{tpl.category}</p>
+                    <p className="font-bold text-sm">{tpl.name}</p>
+                    <a
+                      href={`/r/demo-az-menu?preview=true&previewTemplate=${encodeURIComponent(tpl.id)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-red-600 font-semibold inline-flex items-center gap-1 mt-auto"
+                    >
+                      <Eye size={14} /> Preview
+                    </a>
+                    <span className="text-[10px] text-gray-400">
+                      “Edit” kod bazasındakı registry üçündür — fərdi şablon əlavə edin.
+                    </span>
+                  </div>
+                </Card>
+              ))}
             </div>
-          </Card>
+          </div>
         ))}
       </div>
 
@@ -1589,6 +1664,7 @@ function CouponsAdminPage() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
   const [editing, setEditing] = useState<any | null>(null);
+  const nav = useNavigate();
   const [form, setForm] = useState({
     code: "",
     discount_type: "percent" as "percent" | "fixed",
@@ -1619,21 +1695,6 @@ function CouponsAdminPage() {
       return String(c.code).toLowerCase().includes(needle);
     });
   }, [rows, q, status]);
-
-  const openNew = () => {
-    setEditing(null);
-    setForm({
-      code: "",
-      discount_type: "percent",
-      discount_value: 10,
-      max_uses: 100,
-      active_hours: "",
-      valid_from: "",
-      valid_until: "",
-      is_active: true,
-      notes: "",
-    });
-  };
 
   const openEdit = (c: any) => {
     setEditing(c);
@@ -1673,17 +1734,6 @@ function CouponsAdminPage() {
         setEditing(null);
         load();
       }
-    } else {
-      const res = await fetch("/api/admin/coupons", {
-        method: "POST",
-        headers: { ...authSuperHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) alert(await res.text());
-      else {
-        openNew();
-        load();
-      }
     }
   };
 
@@ -1707,7 +1757,7 @@ function CouponsAdminPage() {
         >
           Promo kuponlar
         </motion.h1>
-        <Button className="bg-rose-600 text-white" onClick={openNew}>
+        <Button className="bg-rose-600 text-white" onClick={() => nav("/admin/coupons/new")}>
           <Plus size={18} className="inline mr-1" /> Yeni kupon
         </Button>
       </div>
@@ -1809,8 +1859,9 @@ function CouponsAdminPage() {
         ) : null}
       </Card>
 
+      {editing ? (
       <Card className="p-6 max-w-xl space-y-3 border-2 border-rose-100 dark:border-rose-900/50">
-          <h2 className="font-bold">{editing ? "Kupon redaktəsi" : "Yeni kupon"}</h2>
+          <h2 className="font-bold">Kupon redaktəsi</h2>
           <input
             className="w-full p-2 border rounded-lg dark:bg-slate-800"
             placeholder="Kod"
@@ -1881,12 +1932,180 @@ function CouponsAdminPage() {
             <Button className="flex-1 bg-rose-600 text-white" onClick={() => void saveCoupon()}>
               Saxla
             </Button>
-            {editing ? (
-              <Button className="flex-1 border" onClick={() => setEditing(null)}>
-                Ləğv
-              </Button>
-            ) : null}
+            <Button className="flex-1 border" onClick={() => setEditing(null)}>
+              Ləğv
+            </Button>
           </div>
+      </Card>
+      ) : null}
+    </div>
+  );
+}
+
+function CouponsCreatePage() {
+  const nav = useNavigate();
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    code: "",
+    discount_type: "percent" as "percent" | "fixed",
+    discount_value: 10,
+    max_uses: 100,
+    active_hours: "" as string,
+    valid_from: "" as string,
+    valid_until: "" as string,
+    is_active: true,
+    notes: "",
+  });
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const body = {
+        code: form.code,
+        discount_type: form.discount_type,
+        discount_value: Number(form.discount_value),
+        max_uses: Number(form.max_uses),
+        active_hours: form.active_hours ? Number(form.active_hours) : null,
+        valid_from: form.valid_from ? new Date(form.valid_from).toISOString() : null,
+        valid_until: form.valid_until ? new Date(form.valid_until).toISOString() : null,
+        is_active: form.is_active,
+        notes: form.notes || null,
+      };
+      const res = await fetch("/api/admin/coupons", {
+        method: "POST",
+        headers: { ...authSuperHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        alert(await res.text());
+        return;
+      }
+      nav("/admin/coupons");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const tipCls = "text-[11px] text-gray-500 mt-1 flex items-start gap-1";
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Yeni kupon yarat</h1>
+        <Button className="border" onClick={() => nav("/admin/coupons")}>
+          Geri
+        </Button>
+      </div>
+      <Card className="p-6 space-y-4">
+        <div>
+          <label className="text-sm font-medium">Kupon kodu</label>
+          <input
+            className="w-full p-2 border rounded-lg mt-1"
+            value={form.code}
+            onChange={(e) => setForm({ ...form, code: e.target.value })}
+            placeholder="Məs: YAZ10"
+          />
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm font-medium">Endirim tipi</label>
+            <select
+              className="w-full p-2 border rounded-lg mt-1"
+              value={form.discount_type}
+              onChange={(e) =>
+                setForm({ ...form, discount_type: e.target.value as "percent" | "fixed" })
+              }
+            >
+              <option value="percent">Faiz (%)</option>
+              <option value="fixed">Məbləğ (₼)</option>
+            </select>
+            <p className={tipCls}>
+              <Info size={12} /> Faiz ümumi məbləğdən çıxılır, məbləğ isə sabit endirim verir.
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Endirim dəyəri</label>
+            <input
+              type="number"
+              className="w-full p-2 border rounded-lg mt-1"
+              value={form.discount_value}
+              onChange={(e) => setForm({ ...form, discount_value: Number(e.target.value) })}
+            />
+          </div>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm font-medium">İstifadə limiti</label>
+            <input
+              type="number"
+              className="w-full p-2 border rounded-lg mt-1"
+              value={form.max_uses}
+              onChange={(e) => setForm({ ...form, max_uses: Number(e.target.value) })}
+            />
+            <p className={tipCls}>
+              <Info size={12} /> Kupon neçə dəfə işlədilə bilər.
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Saat limiti (opsional)</label>
+            <input
+              className="w-full p-2 border rounded-lg mt-1"
+              value={form.active_hours}
+              onChange={(e) => setForm({ ...form, active_hours: e.target.value })}
+              placeholder="Məs: 48"
+            />
+            <p className={tipCls}>
+              <Info size={12} /> Yaradıldıqdan sonra neçə saat aktiv qalacağını məhdudlaşdırır.
+            </p>
+          </div>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm font-medium">Başlama tarixi</label>
+            <input
+              type="datetime-local"
+              className="w-full p-2 border rounded-lg mt-1"
+              value={form.valid_from}
+              onChange={(e) => setForm({ ...form, valid_from: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Bitmə tarixi</label>
+            <input
+              type="datetime-local"
+              className="w-full p-2 border rounded-lg mt-1"
+              value={form.valid_until}
+              onChange={(e) => setForm({ ...form, valid_until: e.target.value })}
+            />
+          </div>
+        </div>
+        <p className={tipCls}>
+          <Info size={12} /> Tarixlər boş buraxılsa kupon daimi aktiv qala bilər.
+        </p>
+        <div>
+          <label className="text-sm font-medium">Qeyd</label>
+          <textarea
+            className="w-full p-2 border rounded-lg mt-1"
+            rows={3}
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          />
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.is_active}
+            onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+          />
+          Aktiv et
+        </label>
+        <div className="flex gap-2">
+          <Button className="bg-rose-600 text-white" disabled={saving} onClick={() => void save()}>
+            {saving ? "Saxlanılır..." : "Kuponu yarat"}
+          </Button>
+          <Button className="border" onClick={() => nav("/admin/coupons")}>
+            Ləğv
+          </Button>
+        </div>
       </Card>
     </div>
   );
@@ -1952,25 +2171,38 @@ function SettingsPage() {
 
 function PlanRequestsPage() {
   const [rows, setRows] = React.useState<any[]>([]);
+  const [includeHistory, setIncludeHistory] = React.useState(false);
 
   const load = () =>
-    fetch("/api/admin/plan-requests", { headers: authSuperHeaders() })
+    fetch(`/api/admin/plan-requests${includeHistory ? "?all=1" : ""}`, { headers: authSuperHeaders() })
       .then((r) => r.json())
       .then(setRows);
 
   React.useEffect(() => {
     load();
-  }, []);
+  }, [includeHistory]);
 
   const digits = (s: string) => String(s || "").replace(/\D/g, "");
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl sm:text-3xl font-bold">Plan sorğuları</h1>
-        <p className="text-gray-500 dark:text-slate-400 text-sm mt-1">
-          Restoranların plan yüksəltmə sorğuları — WhatsApp ilə əlaqə, ödəniş, sonra planı aktiv edin.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Plan sorğuları</h1>
+            <p className="text-gray-500 dark:text-slate-400 text-sm mt-1">
+              Restoranların plan yüksəltmə sorğuları — WhatsApp ilə əlaqə, ödəniş, sonra planı aktiv edin.
+            </p>
+          </div>
+          <label className="inline-flex items-center gap-2 text-sm rounded-xl border border-gray-200 dark:border-slate-700 px-3 py-2">
+            <input
+              type="checkbox"
+              checked={includeHistory}
+              onChange={(e) => setIncludeHistory(e.target.checked)}
+            />
+            Arxiv (tam tarixçə)
+          </label>
+        </div>
       </header>
       <div className="grid gap-4">
         {rows.length === 0 ? (
@@ -1989,6 +2221,9 @@ function PlanRequestsPage() {
               </div>
               <p className="text-sm">
                 İstənən plan: <strong>{r.plan_name}</strong>
+              </p>
+              <p className="text-xs text-gray-500">
+                Tarix: {r.created_at ? new Date(r.created_at).toLocaleString() : "—"}
               </p>
               <div className="flex flex-wrap gap-2 pt-2">
                 {r.whatsapp_number ? (
@@ -2046,11 +2281,12 @@ export default function AdminApp() {
       <Route element={<AdminLayoutShell />}>
         <Route index element={<DashboardPage />} />
         <Route path="website/*" element={<WebsiteCmsPage />} />
-        <Route path="users" element={<UsersAdminPage />} />
+        <Route path="users" element={<RestaurantsAdminPage />} />
         <Route path="coupons" element={<CouponsAdminPage />} />
+        <Route path="coupons/new" element={<CouponsCreatePage />} />
         <Route path="plans" element={<PlansPage />} />
         <Route path="plan-requests" element={<PlanRequestsPage />} />
-        <Route path="restaurants" element={<RestaurantsAdminPage />} />
+        <Route path="restaurants" element={<Navigate to="/admin/users" replace />} />
         <Route path="templates" element={<AdminTemplatesPage />} />
         <Route path="demo-qr-menu" element={<DemoQrMenuAdminPage />} />
         <Route path="statistics" element={<StatisticsPage />} />
