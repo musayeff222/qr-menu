@@ -92,7 +92,6 @@ export default function AdminLoginPage() {
             Daxil ol
           </Button>
         </form>
-        <p className="text-center text-xs text-gray-500 mt-4">Demo: admin / admin123</p>
       </Card>
     </div>
   );

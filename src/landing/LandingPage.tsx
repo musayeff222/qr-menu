@@ -40,6 +40,25 @@ function cn(...i: (string | boolean | undefined)[]) {
   return twMerge(clsx(i));
 }
 
+/** Dəstək xətti — yalnız rəqəmlər (ölkə kodu ilə). Öz nömrənizi burada təyin edin. */
+const LANDING_SUPPORT_WHATSAPP_DIGITS = "994501234567";
+
+/** Rəsmi WhatsApp loqosu (ağ dolğu, yaşıl fonda). */
+function WhatsAppBrandIcon({ size = 28, className }: { size?: number; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="currentColor"
+      className={className}
+      aria-hidden
+    >
+      <path d="M20.52 3.48A11.88 11.88 0 0 0 12.06 0C5.5 0 .16 5.34.16 11.9c0 2.1.55 4.15 1.59 5.96L0 24l6.31-1.65a11.8 11.8 0 0 0 5.74 1.46h.01c6.56 0 11.9-5.34 11.9-11.9 0-3.18-1.24-6.17-3.44-8.43Zm-8.46 18.3h-.01a9.8 9.8 0 0 1-4.99-1.36l-.36-.21-3.75.98 1-3.66-.24-.38a9.83 9.83 0 0 1-1.51-5.24c0-5.44 4.43-9.87 9.87-9.87a9.8 9.8 0 0 1 6.98 2.9 9.81 9.81 0 0 1 2.89 6.98c0 5.44-4.43 9.87-9.87 9.87Zm5.41-7.4c-.3-.16-1.78-.88-2.06-.98-.28-.1-.48-.16-.68.16-.2.3-.78.97-.95 1.17-.18.2-.35.22-.65.07-.3-.16-1.26-.46-2.4-1.47-.89-.79-1.49-1.76-1.67-2.06-.17-.3-.02-.46.13-.61.14-.14.3-.35.44-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.08-.16-.68-1.64-.94-2.25-.24-.57-.49-.49-.68-.5h-.58c-.2 0-.52.07-.8.37-.27.3-1.04 1.01-1.04 2.47 0 1.46 1.06 2.87 1.2 3.07.15.2 2.08 3.18 5.03 4.46.7.3 1.25.48 1.67.62.7.22 1.34.19 1.84.12.56-.08 1.78-.73 2.03-1.43.25-.7.25-1.3.17-1.43-.07-.12-.27-.2-.57-.35Z" />
+    </svg>
+  );
+}
+
 function useT(lang: string) {
   const bundle = useI18nBundle();
   return (key: string) =>
@@ -761,13 +780,13 @@ export default function LandingPage() {
                   <Instagram size={20} />
                 </a>
                 <a
-                  href="https://wa.me"
+                  href={`https://wa.me/${LANDING_SUPPORT_WHATSAPP_DIGITS}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition hover:border-emerald-500/40 hover:bg-emerald-500/10"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-emerald-400 transition hover:border-emerald-500/40 hover:bg-emerald-500/10"
                   aria-label="WhatsApp"
                 >
-                  <MessageSquare size={20} />
+                  <WhatsAppBrandIcon size={22} />
                 </a>
               </div>
               <p className="mt-6 text-sm text-slate-500">
@@ -796,6 +815,38 @@ export default function LandingPage() {
         </Link>
       </div>
       ) : null}
+
+      {/* Dəstək — üzən WhatsApp (rəsmi ikon) */}
+      <div
+        className={cn(
+          "fixed right-4 z-[60] sm:right-8",
+          sec("stickyBar") ? "bottom-[5.25rem] sm:bottom-8" : "bottom-6 sm:bottom-8"
+        )}
+      >
+        <div className="group relative flex flex-col items-end gap-2">
+          <a
+            href={`https://wa.me/${LANDING_SUPPORT_WHATSAPP_DIGITS}?text=${encodeURIComponent(
+              t("landing_whatsapp_support_prefill")
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-emerald-900/45 ring-2 ring-white/15 transition hover:scale-105 hover:brightness-110 active:scale-95"
+            aria-label={t("landing_whatsapp_support_tooltip")}
+            title={t("landing_whatsapp_support_tooltip")}
+          >
+            <WhatsAppBrandIcon size={30} className="text-white" />
+          </a>
+          <p className="max-w-[11rem] text-right text-[11px] leading-snug text-slate-300 sm:hidden">
+            {t("landing_whatsapp_support_tooltip")}
+          </p>
+          <p
+            className="pointer-events-none absolute right-[4.5rem] top-1/2 hidden max-w-[14rem] -translate-y-1/2 rounded-2xl border border-white/10 bg-[#0d1018]/95 px-3.5 py-2.5 text-left text-xs font-medium leading-snug text-slate-100 opacity-0 shadow-xl backdrop-blur-md transition-opacity group-hover:opacity-100 sm:block"
+            role="tooltip"
+          >
+            {t("landing_whatsapp_support_tooltip")}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
