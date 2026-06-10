@@ -1,5 +1,4 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -15,6 +14,13 @@ console.log("Server script started.");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+/** Hostinger: NODE_ENV olmasa belə dist/ varsa production static. */
+function useProductionStatic(): boolean {
+  if (process.env.NODE_ENV === "production") return true;
+  if (process.env.NODE_ENV === "development") return false;
+  return fs.existsSync(path.join(process.cwd(), "dist", "index.html"));
+}
 
 const SESSION_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -2140,9 +2146,25 @@ async function startServer() {
     res.json({ success: true });
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    console.log("Setting up Vite middleware in development mode...");
+  const prodStatic = useProductionStatic();
+  if (prodStatic) {
+    const distPath = path.join(process.cwd(), "dist");
+    const indexHtml = path.join(distPath, "index.html");
+    if (!fs.existsSync(indexHtml)) {
+      console.error(
+        "ERROR: dist/index.html yoxdur. Deploy: npm install && npm run build && npm start"
+      );
+      process.exit(1);
+    }
+    console.log(`Mode: production static (dist/) | NODE_ENV=${process.env.NODE_ENV ?? "(unset)"}`);
+    app.use(express.static(distPath));
+    app.get(/^\/(.*)$/, (_req, res) => {
+      res.sendFile(indexHtml);
+    });
+  } else {
+    console.log("Mode: development (Vite)");
     try {
+      const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
         server: { middlewareMode: true },
         appType: "spa",
@@ -2153,19 +2175,12 @@ async function startServer() {
       console.error("Vite server creation failed:", err);
       process.exit(1);
     }
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    const indexHtml = path.join(distPath, "index.html");
-    app.use(express.static(distPath));
-    // Express 5 + path-to-regexp v8: bare "*" is invalid; use a RegExp catch-all for SPA fallback.
-    app.get(/^\/(.*)$/, (req, res) => {
-      res.sendFile(indexHtml);
-    });
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log("Server is ready to accept connections.");
+    console.log(
+      `Server ready | PORT=${PORT} (env PORT=${process.env.PORT ?? "unset"}) | pid=${process.pid}`
+    );
   });
 }
 
