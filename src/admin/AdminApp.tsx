@@ -998,13 +998,36 @@ function RestaurantsAdminPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">İstifadəçilər & Restoranlar</h1>
-        <Button
-          type="button"
-          onClick={openCreateForm}
-          className="bg-red-600 text-white"
-        >
-          <Plus className="inline mr-1" size={16} /> Yeni restoran
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            className="bg-emerald-600 text-white"
+            onClick={async () => {
+              if (!confirm("Demae Sushi (demae/demae123) yaradılsın və menyu yüklənsin?")) return;
+              const res = await fetch("/api/admin/seed/demae", {
+                method: "POST",
+                headers: { ...authSuperHeaders(), "Content-Type": "application/json" },
+                body: JSON.stringify({ replace: true }),
+              });
+              const data = await res.json();
+              if (data.success) {
+                alert(
+                  `Demae hazırdır.\nPanel: demae / demae123\nMenyu: ${data.menuProducts} məhsul\n/r/${data.slug}`
+                );
+                load();
+              } else alert(data.error || "Xəta");
+            }}
+          >
+            Demae menyu yüklə
+          </Button>
+          <Button
+            type="button"
+            onClick={openCreateForm}
+            className="bg-red-600 text-white"
+          >
+            <Plus className="inline mr-1" size={16} /> Yeni restoran
+          </Button>
+        </div>
       </div>
       <p className="text-sm rounded-xl border border-amber-200/80 dark:border-amber-800/60 bg-amber-50/90 dark:bg-amber-950/30 text-amber-950 dark:text-amber-100 px-4 py-3">
         Restoran <strong>silinməsi</strong> siyasəti: məxfilik və data qorunması üçün birbaşa silmə menyuda

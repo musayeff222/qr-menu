@@ -9,6 +9,7 @@ import { db, initDatabase, getUiTranslationsForApi, getDbDriver } from "./databa
 import { templateSelectionError } from "./planTemplatePolicy.js";
 import { DEMO_AZ_SLUG, DEMO_QR_PUBLIC_SLUG } from "./demoConstants.js";
 import { seedDemoAzMenu } from "./demoMenuSeed.js";
+import { runDemaeSeed } from "./demaeSeedRunner.js";
 
 console.log("Server script started.");
 
@@ -432,7 +433,8 @@ async function startServer() {
   });
 
   app.post("/api/admin/login", async (req, res) => {
-    const { username, password } = req.body;
+    const username = String(req.body?.username ?? "").trim();
+    const password = String(req.body?.password ?? "").trim();
     const user = await db("admin_users").where({ username, password }).first();
     if (user) {
       const token = storeSession({
@@ -451,7 +453,8 @@ async function startServer() {
   });
 
   app.post("/api/restaurant/login", async (req, res) => {
-    const { username, password } = req.body;
+    const username = String(req.body?.username ?? "").trim();
+    const password = String(req.body?.password ?? "").trim();
     const row = await db("restaurant_users")
       .where({ username, password })
       .first();
@@ -872,6 +875,19 @@ async function startServer() {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       res.status(400).json({ error: msg });
+    }
+  });
+
+  app.post("/api/admin/seed/demae", async (req, res) => {
+    if (!requireSuper(req, res)) return;
+    try {
+      const replace = Boolean(req.body?.replace);
+      const result = await runDemaeSeed(db, { replace });
+      res.json({ success: true, ...result });
+    } catch (e: unknown) {
+      console.error(e);
+      const msg = e instanceof Error ? e.message : String(e);
+      res.status(500).json({ error: msg });
     }
   });
 
