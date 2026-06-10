@@ -14,7 +14,10 @@
     "clean": "rm -rf dist dist-server",
     "lint": "tsc --noEmit",
     "start": "node server.js",
-    "deploy:build": "npm run build"
+    "deploy:build": "npm run build",
+    "seed:demae": "tsx seedDemaeRestaurant.ts",
+    "seed:demae:replace": "tsx seedDemaeRestaurant.ts --replace",
+    "seed:demae:images": "tsx seedDemaeRestaurant.ts --images"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
