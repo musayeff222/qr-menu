@@ -493,6 +493,8 @@ const RestaurantPanel = () => {
     active_from: "",
     active_to: "",
   });
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editCatName, setEditCatName] = useState("");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editProd, setEditProd] = useState({
     name: "",
@@ -1131,6 +1133,45 @@ const RestaurantPanel = () => {
     setEditingProduct(null);
   };
 
+  const openEditCategory = (cat: Category) => {
+    setEditingCategory(cat);
+    setEditCatName(cat.name || "");
+  };
+
+  const saveEditedCategory = async () => {
+    if (!editingCategory) return;
+    const trimmed = editCatName.trim();
+    if (!trimmed) {
+      alert("Kateqoriya adını yazın");
+      return;
+    }
+    const res = await fetch(`/api/admin/categories/${editingCategory.id}`, {
+      method: "PUT",
+      headers: authAnyStaffHeaders(),
+      body: JSON.stringify({
+        name: trimmed,
+        translations: editingCategory.translations || null,
+      }),
+    });
+    if (!res.ok) {
+      alert("Kateqoriya yenilənmədi");
+      return;
+    }
+    const data = await res.json().catch(() => ({} as { name?: string; translations?: Record<string, string> }));
+    setCategories((rows) =>
+      rows.map((c) =>
+        c.id === editingCategory.id
+          ? {
+              ...c,
+              name: data.name ?? trimmed,
+              translations: data.translations ?? c.translations,
+            }
+          : c
+      )
+    );
+    setEditingCategory(null);
+  };
+
   const deleteCategory = async (cid: number) => {
     if (!confirm(t("confirm_delete_category"))) return;
     const res = await fetch(`/api/admin/categories/${cid}`, {
@@ -1201,12 +1242,19 @@ const RestaurantPanel = () => {
   const saveTranslations = async () => {
     if (!editingTranslations) return;
     const { type, id: targetId, data } = editingTranslations;
-    const endpoint = type === 'category' ? `/api/admin/categories/${targetId}` : `/api/admin/products/${targetId}`;
-    
+    const endpoint = type === "category" ? `/api/admin/categories/${targetId}` : `/api/admin/products/${targetId}`;
+    const body =
+      type === "category"
+        ? {
+            translations: data,
+            name: categories.find((c) => c.id === targetId)?.name,
+          }
+        : { translations: data };
+
     const res = await fetch(endpoint, {
       method: "PUT",
       headers: authAnyStaffHeaders(),
-      body: JSON.stringify({ translations: data })
+      body: JSON.stringify(body),
     });
 
     if (res.ok) {
@@ -2839,10 +2887,19 @@ const RestaurantPanel = () => {
                     <div className="flex gap-1">
                       <button
                         type="button"
+                        onClick={() => openEditCategory(cat)}
+                        className="p-1 text-slate-600 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400"
+                        title="Redaktə et"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() =>
                           setEditingTranslations({ type: "category", id: cat.id, data: cat.translations || {} })
                         }
                         className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                        title="Tərcümələr"
                       >
                         <Globe size={16} />
                       </button>
@@ -2850,6 +2907,7 @@ const RestaurantPanel = () => {
                         type="button"
                         onClick={() => deleteCategory(cat.id)}
                         className="p-1 text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400"
+                        title="Sil"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -3159,6 +3217,29 @@ const RestaurantPanel = () => {
             </Card>
         )}
 
+        {editingCategory ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+            <Card className="w-full max-w-md p-5 sm:p-6">
+              <h3 className="mb-4 text-lg font-bold text-slate-900 dark:text-slate-100">Kateqoriyanı redaktə et</h3>
+              <input
+                className={inputCls}
+                placeholder={t("name")}
+                value={editCatName}
+                onChange={(e) => setEditCatName(e.target.value)}
+                autoFocus
+              />
+              <div className="mt-5 flex gap-2">
+                <Button type="button" onClick={() => setEditingCategory(null)} className={cn(secondaryBtnCls, "flex-1")}>
+                  Ləğv
+                </Button>
+                <Button type="button" onClick={() => void saveEditedCategory()} className="flex-1 bg-red-600 text-white hover:bg-red-500">
+                  Saxla
+                </Button>
+              </div>
+            </Card>
+          </div>
+        ) : null}
+
         {editingProduct ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
             <Card className="w-full max-w-xl p-5 sm:p-6">
@@ -3177,12 +3258,43 @@ const RestaurantPanel = () => {
                   value={editProd.price}
                   onChange={(e) => setEditProd((p) => ({ ...p, price: e.target.value }))}
                 />
-                <input
-                  className={inputCls}
-                  placeholder="Şəkil URL (ixtiyari)"
-                  value={editProd.image_url}
-                  onChange={(e) => setEditProd((p) => ({ ...p, image_url: e.target.value }))}
-                />
+                <div className="sm:col-span-2">
+                  <p className="mb-2 text-xs font-medium text-slate-700 dark:text-slate-300">
+                    {t("product_image_upload_label")}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {editProd.image_url ? (
+                      <img
+                        src={editProd.image_url}
+                        alt=""
+                        className="h-16 w-16 rounded-lg border border-slate-200 object-cover dark:border-slate-600"
+                      />
+                    ) : null}
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
+                      <Upload size={16} />
+                      Cihazdan seç
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const f = e.target.files?.[0];
+                          if (!f) return;
+                          const url = await uploadAsset(f);
+                          if (url) setEditProd((p) => ({ ...p, image_url: url }));
+                          else alert("Şəkil yüklənmədi");
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <input
+                    className={cn(inputCls, "mt-2")}
+                    placeholder="və ya şəkil URL"
+                    value={editProd.image_url}
+                    onChange={(e) => setEditProd((p) => ({ ...p, image_url: e.target.value }))}
+                  />
+                </div>
                 <textarea
                   className={cn(inputCls, "h-auto min-h-[5rem] py-2 sm:col-span-2")}
                   rows={3}

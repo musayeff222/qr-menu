@@ -1557,13 +1557,23 @@ async function startServer() {
     if (!cat) return res.status(404).json({ error: "Not found" });
     if (!requireRestaurantOrSuper(req, res, cat.restaurant_id)) return;
     const { name, translations } = req.body;
-    await db("categories")
-      .where({ id: req.params.id })
-      .update({
-        name,
-        translations: translations ? JSON.stringify(translations) : null,
-      });
-    res.json({ success: true });
+    const patch: Record<string, unknown> = {};
+    if (typeof name === "string" && name.trim()) patch.name = name.trim();
+    if (translations !== undefined) {
+      patch.translations = translations ? JSON.stringify(translations) : null;
+    }
+    if (!Object.keys(patch).length) {
+      res.status(400).json({ error: "Yenilənəcək məlumat yoxdur" });
+      return;
+    }
+    await db("categories").where({ id: req.params.id }).update(patch);
+    const row = await db("categories").where({ id: req.params.id }).first();
+    res.json({
+      success: true,
+      id: row?.id,
+      name: row?.name,
+      translations: safeJsonParse((row as { translations?: string })?.translations, {}),
+    });
   });
 
   app.put("/api/admin/products/:id", async (req, res) => {
