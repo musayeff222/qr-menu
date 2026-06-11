@@ -24,6 +24,7 @@ import type { FontPairKey } from "./types";
 import { cn } from "./cn";
 import { resolveAssetUrl } from "../lib/assetUrl";
 import { productCardSkin, templateRootSkin } from "./templateSkin";
+import { SmartWebMenuView, type SmartWebCheckoutBridge } from "./SmartWebMenuView";
 
 const FONT_STACKS: Record<
   FontPairKey,
@@ -116,7 +117,11 @@ export type MenuTemplateViewProps = {
   menuView?: "browse" | "cart";
   onMenuViewChange?: (v: "browse" | "cart") => void;
   demoMode?: boolean;
+  /** SmartWeb 3 mərhələli sifariş formu */
+  smartWebCheckout?: SmartWebCheckoutBridge;
 };
+
+export type { SmartWebCheckoutBridge };
 
 const RADIUS_MAP = {
   none: "rounded-none",
@@ -175,6 +180,7 @@ export function MenuTemplateView({
   menuView = "browse",
   onMenuViewChange,
   demoMode = false,
+  smartWebCheckout,
 }: MenuTemplateViewProps) {
   const allowWa = planFeatures?.whatsapp_order !== false;
   const allowRes = planFeatures?.reservation !== false;
@@ -286,6 +292,7 @@ export function MenuTemplateView({
   const fastFoodMode = rm === "fastfood-pro";
   const mega2Mode = rm === "mega2-kinetic";
   const mega4Mode = rm === "mega4-gusto-premium";
+  const smartwebMode = rm === "smartweb";
   const mediaAssets = Array.isArray(restaurant.media_assets)
     ? (restaurant.media_assets as Array<{ id: number; kind: string; url: string }>)
     : [];
@@ -1379,6 +1386,30 @@ export function MenuTemplateView({
       </div>
     );
   });
+
+  if (smartwebMode && smartWebCheckout) {
+    return (
+      <SmartWebMenuView
+        restaurant={restaurant}
+        categories={categories}
+        products={products}
+        activeCategory={activeCategory}
+        setActiveCategory={setActiveCategory}
+        currentLang={currentLang}
+        cart={cart}
+        addToCart={addToCart}
+        increaseCartLineQty={increaseCartLineQty}
+        decreaseCartLineQty={decreaseCartLineQty}
+        removeCartLine={removeCartLine}
+        ordersAllowed={ordersAllowed}
+        ordersClosedHint={ordersClosedHint}
+        menuView={menuView}
+        onMenuViewChange={onMenuViewChange}
+        checkout={smartWebCheckout}
+        heroImageSrc={heroImageSrc}
+      />
+    );
+  }
 
   if (mega4Mode) {
     const taglineStr = restaurant.tagline ? String(restaurant.tagline) : "";

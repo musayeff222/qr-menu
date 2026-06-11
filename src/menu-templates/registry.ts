@@ -1,13 +1,18 @@
 import type { MenuTemplateDef, TemplateCategory } from "./types";
 import { buildConceptMenuTemplates } from "./conceptRegistry";
+import { SMARTWEB_MENU_TEMPLATE } from "./smartwebTemplate";
 
-export const MENU_TEMPLATES: MenuTemplateDef[] = buildConceptMenuTemplates();
+export const MENU_TEMPLATES: MenuTemplateDef[] = [
+  ...buildConceptMenuTemplates(),
+  SMARTWEB_MENU_TEMPLATE,
+];
 
-/** Exactly 50 templates: 10 × 5 style families (ID sırası planTemplatePolicy ilə eyni) */
+/** Plan limiti üçün 50 əsas şablon (+ əlavə smartweb və s.) */
 export const MENU_TEMPLATE_COUNT = 50;
-if (MENU_TEMPLATES.length !== MENU_TEMPLATE_COUNT) {
+const builtinCount = MENU_TEMPLATES.length - 1;
+if (builtinCount !== MENU_TEMPLATE_COUNT) {
   console.warn(
-    `[menu-templates] expected ${MENU_TEMPLATE_COUNT} templates, got ${MENU_TEMPLATES.length}`
+    `[menu-templates] expected ${MENU_TEMPLATE_COUNT} builtin templates, got ${builtinCount}`
   );
 }
 

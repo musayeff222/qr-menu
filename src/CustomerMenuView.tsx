@@ -96,6 +96,15 @@ export default function CustomerMenuView({
     };
   }, [data, previewTemplateId]);
 
+  useEffect(() => {
+    if (!data) return;
+    const tpl = resolveMenuTemplate(
+      previewTemplateId || data.menu_template || "modern-01",
+      data.custom_templates
+    );
+    if (tpl.theme.renderMode === "smartweb") setOrderType("delivery");
+  }, [data, previewTemplateId]);
+
   if (!data) return <div className="p-10 text-center">{t("loading")}</div>;
 
   const { categories, products, custom_templates, plan_features, orders_allowed, ...restaurantRow } =
@@ -106,6 +115,7 @@ export default function CustomerMenuView({
   );
   const mega1Mode = template.theme.renderMode === "fastfood-pro";
   const mega2Mode = template.theme.renderMode === "mega2-kinetic";
+  const smartwebMode = template.theme.renderMode === "smartweb";
 
   const ordersAllowed = orders_allowed !== false;
   const ordersClosedHint = t("orders_closed_hint");
@@ -347,9 +357,31 @@ export default function CustomerMenuView({
           whatsapp_order: plan_features?.whatsapp_order !== false,
           reservation: plan_features?.reservation !== false,
         }}
+        smartWebCheckout={
+          smartwebMode
+            ? {
+                fullName,
+                setFullName,
+                phoneNumber,
+                setPhoneNumber,
+                addressText,
+                setAddressText,
+                geoUrl,
+                setGeoUrl,
+                customerNote,
+                setCustomerNote,
+                pickGeo,
+                geoBusy,
+                submitOrder: sendOrderWeb,
+                checkoutErr,
+                checkoutOk,
+                checkoutBusy,
+              }
+            : undefined
+        }
       />
       <AnimatePresence>
-        {checkoutOpen ? (
+        {checkoutOpen && !smartwebMode ? (
           <motion.div
             key="ck"
             initial={{ opacity: 0 }}
