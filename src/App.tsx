@@ -946,9 +946,13 @@ const RestaurantPanel = () => {
       headers: { Authorization: `Bearer ${token}` },
       body: fd,
     });
-    if (!res.ok) return null;
-    const j = (await res.json()) as { url?: string };
-    return j.url ?? null;
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({} as { error?: string }));
+      console.error("Upload failed:", err.error || res.status);
+      return null;
+    }
+    const j = (await res.json()) as { url?: string; path?: string };
+    return j.url ?? j.path ?? null;
   };
 
   const selectTemplate = async (tpl: MenuTemplateDef) => {

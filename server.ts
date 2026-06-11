@@ -92,6 +92,35 @@ function safeJsonParse<T>(raw: string | null | undefined, fallback: T): T {
   }
 }
 
+function publicBaseUrl(req?: express.Request): string {
+  const fromEnv = process.env.APP_URL || process.env.PUBLIC_URL || "";
+  if (fromEnv.trim()) return fromEnv.trim().replace(/\/$/, "");
+  if (req) {
+    const proto = String(req.headers["x-forwarded-proto"] || req.protocol || "https").split(",")[0].trim();
+    const host = req.get("host");
+    if (host) return `${proto}://${host}`;
+  }
+  return "";
+}
+
+function resolveAssetUrl(url: unknown, req?: express.Request): string {
+  if (url == null) return "";
+  const s = String(url).trim();
+  if (!s) return "";
+  if (/^https?:\/\//i.test(s)) return s;
+  const base = publicBaseUrl(req);
+  if (s.startsWith("/") && base) return `${base}${s}`;
+  return s;
+}
+
+function withResolvedImages(row: Record<string, unknown>, req: express.Request, keys: string[]) {
+  const out: Record<string, unknown> = { ...row };
+  for (const k of keys) {
+    if (k in out && out[k]) out[k] = resolveAssetUrl(out[k], req);
+  }
+  return out;
+}
+
 type PlanRow = {
   id: number;
   max_products: number;
@@ -232,8 +261,9 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
-  const uploadsDir = path.join(process.cwd(), "uploads");
+  const uploadsDir = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), "uploads"));
   fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log(`Uploads directory: ${uploadsDir}`);
   const uploadStorage = multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, uploadsDir),
     filename: (_req, file, cb) => {
@@ -532,8 +562,8 @@ async function startServer() {
         .json({ error: "Media faylı tələb olunur (JPEG, PNG, WebP, GIF, MP4, WebM, MOV)" });
       return;
     }
-    const url = `/uploads/${req.file.filename}`;
-    res.json({ url });
+    const rel = `/uploads/${req.file.filename}`;
+    res.json({ url: resolveAssetUrl(rel, req), path: rel });
   });
 
   app.put("/api/admin/restaurants/:id/profile", async (req, res) => {
@@ -1108,7 +1138,9 @@ async function startServer() {
         translations: safeJsonParse(prod.translations as string, {}),
       }))
     );
-    const parsedProducts = parsedProductsAll.filter((prod) => isProductActiveNow(prod));
+    const parsedProducts = parsedProductsAll
+      .filter((prod) => isProductActiveNow(prod))
+      .map((prod) => withResolvedImages(prod as Record<string, unknown>, req, ["image_url"]));
 
     const skipScan = String(req.query.preview) === "true";
     if (!skipScan) {
@@ -1144,14 +1176,22 @@ async function startServer() {
 
     const orders_allowed = ordersAllowedForRestaurant(restaurant);
 
+    const restaurantOut = withResolvedImages(restaurant as Record<string, unknown>, req, [
+      "logo_url",
+      "cover_image_url",
+    ]);
+    const mediaOut = media_assets.map((a) =>
+      withResolvedImages(a as Record<string, unknown>, req, ["url"])
+    );
+
     res.json({
-      ...restaurant,
+      ...restaurantOut,
       plan_features,
       orders_allowed,
       categories: parsedCategories,
       products: parsedProducts,
       custom_templates,
-      media_assets,
+      media_assets: mediaOut,
     });
   });
 
@@ -1245,12 +1285,14 @@ async function startServer() {
       translations: safeJsonParse(cat.translations as string, {}),
     }));
 
-    const parsedProducts = await attachVariantsToProducts(
-      products.map((prod) => ({
-        ...prod,
-        translations: safeJsonParse(prod.translations as string, {}),
-      }))
-    );
+    const parsedProducts = (
+      await attachVariantsToProducts(
+        products.map((prod) => ({
+          ...prod,
+          translations: safeJsonParse(prod.translations as string, {}),
+        }))
+      )
+    ).map((prod) => withResolvedImages(prod as Record<string, unknown>, req, ["image_url"]));
 
     const { plan } = await getRestaurantWithPlan(id);
     const customTemplates = await db("custom_menu_templates")
@@ -1297,14 +1339,22 @@ async function startServer() {
       templates: { used: usedTemplates, max: maxTemplates, remaining: remaining(usedTemplates, maxTemplates) },
     };
 
+    const restaurantOut = withResolvedImages(restaurant as Record<string, unknown>, req, [
+      "logo_url",
+      "cover_image_url",
+    ]);
+    const mediaOut = mediaAssets.map((a) =>
+      withResolvedImages(a as Record<string, unknown>, req, ["url"])
+    );
+
     res.json({
-      restaurant,
+      restaurant: restaurantOut,
       categories: parsedCategories,
       products: parsedProducts,
       plan,
       planUsage,
       customTemplates,
-      media_assets: mediaAssets,
+      media_assets: mediaOut,
       pendingPlanRequest,
     });
   });
@@ -2184,7 +2234,7 @@ async function startServer() {
     }
     console.log(`Mode: production static (dist/) | NODE_ENV=${process.env.NODE_ENV ?? "(unset)"}`);
     app.use(express.static(distPath));
-    app.get(/^\/(.*)$/, (_req, res) => {
+    app.get(/^(?!\/api\/)(?!\/uploads\/).*/, (_req, res) => {
       res.sendFile(indexHtml);
     });
   } else {

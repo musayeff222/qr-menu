@@ -22,6 +22,7 @@ import {
 import type { MenuTemplateDef } from "./types";
 import type { FontPairKey } from "./types";
 import { cn } from "./cn";
+import { resolveAssetUrl } from "../lib/assetUrl";
 import { productCardSkin, templateRootSkin } from "./templateSkin";
 
 const FONT_STACKS: Record<
@@ -245,7 +246,7 @@ export function MenuTemplateView({
   const name = String(restaurant.name ?? "");
   const tagline =
     String(restaurant.tagline ?? "") || t("scan_order_enjoy");
-  const logoUrl = restaurant.logo_url ? String(restaurant.logo_url) : "";
+  const logoUrl = resolveAssetUrl(restaurant.logo_url ? String(restaurant.logo_url) : "");
   const whatsapp = restaurant.whatsapp_number
     ? String(restaurant.whatsapp_number).replace(/\D/g, "")
     : "";
@@ -270,7 +271,7 @@ export function MenuTemplateView({
     socialVisible("social_facebook_visible") && restaurant.facebook
       ? String(restaurant.facebook)
       : "";
-  const coverUrl = restaurant.cover_image_url ? String(restaurant.cover_image_url) : "";
+  const coverUrl = resolveAssetUrl(restaurant.cover_image_url ? String(restaurant.cover_image_url) : "");
   const heroImageSrc = coverUrl || template.heroImage;
   const headerLayout = th.headerLayout ?? "centered";
   const productLayout = th.productLayout ?? "list";
@@ -650,7 +651,7 @@ export function MenuTemplateView({
     const pdesc =
       ((prod.translations as Record<string, { desc?: string }> | undefined)?.[currentLang]?.desc) ||
       String(prod.description ?? "");
-    const img = prod.image_url ? String(prod.image_url) : "";
+    const img = resolveAssetUrl(prod.image_url ? String(prod.image_url) : "");
     const vars = variantsOf(prod);
     const pid = Number(prod.id);
     const showFrom = vars.length > 0;
@@ -1121,7 +1122,7 @@ export function MenuTemplateView({
     const tr = line.product.translations as Record<string, { name?: string }> | undefined;
     const pn = tr?.[currentLang]?.name || String(line.product.name ?? "");
     const label = line.variantLabel ? `${line.variantLabel} · ${pn}` : pn;
-    const img = line.product.image_url ? String(line.product.image_url) : "";
+    const img = resolveAssetUrl(line.product.image_url ? String(line.product.image_url) : "");
     return (
       <motion.div
         key={line.lineId}
@@ -1326,7 +1327,7 @@ export function MenuTemplateView({
     const tr = line.product.translations as Record<string, { name?: string }> | undefined;
     const pn = tr?.[currentLang]?.name || String(line.product.name ?? "");
     const label = line.variantLabel ? `${line.variantLabel} · ${pn}` : pn;
-    const img = line.product.image_url ? String(line.product.image_url) : "";
+    const img = resolveAssetUrl(line.product.image_url ? String(line.product.image_url) : "");
     return (
       <div
         key={line.lineId}
@@ -2125,7 +2126,7 @@ export function MenuTemplateView({
                 >
                   {String(asset.kind) === "video" ? (
                     <video
-                      src={asset.url}
+                      src={resolveAssetUrl(asset.url)}
                       className="h-full w-full object-cover"
                       autoPlay
                       muted
@@ -2133,7 +2134,7 @@ export function MenuTemplateView({
                       playsInline
                     />
                   ) : (
-                    <img src={asset.url} alt="" className="h-full w-full object-cover" />
+                    <img src={resolveAssetUrl(asset.url)} alt="" className="h-full w-full object-cover" />
                   )}
                 </div>
               ))}
