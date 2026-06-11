@@ -252,6 +252,47 @@ export default function CustomerMenuView({
     setOrdersHistory(Array.isArray(rows) ? rows : []);
   };
 
+  const buildWhatsAppOrderText = () => {
+    const addrLines: string[] = [];
+    if (addressText.trim()) addrLines.push(`${t("checkout_address_placeholder")}: ${addressText.trim()}`);
+    if (geoUrl.trim()) addrLines.push(`${t("checkout_geo_prefix")}: ${geoUrl.trim()}`);
+    const payLabel = payment === "cash" ? t("checkout_cash") : t("checkout_card");
+    const lines = cart.map((line) => {
+      const tr = line.product.translations as Record<string, { name?: string }> | undefined;
+      const pn = tr?.[currentLang]?.name || String(line.product.name ?? "");
+      const label = line.variantLabel ? `${line.variantLabel} · ${pn}` : pn;
+      const note = line.note?.trim() ? ` — ${line.note.trim()}` : "";
+      return `- ${label} x${Number(line.quantity || 1)}${note} (₼${(Number(line.unitPrice) * Number(line.quantity || 1)).toFixed(2)})`;
+    });
+    const total = cart
+      .reduce((s, l) => s + Number(l.unitPrice) * Number(l.quantity || 1), 0)
+      .toFixed(2);
+    return [
+      t("whatsapp_order_prefix"),
+      "",
+      `Müştəri: ${fullName.trim()}`,
+      `Telefon: ${phoneNumber.trim()}`,
+      `Növ: ${orderType === "pickup" ? "Məkandan götür" : "Çatdırılma"}`,
+      "",
+      ...lines,
+      "",
+      `${t("total")}: ₼${total}`,
+      "",
+      ...addrLines,
+      "",
+      customerNote.trim() ? `Qeyd: ${customerNote.trim()}` : "",
+      `${t("checkout_payment")}: ${payLabel}`,
+    ].join("\n");
+  };
+
+  const openRestaurantWhatsApp = () => {
+    const wa = String(data.whatsapp_number ?? "").replace(/\D/g, "");
+    if (!wa) return false;
+    const text = buildWhatsAppOrderText();
+    window.open(`https://wa.me/${wa}?text=${encodeURIComponent(text)}`, "_blank");
+    return true;
+  };
+
   const sendOrderWeb = async () => {
     if (!validateCheckout()) return;
     setCheckoutBusy(true);
@@ -278,43 +319,53 @@ export default function CustomerMenuView({
     }
   };
 
+  const sendOrderSmartWeb = async () => {
+    if (!validateCheckout()) return;
+    const waAllowed = plan_features?.whatsapp_order !== false;
+    const wa = String(data.whatsapp_number ?? "").replace(/\D/g, "");
+    if (waAllowed && !wa) {
+      setCheckoutErr("Restoran WhatsApp nömrəsi təyin edilməyib. Paneldə WhatsApp əlavə edin.");
+      return;
+    }
+    setCheckoutBusy(true);
+    setCheckoutErr("");
+    try {
+      const res = await fetch(`/api/restaurants/${encodeURIComponent(slug)}/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...orderPayload(),
+          order_source: waAllowed && wa ? "whatsapp" : "web",
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setCheckoutErr(String(body.error || t("server_error")));
+        return;
+      }
+      if (waAllowed && wa) {
+        openRestaurantWhatsApp();
+      }
+      setCheckoutOk(
+        waAllowed && wa
+          ? "Sifariş qeydə alındı. WhatsApp açılır..."
+          : "Sifarişiniz qeydə alındı. Ən qısa zamanda sizinlə əlaqə saxlanılacaq"
+      );
+      setCart([]);
+      setMenuView("browse");
+      await fetchOrderHistory();
+    } finally {
+      setCheckoutBusy(false);
+    }
+  };
+
   const sendOrderWhatsApp = () => {
     const wa = String(data.whatsapp_number ?? "").replace(/\D/g, "");
     if (!wa) return;
     if (!validateCheckout()) {
       return;
     }
-    const addrLines: string[] = [];
-    if (addressText.trim()) addrLines.push(`${t("checkout_address_placeholder")}: ${addressText.trim()}`);
-    if (geoUrl.trim()) addrLines.push(`${t("checkout_geo_prefix")}: ${geoUrl.trim()}`);
-    const payLabel = payment === "cash" ? t("checkout_cash") : t("checkout_card");
-    const lines = cart.map((line) => {
-      const tr = line.product.translations as Record<string, { name?: string }> | undefined;
-      const pn = tr?.[currentLang]?.name || String(line.product.name ?? "");
-      const label = line.variantLabel ? `${line.variantLabel} · ${pn}` : pn;
-      const note = line.note?.trim() ? ` — ${line.note.trim()}` : "";
-      return `- ${label} x${Number(line.quantity || 1)}${note} (₼${(Number(line.unitPrice) * Number(line.quantity || 1)).toFixed(2)})`;
-    });
-    const total = cart
-      .reduce((s, l) => s + Number(l.unitPrice) * Number(l.quantity || 1), 0)
-      .toFixed(2);
-    const text = [
-      t("whatsapp_order_prefix"),
-      "",
-      `Müştəri: ${fullName.trim()}`,
-      `Telefon: ${phoneNumber.trim()}`,
-      `Növ: ${orderType === "pickup" ? "Məkandan götür" : "Çatdırılma"}`,
-      "",
-      ...lines,
-      "",
-      `${t("total")}: ₼${total}`,
-      "",
-      ...addrLines,
-      "",
-      customerNote.trim() ? `Qeyd: ${customerNote.trim()}` : "",
-      `${t("checkout_payment")}: ${payLabel}`,
-    ].join("\n");
-    window.open(`https://wa.me/${wa}?text=${encodeURIComponent(text)}`);
+    openRestaurantWhatsApp();
     setCheckoutOpen(false);
     setAddressText("");
     setGeoUrl("");
@@ -372,7 +423,7 @@ export default function CustomerMenuView({
                 setCustomerNote,
                 pickGeo,
                 geoBusy,
-                submitOrder: sendOrderWeb,
+                submitOrder: sendOrderSmartWeb,
                 checkoutErr,
                 checkoutOk,
                 checkoutBusy,

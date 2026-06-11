@@ -16,6 +16,44 @@ console.log("Server script started.");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/**
+ * Yüklənmiş şəkillər deploy qovluğundan kənarda saxlanmalıdır (Hostinger deploy zamanı silinmir).
+ * UPLOADS_DIR təyin olunmayıbsa production-da domain səviyyəsində private_uploads istifadə olunur.
+ */
+function resolveUploadsDir(): string {
+  const explicit = process.env.UPLOADS_DIR?.trim();
+  if (explicit) return path.resolve(explicit);
+
+  const cwd = process.cwd();
+  if (process.env.NODE_ENV === "production" || useProductionStatic()) {
+    return path.resolve(cwd, "../../private_uploads");
+  }
+  return path.resolve(cwd, "uploads");
+}
+
+function migrateLegacyUploads(uploadsDir: string) {
+  const legacy = path.resolve(process.cwd(), "uploads");
+  if (legacy === uploadsDir || !fs.existsSync(legacy)) return;
+  try {
+    const names = fs.readdirSync(legacy);
+    if (!names.length) return;
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    let copied = 0;
+    for (const name of names) {
+      const src = path.join(legacy, name);
+      const dest = path.join(uploadsDir, name);
+      if (!fs.statSync(src).isFile() || fs.existsSync(dest)) continue;
+      fs.copyFileSync(src, dest);
+      copied++;
+    }
+    if (copied > 0) {
+      console.log(`Migrated ${copied} upload(s) from ${legacy} to ${uploadsDir}`);
+    }
+  } catch (err) {
+    console.warn("Legacy uploads migration skipped:", err);
+  }
+}
+
 /** Hostinger: NODE_ENV olmasa belə dist/ varsa production static. */
 function useProductionStatic(): boolean {
   if (process.env.NODE_ENV === "production") return true;
@@ -261,8 +299,19 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
-  const uploadsDir = path.resolve(process.env.UPLOADS_DIR || path.join(process.cwd(), "uploads"));
+  const uploadsDir = resolveUploadsDir();
   fs.mkdirSync(uploadsDir, { recursive: true });
+  migrateLegacyUploads(uploadsDir);
+  const cwd = process.cwd();
+  if (
+    (process.env.NODE_ENV === "production" || useProductionStatic()) &&
+    (uploadsDir === cwd || uploadsDir.startsWith(cwd + path.sep))
+  ) {
+    console.warn(
+      `[uploads] UPLOADS_DIR tətbiq qovluğunun içindədir (${uploadsDir}). Deploy zamanı şəkillər silinə bilər. ` +
+        "Hostinger-də məs: UPLOADS_DIR=/home/USER/domains/menugo.az/private_uploads"
+    );
+  }
   console.log(`Uploads directory: ${uploadsDir}`);
   const uploadStorage = multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, uploadsDir),
