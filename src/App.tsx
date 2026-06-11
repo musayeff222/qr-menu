@@ -170,7 +170,13 @@ const Button = ({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonEl
 );
 
 const Card = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden", className)} {...props}>
+  <div
+    className={cn(
+      "overflow-hidden rounded-xl border border-gray-100 bg-white text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100",
+      className
+    )}
+    {...props}
+  >
     {children}
   </div>
 );
@@ -556,7 +562,13 @@ const RestaurantPanel = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => typeof window !== "undefined" && localStorage.getItem("restaurantSidebarCollapsed") === "1"
   );
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const stored = localStorage.getItem("restaurantDarkMode");
+    if (stored === "1") return true;
+    if (stored === "0") return false;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [planUpgradeOpen, setPlanUpgradeOpen] = useState(false);
   const [planSuccessOpen, setPlanSuccessOpen] = useState(false);
@@ -715,6 +727,7 @@ const RestaurantPanel = () => {
   useEffect(() => {
     if (typeof document === "undefined") return;
     document.documentElement.classList.toggle("dark", darkMode);
+    localStorage.setItem("restaurantDarkMode", darkMode ? "1" : "0");
   }, [darkMode]);
 
   useEffect(() => {
@@ -1852,7 +1865,7 @@ const RestaurantPanel = () => {
                 to={`${basePath}/categories`}
                 className={cn(
                   "h-9 px-4 rounded-lg text-sm font-semibold inline-flex items-center",
-                  section === "categories" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm" : "text-slate-500"
+                  section === "categories" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm" : "text-slate-500 dark:text-slate-400"
                 )}
               >
                 Kateqoriyalar
@@ -1861,7 +1874,7 @@ const RestaurantPanel = () => {
                 to={`${basePath}/products`}
                 className={cn(
                   "h-9 px-4 rounded-lg text-sm font-semibold inline-flex items-center",
-                  section === "products" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm" : "text-slate-500"
+                  section === "products" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm" : "text-slate-500 dark:text-slate-400"
                 )}
               >
                 Məhsullar
@@ -2786,14 +2799,14 @@ const RestaurantPanel = () => {
         )}
 
         {section === "categories" && (
-            <Card className="p-6 max-w-xl mb-8">
-              <h3 className="font-bold mb-4">{t("add_category")}</h3>
+            <Card className="mb-8 max-w-xl p-6">
+              <h3 className="mb-4 font-bold text-slate-900 dark:text-slate-100">{t("add_category")}</h3>
               {isLimitReached(planUsage?.categories) ? (
-                <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
                   Kateqoriya limitiniz dolub. Planı yüksəldin.
                   <button
                     type="button"
-                    className="ml-2 underline font-semibold"
+                    className="ml-2 font-semibold underline"
                     onClick={() => {
                       setSelectedUpgradePlanId(null);
                       setPlanUpgradeOpen(true);
@@ -2804,32 +2817,48 @@ const RestaurantPanel = () => {
                 </div>
               ) : null}
               <div className="flex gap-2">
-                <input 
-                  placeholder={t("name")} 
-                  className="flex-1 p-2 border rounded-lg"
+                <input
+                  placeholder={t("name")}
+                  className={cn(inputCls, "flex-1")}
                   value={newCat}
-                  onChange={e => setNewCat(e.target.value)}
+                  onChange={(e) => setNewCat(e.target.value)}
                 />
-                <Button onClick={addCategory} className="bg-black text-white p-2">
+                <Button onClick={addCategory} className="bg-red-600 p-2 text-white hover:bg-red-500">
                   <Plus size={20} />
                 </Button>
               </div>
               <div className="mt-4 space-y-2">
-                {categories.map(cat => (
-                  <div key={cat.id} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
-                    <span>{cat.translations?.[currentLang] || cat.name}</span>
+                {categories.map((cat) => (
+                  <div
+                    key={cat.id}
+                    className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-600 dark:bg-slate-700/50"
+                  >
+                    <span className="font-medium text-slate-900 dark:text-slate-100">
+                      {cat.translations?.[currentLang] || cat.name}
+                    </span>
                     <div className="flex gap-1">
-                      <button 
+                      <button
                         type="button"
-                        onClick={() => setEditingTranslations({ type: 'category', id: cat.id, data: cat.translations || {} })}
-                        className="text-blue-600 hover:text-blue-800 p-1"
+                        onClick={() =>
+                          setEditingTranslations({ type: "category", id: cat.id, data: cat.translations || {} })
+                        }
+                        className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                       >
                         <Globe size={16} />
                       </button>
-                      <button type="button" onClick={() => deleteCategory(cat.id)} className="text-gray-400 hover:text-red-600 p-1"><Trash2 size={16} /></button>
+                      <button
+                        type="button"
+                        onClick={() => deleteCategory(cat.id)}
+                        className="p-1 text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </div>
                 ))}
+                {!categories.length ? (
+                  <p className="py-4 text-center text-sm text-slate-500 dark:text-slate-400">Hələ kateqoriya yoxdur.</p>
+                ) : null}
               </div>
             </Card>
         )}
@@ -2837,8 +2866,8 @@ const RestaurantPanel = () => {
         {section === "products" && !productsNew && (
           <div className="space-y-6">
             {isLimitReached(planUsage?.products) ? (
-              <Card className="p-4 border-amber-200 bg-amber-50">
-                <p className="text-sm text-amber-900">
+              <Card className="border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/40">
+                <p className="text-sm text-amber-900 dark:text-amber-200">
                   Məhsul limitiniz dolub. Yeni məhsul üçün planı yüksəltməlisiniz.
                 </p>
                 <Button
@@ -2855,119 +2884,138 @@ const RestaurantPanel = () => {
             ) : null}
             <Link
               to={`${basePath}/products/new`}
-              className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm"
+              className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm"
             >
               <Plus size={18} /> {t("add_product")}
             </Link>
             <div className="space-y-4">
-              {categories.map(cat => (
-                <div key={cat.id}>
-                  <h4 className="font-bold text-gray-500 uppercase text-xs tracking-wider mb-2">{cat.translations?.[currentLang] || cat.name}</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {products.filter(p => p.category_id === cat.id).map(prod => (
-                      <Card
-                        key={prod.id}
-                        className="p-4 flex gap-4 border-gray-200 hover:shadow-md transition-all cursor-pointer"
-                        onClick={() => openEditProduct(prod)}
-                      >
-                        <div className="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-                          {prod.image_url ? (
-                            <img
-                              src={prod.image_url}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
-                          ) : null}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between gap-2">
-                            <h5 className="font-bold">{prod.translations?.[currentLang]?.name || prod.name}</h5>
-                            <span className="font-bold text-red-600">₼{Number(prod.price).toFixed(2)}</span>
+              {categories.map((cat) => {
+                const catProducts = products.filter((p) => p.category_id === cat.id);
+                return (
+                  <div key={cat.id}>
+                    <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      {cat.translations?.[currentLang] || cat.name}
+                    </h4>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      {catProducts.map((prod) => (
+                        <Card
+                          key={prod.id}
+                          className="flex cursor-pointer gap-4 border-slate-200 p-4 transition-all hover:shadow-md dark:border-slate-600"
+                          onClick={() => openEditProduct(prod)}
+                        >
+                          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-700">
+                            {prod.image_url ? (
+                              <img src={prod.image_url} alt="" className="h-full w-full object-cover" />
+                            ) : null}
                           </div>
-                          <p className="text-sm text-gray-500 line-clamp-2">{prod.translations?.[currentLang]?.desc || prod.description}</p>
-                          {prod.active_hours_enabled ? (
-                            <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
-                              <Clock3 size={12} />
-                              Aktiv: {prod.active_from || "--:--"} - {prod.active_to || "--:--"}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex justify-between gap-2">
+                              <h5 className="font-bold text-slate-900 dark:text-slate-100">
+                                {prod.translations?.[currentLang]?.name || prod.name}
+                              </h5>
+                              <span className="shrink-0 font-bold text-red-600 dark:text-red-400">
+                                ₼{Number(prod.price).toFixed(2)}
+                              </span>
                             </div>
-                          ) : null}
-                          {prod.variants && prod.variants.length > 0 ? (
-                            <ul className="mt-2 text-xs text-gray-600 space-y-0.5 list-disc list-inside">
-                              {prod.variants.map((v) => (
-                                <li key={v.id}>
-                                  {v.name} — ₼{Number(v.price).toFixed(2)}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : null}
-                          <div className="mt-2 flex justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEditProduct(prod);
-                              }}
-                              className="text-gray-700 hover:text-red-600 flex items-center gap-1 text-xs font-bold"
-                            >
-                              <Pencil size={14} /> Redaktə
-                            </button>
-                            <button 
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingTranslations({ type: 'product', id: prod.id, data: prod.translations || {} });
-                              }}
-                              className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-xs font-bold"
-                            >
-                              <Globe size={14} /> {t("translations")}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteProduct(prod.id);
-                              }}
-                              className="text-red-500 p-1"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            <p className="line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
+                              {prod.translations?.[currentLang]?.desc || prod.description}
+                            </p>
+                            {prod.active_hours_enabled ? (
+                              <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
+                                <Clock3 size={12} />
+                                Aktiv: {prod.active_from || "--:--"} - {prod.active_to || "--:--"}
+                              </div>
+                            ) : null}
+                            {prod.variants && prod.variants.length > 0 ? (
+                              <ul className="mt-2 list-inside list-disc space-y-0.5 text-xs text-slate-600 dark:text-slate-400">
+                                {prod.variants.map((v) => (
+                                  <li key={v.id}>
+                                    {v.name} — ₼{Number(v.price).toFixed(2)}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null}
+                            <div className="mt-2 flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditProduct(prod);
+                                }}
+                                className="flex items-center gap-1 text-xs font-bold text-slate-700 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400"
+                              >
+                                <Pencil size={14} /> Redaktə
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingTranslations({
+                                    type: "product",
+                                    id: prod.id,
+                                    data: prod.translations || {},
+                                  });
+                                }}
+                                className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                              >
+                                <Globe size={14} /> {t("translations")}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteProduct(prod.id);
+                                }}
+                                className="p-1 text-red-500 dark:text-red-400"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      </Card>
-                    ))}
+                        </Card>
+                      ))}
+                      {!catProducts.length ? (
+                        <p className="text-sm text-slate-500 dark:text-slate-400 md:col-span-2">Bu kateqoriyada məhsul yoxdur.</p>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
+              {!categories.length ? (
+                <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+                  Əvvəlcə kateqoriya əlavə edin.
+                </p>
+              ) : null}
             </div>
           </div>
         )}
 
         {productsNew && (
-            <Card className="p-6 mb-6 max-w-2xl">
-              <h3 className="font-bold mb-4">{t("add_product")}</h3>
+            <Card className="mb-6 max-w-2xl p-6">
+              <h3 className="mb-4 font-bold text-slate-900 dark:text-slate-100">{t("add_product")}</h3>
               {isLimitReached(planUsage?.products) ? (
-                <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
                   Məhsul limiti dolub. Plan yüksəltmədən yeni məhsul əlavə etmək olmur.
                 </div>
               ) : null}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <input 
+              <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <input
                   placeholder="Məhsul adını yazın"
-                  className="p-2 border rounded-lg"
+                  className={inputCls}
                   value={newProd.name}
-                  onChange={e => setNewProd({ ...newProd, name: e.target.value })}
+                  onChange={(e) => setNewProd({ ...newProd, name: e.target.value })}
                 />
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   placeholder="Qiyməti daxil edin"
-                  className="p-2 border rounded-lg"
+                  className={inputCls}
                   value={newProd.price}
-                  onChange={e => setNewProd({ ...newProd, price: e.target.value })}
+                  onChange={(e) => setNewProd({ ...newProd, price: e.target.value })}
                 />
-                <select 
-                  className="p-2 border rounded-lg sm:col-span-2"
+                <select
+                  className={cn(inputCls, "sm:col-span-2")}
                   value={newProd.category_id}
-                  onChange={e => setNewProd({ ...newProd, category_id: Number(e.target.value) })}
+                  onChange={(e) => setNewProd({ ...newProd, category_id: Number(e.target.value) })}
                 >
                   <option value={0}>{t("select_category")}</option>
                   {categories.map(cat => (
@@ -2975,14 +3023,14 @@ const RestaurantPanel = () => {
                   ))}
                 </select>
                 <textarea
-                  className="p-2 border rounded-lg sm:col-span-2 text-sm"
+                  className={cn(inputCls, "h-auto min-h-[5rem] py-2 sm:col-span-2")}
                   placeholder="Qısa açıqlama yazın"
                   rows={3}
                   value={newProd.description}
                   onChange={(e) => setNewProd({ ...newProd, description: e.target.value })}
                 />
-                <div className="sm:col-span-2 rounded-xl border border-gray-200 bg-gray-50/70 p-3">
-                  <label className="flex items-center justify-between gap-3 text-sm font-semibold text-gray-800">
+                <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:col-span-2 dark:border-slate-600 dark:bg-slate-900/50">
+                  <label className="flex items-center justify-between gap-3 text-sm font-semibold text-slate-800 dark:text-slate-200">
                     Aktiv saatlar seç
                     <button
                       type="button"
@@ -3007,19 +3055,19 @@ const RestaurantPanel = () => {
                   {newProd.active_hours_enabled ? (
                     <div className="mt-3 grid sm:grid-cols-2 gap-3">
                       <div>
-                        <p className="text-xs mb-1 text-gray-600">Başlanğıc saat</p>
+                        <p className="mb-1 text-xs text-slate-600 dark:text-slate-400">Başlanğıc saat</p>
                         <input
                           type="time"
-                          className="w-full p-2 border rounded-lg text-sm bg-white"
+                          className={inputCls}
                           value={newProd.active_from}
                           onChange={(e) => setNewProd((p) => ({ ...p, active_from: e.target.value }))}
                         />
                       </div>
                       <div>
-                        <p className="text-xs mb-1 text-gray-600">Bitiş saat</p>
+                        <p className="mb-1 text-xs text-slate-600 dark:text-slate-400">Bitiş saat</p>
                         <input
                           type="time"
-                          className="w-full p-2 border rounded-lg text-sm bg-white"
+                          className={inputCls}
                           value={newProd.active_to}
                           onChange={(e) => setNewProd((p) => ({ ...p, active_to: e.target.value }))}
                         />
@@ -3028,12 +3076,12 @@ const RestaurantPanel = () => {
                   ) : null}
                 </div>
                 <div className="sm:col-span-2">
-                  <p className="text-xs font-medium text-gray-700 mb-1">{t("product_image_upload_label")}</p>
+                  <p className="mb-1 text-xs font-medium text-slate-700 dark:text-slate-300">{t("product_image_upload_label")}</p>
                   <div className="flex flex-wrap items-center gap-3">
                     {newProd.image_url ? (
-                      <img src={newProd.image_url} alt="" className="w-16 h-16 rounded-lg object-cover border" />
+                      <img src={newProd.image_url} alt="" className="h-16 w-16 rounded-lg border border-slate-200 object-cover dark:border-slate-600" />
                     ) : null}
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
                       <Upload size={16} />
                       Şəkil yüklə
                       <input
@@ -3051,13 +3099,13 @@ const RestaurantPanel = () => {
                     </label>
                   </div>
                 </div>
-                <div className="sm:col-span-2 border-t pt-4 mt-2">
-                  <p className="text-sm font-semibold text-gray-800 mb-2">{t("product_variants_heading")}</p>
-                  <div className="space-y-2 mb-2">
+                <div className="mt-2 border-t border-slate-200 pt-4 sm:col-span-2 dark:border-slate-700">
+                  <p className="mb-2 text-sm font-semibold text-slate-800 dark:text-slate-200">{t("product_variants_heading")}</p>
+                  <div className="mb-2 space-y-2">
                     {newProdVariants.map((row, idx) => (
-                      <div key={idx} className="flex flex-wrap gap-2 items-center">
+                      <div key={idx} className="flex flex-wrap items-center gap-2">
                         <input
-                          className="flex-1 min-w-[140px] p-2 border rounded-lg text-sm"
+                          className={cn(inputCls, "min-w-[140px] flex-1")}
                           placeholder={t("variant_name_short")}
                           value={row.name}
                           onChange={(e) =>
@@ -3069,7 +3117,7 @@ const RestaurantPanel = () => {
                         <input
                           type="number"
                           step="0.01"
-                          className="w-28 p-2 border rounded-lg text-sm"
+                          className={cn(inputCls, "w-28")}
                           placeholder={t("variant_price_short")}
                           value={row.price}
                           onChange={(e) =>
@@ -3080,7 +3128,7 @@ const RestaurantPanel = () => {
                         />
                         <button
                           type="button"
-                          className="text-xs text-red-600 font-semibold px-2"
+                          className="px-2 text-xs font-semibold text-red-600 dark:text-red-400"
                           onClick={() => setNewProdVariants((rows) => rows.filter((_, i) => i !== idx))}
                         >
                           {t("remove_variant_btn")}
@@ -3090,13 +3138,13 @@ const RestaurantPanel = () => {
                   </div>
                   <button
                     type="button"
-                    className="text-sm text-red-600 font-bold"
+                    className="text-sm font-bold text-red-600 dark:text-red-400"
                     onClick={() => setNewProdVariants((rows) => [...rows, { name: "", price: "" }])}
                   >
                     + {t("add_variant_btn")}
                   </button>
                 </div>
-                <Button type="button" onClick={() => navigate(`${basePath}/products`)} className="border">
+                <Button type="button" onClick={() => navigate(`${basePath}/products`)} className={secondaryBtnCls}>
                   {t("onboarding_back")}
                 </Button>
                 <Button
@@ -3112,38 +3160,38 @@ const RestaurantPanel = () => {
         )}
 
         {editingProduct ? (
-          <div className="fixed inset-0 z-50 bg-black/45 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
             <Card className="w-full max-w-xl p-5 sm:p-6">
-              <h3 className="text-lg font-bold mb-4">Məhsulu redaktə et</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <h3 className="mb-4 text-lg font-bold text-slate-900 dark:text-slate-100">Məhsulu redaktə et</h3>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <input
-                  className="p-2.5 border rounded-lg sm:col-span-2"
+                  className={cn(inputCls, "sm:col-span-2")}
                   placeholder="Məhsul adını yazın"
                   value={editProd.name}
                   onChange={(e) => setEditProd((p) => ({ ...p, name: e.target.value }))}
                 />
                 <input
                   type="number"
-                  className="p-2.5 border rounded-lg"
+                  className={inputCls}
                   placeholder="Qiyməti daxil edin"
                   value={editProd.price}
                   onChange={(e) => setEditProd((p) => ({ ...p, price: e.target.value }))}
                 />
                 <input
-                  className="p-2.5 border rounded-lg"
+                  className={inputCls}
                   placeholder="Şəkil URL (ixtiyari)"
                   value={editProd.image_url}
                   onChange={(e) => setEditProd((p) => ({ ...p, image_url: e.target.value }))}
                 />
                 <textarea
-                  className="p-2.5 border rounded-lg sm:col-span-2"
+                  className={cn(inputCls, "h-auto min-h-[5rem] py-2 sm:col-span-2")}
                   rows={3}
                   placeholder="Qısa açıqlama yazın"
                   value={editProd.description}
                   onChange={(e) => setEditProd((p) => ({ ...p, description: e.target.value }))}
                 />
-                <div className="sm:col-span-2 rounded-xl border border-gray-200 bg-gray-50 p-3">
-                  <label className="flex items-center justify-between gap-3 text-sm font-semibold text-gray-800">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 sm:col-span-2 dark:border-slate-600 dark:bg-slate-900/50">
+                  <label className="flex items-center justify-between gap-3 text-sm font-semibold text-slate-800 dark:text-slate-200">
                     Aktiv saatlar seç
                     <button
                       type="button"
@@ -3169,13 +3217,13 @@ const RestaurantPanel = () => {
                     <div className="mt-3 grid sm:grid-cols-2 gap-3">
                       <input
                         type="time"
-                        className="p-2.5 border rounded-lg bg-white"
+                        className={inputCls}
                         value={editProd.active_from}
                         onChange={(e) => setEditProd((p) => ({ ...p, active_from: e.target.value }))}
                       />
                       <input
                         type="time"
-                        className="p-2.5 border rounded-lg bg-white"
+                        className={inputCls}
                         value={editProd.active_to}
                         onChange={(e) => setEditProd((p) => ({ ...p, active_to: e.target.value }))}
                       />
@@ -3183,11 +3231,11 @@ const RestaurantPanel = () => {
                   ) : null}
                 </div>
               </div>
-              <div className="flex gap-2 mt-5">
-                <Button type="button" onClick={() => setEditingProduct(null)} className="flex-1 border">
+              <div className="mt-5 flex gap-2">
+                <Button type="button" onClick={() => setEditingProduct(null)} className={cn(secondaryBtnCls, "flex-1")}>
                   Ləğv
                 </Button>
-                <Button type="button" onClick={saveEditedProduct} className="flex-1 bg-red-600 text-white">
+                <Button type="button" onClick={saveEditedProduct} className="flex-1 bg-red-600 text-white hover:bg-red-500">
                   Saxla
                 </Button>
               </div>
@@ -3362,24 +3410,24 @@ const RestaurantPanel = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+              className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800"
             >
-              <div className="p-6 border-b flex justify-between items-center">
-                <h3 className="text-xl font-bold">{t("translations")}</h3>
-                <button onClick={() => setEditingTranslations(null)} className="text-gray-400 hover:text-black">
+              <div className="flex items-center justify-between border-b border-slate-200 p-6 dark:border-slate-700">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">{t("translations")}</h3>
+                <button onClick={() => setEditingTranslations(null)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white">
                   <X size={24} />
                 </button>
               </div>
-              <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              <div className="max-h-[70vh] space-y-6 overflow-y-auto p-6">
                 {["az", "en", "ru", "tr"].map(lang => (
-                  <div key={lang} className="p-4 border rounded-xl bg-gray-50">
-                    <div className="flex items-center gap-2 mb-3">
+                  <div key={lang} className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-600 dark:bg-slate-900/50">
+                    <div className="mb-3 flex items-center gap-2">
                       <Globe size={16} className="text-red-600" />
-                      <span className="font-bold uppercase text-sm">{lang}</span>
+                      <span className="text-sm font-bold uppercase text-slate-800 dark:text-slate-200">{lang}</span>
                     </div>
                     {editingTranslations.type === 'category' ? (
                       <input 
-                        className="w-full p-2 border rounded-lg"
+                        className={inputCls}
                         placeholder={`${lang} Name`}
                         value={editingTranslations.data[lang] || ""}
                         onChange={e => setEditingTranslations({
@@ -3389,38 +3437,46 @@ const RestaurantPanel = () => {
                       />
                     ) : (
                       <div className="space-y-2">
-                        <input 
-                          className="w-full p-2 border rounded-lg"
+                        <input
+                          className={inputCls}
                           placeholder={`${lang} Name`}
                           value={editingTranslations.data[lang]?.name || ""}
-                          onChange={e => setEditingTranslations({
-                            ...editingTranslations,
-                            data: { 
-                              ...editingTranslations.data, 
-                              [lang]: { ...(editingTranslations.data[lang] || {}), name: e.target.value } 
-                            }
-                          })}
+                          onChange={(e) =>
+                            setEditingTranslations({
+                              ...editingTranslations,
+                              data: {
+                                ...editingTranslations.data,
+                                [lang]: { ...(editingTranslations.data[lang] || {}), name: e.target.value },
+                              },
+                            })
+                          }
                         />
-                        <textarea 
-                          className="w-full p-2 border rounded-lg"
+                        <textarea
+                          className={cn(inputCls, "h-auto min-h-[4rem] py-2")}
                           placeholder={`${lang} Description`}
                           value={editingTranslations.data[lang]?.desc || ""}
-                          onChange={e => setEditingTranslations({
-                            ...editingTranslations,
-                            data: { 
-                              ...editingTranslations.data, 
-                              [lang]: { ...(editingTranslations.data[lang] || {}), desc: e.target.value } 
-                            }
-                          })}
+                          onChange={(e) =>
+                            setEditingTranslations({
+                              ...editingTranslations,
+                              data: {
+                                ...editingTranslations.data,
+                                [lang]: { ...(editingTranslations.data[lang] || {}), desc: e.target.value },
+                              },
+                            })
+                          }
                         />
                       </div>
                     )}
                   </div>
                 ))}
               </div>
-              <div className="p-6 border-t bg-gray-50 flex gap-3">
-                <Button onClick={() => setEditingTranslations(null)} className="flex-1 bg-white border">{t("translation_cancel")}</Button>
-                <Button onClick={saveTranslations} className="flex-1 bg-red-600 text-white">{t("save")}</Button>
+              <div className="flex gap-3 border-t border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-900/50">
+                <Button onClick={() => setEditingTranslations(null)} className={cn(secondaryBtnCls, "flex-1")}>
+                  {t("translation_cancel")}
+                </Button>
+                <Button onClick={saveTranslations} className="flex-1 bg-red-600 text-white hover:bg-red-500">
+                  {t("save")}
+                </Button>
               </div>
             </motion.div>
           </div>
