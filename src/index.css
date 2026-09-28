@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  html {
+    font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Menyu şablonları — neon, dərinlıq, şüşə, orqanik formalar */
+@layer utilities {
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .px-safe {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  /** Minimum horizontal padding + notch / home indicator */
+  .px-comfort {
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+  }
+
+  .mt-neon-skin .mt-product-card:hover {
+    box-shadow:
+      0 0 26px color-mix(in srgb, var(--mt-primary) 42%, transparent),
+      0 0 2px color-mix(in srgb, var(--mt-accent) 70%, transparent);
+  }
+  .mt-depth-skin .mt-product-card {
+    box-shadow: 0 20px 44px -14px rgba(0, 0, 0, 0.42);
+  }
+  .mt-glass-skin header nav[aria-label="Menu categories"] {
+    backdrop-filter: blur(16px);
+  }
+  .mt-organic-skin .mt-product-card {
+    border-radius: 1.65rem 2.1rem 1.45rem 2rem;
+  }
+  .mt-retro-skin .mt-product-card {
+    border-width: 3px;
+    border-style: solid;
+    border-color: color-mix(in srgb, var(--mt-primary) 35%, transparent);
+  }
+}

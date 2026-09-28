@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /$
+Allow: /register
+Allow: /demo/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /panel
+Disallow: /panel/
+Disallow: /r/*?preview=true
+Disallow: /api/
+
+Sitemap: https://menugo.az/sitemap.xml

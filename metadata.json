@@ -1,0 +1,5 @@
+{
+  "name": "QRMenu SaaS",
+  "description": "Multi-tenant QR Menu system for restaurants with Super Admin and Restaurant panels.",
+  "requestFramePermissions": []
+}

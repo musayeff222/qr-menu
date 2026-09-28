@@ -1,0 +1,18 @@
+{
+  "name": "QRMenu",
+  "short_name": "QRMenu",
+  "description": "Digital QR restaurant menus",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#dc2626",
+  "orientation": "portrait-primary",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}

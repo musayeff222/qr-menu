@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="az">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- SEO əsas -->
+    <title>MenuGo — Restoranlar üçün QR menyu və WhatsApp sifariş sistemi</title>
+    <meta
+      name="description"
+      content="Azərbaycan restoranları üçün rəqəmsal QR menyu: 50+ şablon, WhatsApp sifariş, çoxdilli menyu, ani yeniləmə. Pulsuz sınayın — menugo.az."
+    />
+    <meta name="keywords" content="qr menyu, qr menu, rəqəmsal menyu, restoran menyu, whatsapp sifariş, digital menu, menugo, menugo.az, restoran, kafe" />
+    <meta name="author" content="MenuGo" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="theme-color" content="#0a0a0f" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="canonical" href="https://menugo.az/" />
+    <link rel="alternate" hreflang="az" href="https://menugo.az/" />
+    <link rel="alternate" hreflang="x-default" href="https://menugo.az/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MenuGo" />
+    <meta property="og:locale" content="az_AZ" />
+    <meta property="og:url" content="https://menugo.az/" />
+    <meta property="og:title" content="MenuGo — Restoranlar üçün QR menyu və WhatsApp sifariş sistemi" />
+    <meta
+      property="og:description"
+      content="50+ şablon, WhatsApp sifariş, çoxdilli menyu və ani yeniləmə. Restoranınızı bir gündə rəqəmsallaşdırın."
+    />
+    <meta property="og:image" content="https://menugo.az/og-cover.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="MenuGo — QR menyu platforması" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MenuGo — QR menyu və WhatsApp sifariş" />
+    <meta name="twitter:description" content="50+ şablon, WhatsApp sifariş, çoxdilli. Pulsuz sınayın." />
+    <meta name="twitter:image" content="https://menugo.az/og-cover.jpg" />
+
+    <!-- PWA / icons -->
+    <meta name="google-site-verification" content="hIEtGvpIggLZmoqjOAKCXvjxAA9zSo8s2cY_AgqqNdg" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Landing üçün əsas 2 şrift (kritik path) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;600;700&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;600;700&display=swap"
+    />
+
+    <!-- Menyu şablonları üçün 40+ şrift — landing-ə maneə olmasın deyə async yüklənir -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:wght@400;600&family=DM+Sans:wght@400;600&family=Lato:wght@400;700&family=Lora:wght@400;600&family=Manrope:wght@400;600&family=Merriweather:wght@400;700&family=Montserrat:wght@500;700&family=Noto+Sans:wght@400;500;600;700&family=Nunito:wght@400;600&family=Open+Sans:wght@400;600&family=Oswald:wght@500;700&family=Playfair+Display:wght@500;700&family=Raleway:wght@500;700&family=Roboto:wght@400;500&family=Source+Sans+3:wght@400;600&family=Space+Grotesk:wght@500;700&family=Syne:wght@600;700&family=Work+Sans:wght@400;600&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;600;700;800&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@500;700&family=Arsenal:wght@400;600&family=Barlow+Condensed:wght@600&family=Black+Ops+One&family=Bricolage+Grotesque:wght@400;600&family=Bungee&family=Caveat:wght@600&family=Chakra+Petch:wght@500&family=Crimson+Pro:wght@400;600&family=Dancing+Script:wght@600&family=EB+Garamond:wght@400;600&family=Exo+2:wght@500;600&family=Figtree:wght@400;600&family=Geologica:wght@400;600&family=Gloock&family=Gruppo&family=IBM+Plex+Sans:wght@400;600&family=Instrument+Serif&family=JetBrains+Mono:wght@500&family=Josefin+Sans:wght@500;600&family=Kanit:wght@500;600&family=Lexend:wght@400;600&family=Libre+Baskerville:wght@400;700&family=Mada:wght@400;600&family=Maven+Pro:wght@400;600&family=Onest:wght@400;600&family=Orbitron:wght@500;700&family=Outfit:wght@400;600;700&family=Oxanium:wght@500;600&family=Pacifico&family=Pathway+Extreme:wght@500;700&family=Petrona:wght@400;600&family=Plus+Jakarta+Sans:wght@500;700&family=Press+Start+2P&family=Questrial&family=Red+Hat+Display:wght@500;700&family=Righteous&family=Rubik:wght@400;600&family=Signika+Negative:wght@500;600&family=Sora:wght@400;600&family=Staatliches&family=Teko:wght@500;600&family=Unbounded:wght@500;700&family=Urbanist:wght@500;700&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+
+    <!-- Strukturlaşdırılmış məlumat (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://menugo.az/#organization",
+            "name": "MenuGo",
+            "url": "https://menugo.az/",
+            "logo": "https://menugo.az/og-cover.jpg",
+            "email": "info@menugo.az",
+            "sameAs": ["https://www.instagram.com/"],
+            "contactPoint": [
+              {
+                "@type": "ContactPoint",
+                "contactType": "customer support",
+                "areaServed": "AZ",
+                "availableLanguage": ["Azerbaijani", "English", "Russian", "Turkish"]
+              }
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://menugo.az/#website",
+            "url": "https://menugo.az/",
+            "name": "MenuGo",
+            "publisher": { "@id": "https://menugo.az/#organization" },
+            "inLanguage": "az"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "MenuGo",
+            "operatingSystem": "Web",
+            "applicationCategory": "BusinessApplication",
+            "description": "Restoranlar üçün QR menyu və WhatsApp sifariş platforması. 50+ şablon, çoxdilli, ani yeniləmə.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "AZN",
+              "availability": "https://schema.org/InStock"
+            },
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.9",
+              "reviewCount": "120",
+              "bestRating": "5",
+              "worstRating": "1"
+            }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "QR menyu necə işləyir?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Restoran hesab açır, menyunu daxil edir, MenuGo avtomatik QR kod yaradır. Qonaq QR-ı skan edir, menyu telefonda açılır və sifariş WhatsApp-a göndərilir."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Menyunu neçə dildə göstərə bilərəm?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Azərbaycan, İngilis, Rus və Türk dillərində. Qonaq dili menyudan bir kliklə dəyişir."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Sifarişlər hara gəlir?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Sifarişlər birbaşa restoranın WhatsApp nömrəsinə düşür və panelin sifariş bölməsində saxlanılır."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Öz domenimlə istifadə edə bilərəmmi?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Bəli. menu.brendiniz.az kimi öz alt-domeninizi bağlaya bilərsiniz."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Qiymət və ya məhsulu dəyişmək nə qədər çəkir?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Saniyələr. Paneldən dəyişirsiniz, qonaq növbəti dəfə menyunu açanda yeni versiya görür — çap etməyə ehtiyac yoxdur."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "QR kod çap üçün necə yüklənir?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Panelin QR bölməsindən yüksək keyfiyyətli PNG faylı yükləyib masalar, stikerlər və çap materialları üçün istifadə edə bilərsiniz."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Pulsuz plan hansı imkanları verir?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Pulsuz plan restoran hesabı, məhdud sayda məhsul və kateqoriya, əsas QR menyu və WhatsApp sifarişi imkanı təqdim edir."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Menyudakı şəkilləri kim yükləyir?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Restoran öz şəkillərini paneldən yükləyir. İstəsəniz bizim komanda ilkin quruluşda kömək edə bilər."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <style>
+      html { background: #0a0a0f; }
+      body { margin: 0; background: #0a0a0f; color: #f5f5f7; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+      /* No-JS fallback görünüşü (Google/crawler skan edərkən mətn dərhal görünür) */
+      .noscript-fallback { max-width: 720px; margin: 48px auto; padding: 24px; text-align: center; }
+      .noscript-fallback h1 { font-family: 'Fraunces', Georgia, serif; font-size: 40px; line-height: 1.1; margin: 0 0 16px; }
+      .noscript-fallback p { color: #d1d1d6; font-size: 17px; line-height: 1.6; }
+      .noscript-fallback a { color: #f43f5e; text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <noscript>
+      <div class="noscript-fallback">
+        <h1>MenuGo — Restoranlar üçün QR menyu və WhatsApp sifariş sistemi</h1>
+        <p>
+          Azərbaycan restoranları üçün rəqəmsal menyu platforması. 50+ şablon, WhatsApp sifariş, çoxdilli menyu və ani yeniləmə imkanı.
+        </p>
+        <p>
+          Saytdan tam istifadə üçün JavaScript-i aktivləşdirin. Əlaqə üçün:
+          <a href="mailto:info@menugo.az">info@menugo.az</a>
+        </p>
+        <p>
+          <a href="/register">Pulsuz hesab yarat</a> · <a href="/panel">Restoran girişi</a>
+        </p>
+      </div>
+    </noscript>
+
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
