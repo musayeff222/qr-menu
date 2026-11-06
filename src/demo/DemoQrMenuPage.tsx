@@ -22,7 +22,7 @@ const ONBOARD_STEPS = [
 export default function DemoQrMenuPage() {
   const { demoSlug } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [tpl] = useState(() => searchParams.get("tpl") || "modern-01");
+  const [tpl] = useState(() => searchParams.get("tpl") || "bistro-rail");
   const [onboardOpen, setOnboardOpen] = useState(false);
   const [onboardIdx, setOnboardIdx] = useState(0);
 
@@ -104,11 +104,11 @@ export default function DemoQrMenuPage() {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 16, opacity: 0 }}
               transition={{ type: "spring", damping: 26, stiffness: 320 }}
-              className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-rose-100 dark:border-rose-900/50 shadow-2xl overflow-hidden"
+              className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-[var(--mg-border)] dark:border-emerald-900/50 shadow-2xl overflow-hidden"
             >
               <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100 dark:border-slate-800">
-                <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-sm">
-                  <Sparkles size={18} /> Demo QR Menu
+                <div className="flex items-center gap-2 text-[var(--mg-brand-strong)] dark:text-emerald-400 font-bold text-sm">
+                  <Sparkles size={18} /> Demo MenuGo
                 </div>
                 <button
                   type="button"
@@ -132,7 +132,7 @@ export default function DemoQrMenuPage() {
                       key={i}
                       className={cn(
                         "h-1.5 flex-1 rounded-full transition-colors",
-                        i <= onboardIdx ? "bg-rose-500" : "bg-gray-200 dark:bg-slate-700"
+                        i <= onboardIdx ? "bg-[var(--mg-brand)]" : "bg-gray-200 dark:bg-slate-700"
                       )}
                     />
                   ))}
@@ -140,7 +140,7 @@ export default function DemoQrMenuPage() {
                 <button
                   type="button"
                   onClick={nextOnboard}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm shadow-lg shadow-rose-600/25"
+                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[var(--mg-brand)] hover:bg-[var(--mg-brand-strong)] text-white font-bold text-sm shadow-lg shadow-emerald-700/25"
                 >
                   {onboardIdx < ONBOARD_STEPS.length - 1 ? (
                     <>

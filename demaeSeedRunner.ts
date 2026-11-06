@@ -1,5 +1,6 @@
 import type { Knex } from "knex";
 import { DEMAE_RESTAURANT_SLUG, seedDemaeMenu, updateDemaeProductImages } from "./demaeMenuSeed.js";
+import { storePassword } from "./passwordHash.js";
 
 const RESTAURANT_NAME = "Demae Sushi";
 const STAFF_USERNAME = "demae";
@@ -59,13 +60,13 @@ export async function runDemaeSeed(
     await knex("restaurant_users").insert({
       restaurant_id: restaurantId,
       username: STAFF_USERNAME,
-      password: STAFF_PASSWORD,
+      password: await storePassword(STAFF_PASSWORD),
       full_name: STAFF_FULL_NAME,
     });
   } else if (Number(staff.restaurant_id) === restaurantId) {
     await knex("restaurant_users")
       .where({ id: staff.id })
-      .update({ password: STAFF_PASSWORD, full_name: STAFF_FULL_NAME });
+      .update({ full_name: STAFF_FULL_NAME });
   }
 
   let menuCategories = 0;

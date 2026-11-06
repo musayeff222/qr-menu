@@ -6,12 +6,12 @@ import { MENU_TEMPLATES } from "./registry";
 import { cn } from "./cn";
 
 const CATEGORY_ORDER: TemplateCategory[] = [
-  "Modern",
-  "Luxury",
-  "Minimal",
-  "Mega",
-  "Fast Food",
+  "Bistro",
   "Cafe",
+  "QSR",
+  "Street",
+  "Fine dining",
+  "Night",
 ];
 
 export interface TemplatePickerProps {
@@ -30,11 +30,15 @@ export interface TemplatePickerProps {
   /** studio: önizləməyə sabitlənmiş şablon id */
   pinnedPreviewId?: string | null;
   onPinPreview?: (templateId: string) => void;
+  t?: (key: string) => string;
 }
 
 function normalizeCategory(c: string): TemplateCategory {
+  if (c === "Luxury") return "Fine dining";
+  if (c === "Fast Food" || c === "Mega") return "QSR";
+  if (c === "Modern" || c === "Minimal") return "Bistro";
   if (CATEGORY_ORDER.includes(c as TemplateCategory)) return c as TemplateCategory;
-  return "Modern";
+  return "Bistro";
 }
 
 export function TemplatePicker({
@@ -46,21 +50,28 @@ export function TemplatePicker({
   mode = "default",
   pinnedPreviewId = null,
   onPinPreview,
+  t: tProp,
 }: TemplatePickerProps) {
+  const t = (key: string, fallback: string) => tProp?.(key) || fallback;
   const [filter, setFilter] = useState<TemplateCategory | "All">("All");
   const allTemplates = useMemo(
     () => [...MENU_TEMPLATES, ...extraTemplates],
     [extraTemplates]
   );
   const grouped = useMemo(() => {
-    const g: Record<TemplateCategory, MenuTemplateDef[]> = {
+    const g = {
+      Bistro: [],
+      Cafe: [],
+      QSR: [],
+      Street: [],
+      "Fine dining": [],
+      Night: [],
       Modern: [],
       Luxury: [],
       Minimal: [],
       Mega: [],
       "Fast Food": [],
-      Cafe: [],
-    };
+    } as Record<TemplateCategory, MenuTemplateDef[]>;
     for (const t of allTemplates) {
       g[normalizeCategory(t.category)].push(t);
     }
@@ -76,8 +87,8 @@ export function TemplatePicker({
     cn(
       "shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200",
       active
-        ? "bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-500/25"
-        : "border border-slate-200 bg-white text-slate-700 hover:border-red-200 hover:bg-red-50/80 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-red-500/40 dark:hover:bg-red-950/30"
+        ? "bg-[var(--mg-brand)] text-white shadow-md shadow-emerald-700/20"
+        : "border border-slate-200 bg-white text-slate-700 hover:border-[var(--mg-brand)]/40 hover:bg-[var(--mg-brand-soft)] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-[var(--mg-brand)]/40 dark:hover:bg-emerald-950/30"
     );
 
   return (
@@ -85,7 +96,7 @@ export function TemplatePicker({
       <div className="relative -mx-1">
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide sm:flex-wrap sm:overflow-visible">
           <button type="button" onClick={() => setFilter("All")} className={pill(filter === "All")}>
-            Hamısı
+            {t("picker_all", "Hamısı")}
             <span
               className={cn(
                 "ml-1.5 rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums",
@@ -107,15 +118,16 @@ export function TemplatePicker({
 
       {mode === "studio" ? (
         <p className="flex items-start gap-2 rounded-xl bg-slate-50 px-3.5 py-2.5 text-xs leading-relaxed text-slate-600 dark:bg-slate-800/60 dark:text-slate-400">
-          <MonitorSmartphone className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-500" />
-          Əvvəlcə şablon seçin, <strong className="font-semibold text-slate-800 dark:text-slate-200">Önizləmə</strong> ilə baxın, sonra{" "}
-          <strong className="font-semibold text-slate-800 dark:text-slate-200">Redaktə et</strong>
-          ilə menyunu fərdiləşdirin — telefon önizləməsi orada açılır.
+          <MonitorSmartphone className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--mg-brand)]" />
+          {t(
+            "picker_studio_hint",
+            "Əvvəlcə şablon seçin, Önizləmə ilə baxın, sonra Redaktə et ilə menyunu fərdiləşdirin — telefon önizləməsi orada açılır."
+          )}
         </p>
       ) : (
         <p className="flex items-start gap-2 rounded-xl bg-slate-50 px-3.5 py-2.5 text-xs leading-relaxed text-slate-600 dark:bg-slate-800/60 dark:text-slate-400">
           <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
-          Kartın üstünə gətirin — sağdakı telefonda şablon dəyişir. Seç düyməsi aktiv şablonu saxlayır.
+          {t("picker_hover_hint", "Kartın üstünə gətirin — sağdakı telefonda şablon dəyişir. Seç düyməsi aktiv şablonu saxlayır.")}
         </p>
       )}
 
@@ -136,7 +148,7 @@ export function TemplatePicker({
               "group flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-200 dark:border-slate-700 dark:bg-slate-900",
               "hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/60 dark:hover:shadow-black/40",
               selectedId === tpl.id &&
-                "ring-2 ring-red-500 ring-offset-2 dark:ring-offset-slate-950",
+                "ring-2 ring-[var(--mg-brand)] ring-offset-2 dark:ring-offset-slate-950",
               mode === "studio" && pinnedPreviewId === tpl.id && "ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-950"
             )}
           >
@@ -157,7 +169,7 @@ export function TemplatePicker({
               {selectedId === tpl.id ? (
                 <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-lg">
                   <Check className="h-3 w-3" />
-                  Aktiv
+                  {t("picker_active", "Aktiv")}
                 </span>
               ) : null}
               <div className="absolute bottom-0 left-0 right-0 p-3 pt-10">
@@ -178,11 +190,11 @@ export function TemplatePicker({
                         "inline-flex flex-1 items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors",
                         pinnedPreviewId === tpl.id
                           ? "border-indigo-300 bg-indigo-50 text-indigo-800 dark:border-indigo-500/50 dark:bg-indigo-500/15 dark:text-indigo-200"
-                          : "border-slate-200 bg-slate-50 text-slate-800 hover:bg-white hover:text-red-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                          : "border-slate-200 bg-slate-50 text-slate-800 hover:bg-white hover:text-[var(--mg-brand-strong)] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                       )}
                     >
                       <Eye size={16} strokeWidth={2.25} />
-                      Önizləmə
+                      {t("picker_preview", "Önizləmə")}
                     </button>
                     <button
                       type="button"
@@ -191,11 +203,11 @@ export function TemplatePicker({
                         "inline-flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white transition-all",
                         selectedId === tpl.id
                           ? "bg-emerald-600 shadow-md shadow-emerald-600/30 hover:bg-emerald-500"
-                          : "bg-gradient-to-r from-red-600 to-rose-600 shadow-md shadow-red-500/25 hover:from-red-500 hover:to-rose-500"
+                          : "bg-[var(--mg-brand)] shadow-md shadow-emerald-700/25 hover:bg-[var(--mg-brand-strong)]"
                       )}
                     >
                       <Check size={16} strokeWidth={2.25} />
-                      {selectedId === tpl.id ? "Seçildi" : "Seç"}
+                      {selectedId === tpl.id ? t("picker_selected", "Seçildi") : t("picker_select", "Seç")}
                     </button>
                   </>
                 ) : (
@@ -206,11 +218,11 @@ export function TemplatePicker({
                       rel="noopener noreferrer"
                       className={cn(
                         "inline-flex flex-1 items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors",
-                        "border-slate-200 bg-slate-50 text-slate-800 hover:bg-white hover:text-red-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                        "border-slate-200 bg-slate-50 text-slate-800 hover:bg-white hover:text-[var(--mg-brand-strong)] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                       )}
                     >
                       <Eye size={16} strokeWidth={2.25} />
-                      Tam ekran
+                      {t("picker_fullscreen", "Tam ekran")}
                     </a>
                     <button
                       type="button"
@@ -219,11 +231,11 @@ export function TemplatePicker({
                         "inline-flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white transition-all",
                         selectedId === tpl.id
                           ? "bg-emerald-600 shadow-md shadow-emerald-600/30 hover:bg-emerald-500"
-                          : "bg-gradient-to-r from-red-600 to-rose-600 shadow-md shadow-red-500/25 hover:from-red-500 hover:to-rose-500"
+                          : "bg-[var(--mg-brand)] shadow-md shadow-emerald-700/25 hover:bg-[var(--mg-brand-strong)]"
                       )}
                     >
                       <Check size={16} strokeWidth={2.25} />
-                      {selectedId === tpl.id ? "Seçildi" : "Seç"}
+                      {selectedId === tpl.id ? t("picker_selected", "Seçildi") : t("picker_select", "Seç")}
                     </button>
                   </>
                 )}

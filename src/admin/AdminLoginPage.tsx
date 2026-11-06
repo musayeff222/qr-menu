@@ -64,14 +64,14 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-red-50 dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[var(--mg-paper)] dark:from-slate-950 dark:to-slate-900 flex items-center justify-center p-6">
       <Card className="w-full max-w-md p-8 dark:bg-slate-900">
-        <div className="text-2xl font-bold text-red-600 mb-6 flex items-center gap-2 justify-center">
-          <ShieldCheck size={28} /> Super Admin
+        <div className="text-2xl font-bold text-[var(--mg-brand-strong)] mb-6 flex items-center gap-2 justify-center">
+          <ShieldCheck size={28} /> MenuGo Super Admin
         </div>
         <form onSubmit={submit} className="space-y-4">
           <input
-            className="w-full p-3 border dark:border-slate-600 rounded-lg dark:bg-slate-800"
+            className="w-full min-h-[48px] p-3 border border-[var(--mg-border)] rounded-xl dark:border-slate-600 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-[var(--mg-brand)]/25"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="İstifadəçi"
@@ -80,15 +80,15 @@ export default function AdminLoginPage() {
           />
           <input
             type="password"
-            className="w-full p-3 border dark:border-slate-600 rounded-lg dark:bg-slate-800"
+            className="w-full min-h-[48px] p-3 border border-[var(--mg-border)] rounded-xl dark:border-slate-600 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-[var(--mg-brand)]/25"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Şifrə"
             required
             autoComplete="current-password"
           />
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <Button type="submit" className="w-full bg-red-600 text-white py-3">
+          {error && <p className="text-[var(--mg-danger)] text-sm">{error}</p>}
+          <Button type="submit" className="w-full min-h-[48px] bg-[var(--mg-brand)] text-white py-3 hover:bg-[var(--mg-brand-strong)]">
             Daxil ol
           </Button>
         </form>

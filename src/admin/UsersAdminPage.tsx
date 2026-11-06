@@ -244,7 +244,7 @@ export default function UsersAdminPage() {
                   <motion.tr
                     key={r.id}
                     initial={false}
-                    className="bg-white dark:bg-slate-900/40 hover:bg-rose-50/40 dark:hover:bg-slate-800/50 transition-colors"
+                    className="bg-white dark:bg-slate-900/40 hover:bg-[var(--mg-brand-soft)]/40 dark:hover:bg-slate-800/50 transition-colors"
                   >
                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-slate-100">{r.name}</td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-500">/r/{r.slug}</td>

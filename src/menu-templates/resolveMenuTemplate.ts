@@ -28,7 +28,7 @@ export function resolveMenuTemplate(
     return {
       id: c.slug_key,
       name: c.name,
-      category: (c.category as TemplateCategory) || "Modern",
+      category: (c.category as TemplateCategory) || "Bistro",
       description: "Fərdi şablon",
       heroImage: c.hero_image_url || base.heroImage,
       theme,

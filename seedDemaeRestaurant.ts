@@ -19,7 +19,7 @@ async function main() {
   } else {
     console.log(`? Restoran art?q mövcuddur (id=${result.restaurantId})`);
   }
-  console.log(`? Panel: ${result.username} / ${result.password}`);
+  console.log(`Panel login: ${result.username} (parola loglanm?r)`);
   if (!imagesOnly && result.menuProducts > 0) {
     console.log(`? Menyu: ${result.menuCategories} kateqoriya, ${result.menuProducts} m?hsul`);
   }

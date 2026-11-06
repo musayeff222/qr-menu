@@ -133,69 +133,38 @@ export const DEFAULT_HERO_SHOWCASE_SLIDES: LandingCmsShowcaseSlide[] = [
   },
 ];
 
-export const DEFAULT_STATS: LandingCmsStat[] = [
-  { value: "120+", label: "Aktiv restoran" },
-  { value: "50K+", label: "Aylıq menyu baxışı" },
-  { value: "12s", label: "Sifariş göndərmə vaxtı" },
-  { value: "4", label: "Dəstəklənən dil" },
-];
+export const DEFAULT_STATS: LandingCmsStat[] = [];
 
-export const DEFAULT_TESTIMONIALS: LandingCmsTestimonial[] = [
-  {
-    quote:
-      "Kağız menyudan qurtulduq. Qonaqlar QR-ı bir dəfə skan edir, sifariş dərhal WhatsApp-a düşür. Xidmət sürəti hiss olunacaq dərəcədə artdı.",
-    name: "Elvin Məmmədov",
-    role: "Sahib · Ocaq Restaurant",
-    avatar: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=200&q=80&auto=format&fit=crop&crop=faces",
-  },
-  {
-    quote:
-      "Menyunu 3 dildə dolduran kimi turist qonaqların razılığı artdı. Qiyməti dəyişmək 5 saniyə çəkir — köhnə çap dövrünə qayıtmıram.",
-    name: "Nərmin Əliyeva",
-    role: "İdarəçi · Baku Coffee House",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80&auto=format&fit=crop&crop=faces",
-  },
-  {
-    quote:
-      "50+ şablon arasından öz brendimizə uyğununu seçdik. Panel çox sadədir — komandamız bir gündə mənimsədi.",
-    name: "Rəşad Quliyev",
-    role: "Sahib · Nizami Steakhouse",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&auto=format&fit=crop&crop=faces",
-  },
-];
+export const DEFAULT_TESTIMONIALS: LandingCmsTestimonial[] = [];
 
 export const DEFAULT_FAQ: LandingCmsFaqItem[] = [
   {
-    q: "QR menyu necə işləyir?",
-    a: "Restoran hesab açır, menyunu daxil edir, MenuGo avtomatik QR kod yaradır. Qonaq QR-ı skan edir, menyu telefonda açılır və sifariş WhatsApp-a göndərilir.",
+    q: "QR menyu nədir?",
+    a: "QR menyu müştərinin telefonunda açılan rəqəmsal menyudur. Müştəri QR kodu oxudaraq məhsullara baxa bilər.",
   },
   {
-    q: "Menyunu neçə dildə göstərə bilərəm?",
-    a: "Azərbaycan, İngilis, Rus və Türk dillərində. Qonaq dili menyudan bir kliklə dəyişir.",
+    q: "Menyuya məhsul əlavə edə bilərəm?",
+    a: "Bəli. İdarəetmə panelində kateqoriya və məhsullar əlavə etmək, məlumatları yeniləmək mümkündür.",
   },
   {
-    q: "Sifarişlər hara gəlir?",
-    a: "Sifarişlər birbaşa restoranın WhatsApp nömrəsinə düşür və panelin sifariş bölməsində saxlanılır.",
+    q: "Menyu linkini necə paylaşıram?",
+    a: "Restoranınıza aid QR kodu və menyu linkini paneldən əldə edib paylaşa bilərsiniz.",
   },
   {
-    q: "Öz domenimlə istifadə edə bilərəmmi?",
-    a: "Bəli. menu.brendiniz.az kimi öz alt-domeninizi bağlaya bilərsiniz.",
+    q: "Şablonu sonradan dəyişmək olar?",
+    a: "Bəli, seçdiyiniz paketdə mövcud olan dizayn şablonlarından istifadə edə bilərsiniz.",
   },
   {
-    q: "Qiymət və ya məhsulu dəyişmək nə qədər çəkir?",
-    a: "Saniyələr. Paneldən dəyişirsiniz, qonaq növbəti dəfə menyunu açanda yeni versiya görür — çap etməyə ehtiyac yoxdur.",
+    q: "Pulsuz paket varmı?",
+    a: "Mövcud paketlər və limitlər Qiymətlər bölməsində göstərilir.",
   },
   {
-    q: "QR kod çap üçün necə yüklənir?",
-    a: "Panelin QR bölməsindən yüksək keyfiyyətli PNG faylı yükləyib masalar, stikerlər və çap materialları üçün istifadə edə bilərsiniz.",
+    q: "Qiymətləri sonradan yeniləyə bilərəm?",
+    a: "Bəli, məhsul məlumatlarını idarəetmə panelindən dəyişə bilərsiniz.",
   },
   {
-    q: "Pulsuz plan hansı imkanları verir?",
-    a: "Pulsuz plan restoran hesabı, məhdud sayda məhsul və kateqoriya, əsas QR menyu və WhatsApp sifarişi imkanı təqdim edir.",
-  },
-  {
-    q: "Menyudakı şəkilləri kim yükləyir?",
-    a: "Restoran öz şəkillərini paneldən yükləyir. İstəsəniz komandamız ilkin quruluşda kömək edə bilər.",
+    q: "Paket yüksəltmə necə olur?",
+    a: "Panelindən plan seçib müraciət göndərirsiniz. Dəstək mövcud proseslə təsdiqləyir — avtomatik kart ödənişi yoxdur.",
   },
 ];
 

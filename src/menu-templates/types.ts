@@ -1,10 +1,15 @@
 export type TemplateCategory =
+  | "Bistro"
+  | "Fine dining"
+  | "Cafe"
+  | "QSR"
+  | "Night"
+  | "Street"
   | "Modern"
   | "Luxury"
   | "Minimal"
   | "Mega"
-  | "Fast Food"
-  | "Cafe";
+  | "Fast Food";
 
 export type CategoryNavStyle = "pills" | "tabs" | "underline" | "scroll";
 export type CardStyle = "flat" | "elevated" | "bordered" | "glass";

@@ -11,7 +11,7 @@ export function cn(...i: (string | boolean | undefined)[]) {
 export const inputCn = cn(
   "w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900",
   "placeholder:text-gray-400 outline-none transition-shadow",
-  "focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20",
+  "focus:border-[var(--mg-brand)]/60 focus:ring-2 focus:ring-[var(--mg-brand)]/20",
   "dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-100 dark:placeholder:text-slate-500"
 );
 
@@ -76,8 +76,8 @@ export function PrimaryButton({
       whileTap={{ scale: 0.98 }}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold",
-        "bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-md shadow-rose-600/25",
-        "hover:from-rose-500 hover:to-rose-500 disabled:opacity-50 disabled:pointer-events-none",
+        "bg-[var(--mg-brand)] text-white shadow-md shadow-emerald-700/20",
+        "hover:bg-[var(--mg-brand-strong)] disabled:opacity-50 disabled:pointer-events-none",
         className
       )}
       {...p}

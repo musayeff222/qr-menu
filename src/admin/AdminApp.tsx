@@ -49,6 +49,7 @@ import { authSuperHeaders } from "../lib/headers";
 import { MENU_TEMPLATES, type MenuTemplateDef } from "../menu-templates";
 import WebsiteCmsPage from "./WebsiteCmsPage";
 import DemoQrMenuAdminPage from "./DemoQrMenuAdminPage";
+import { BrandMark } from "../ui/BrandMark";
 
 function cn(...i: (string | boolean | undefined)[]) {
   return twMerge(clsx(i));
@@ -57,7 +58,7 @@ function cn(...i: (string | boolean | undefined)[]) {
 function MiniSparkline({
   series,
   className,
-  color = "rgb(225 29 72)",
+  color = "#0dbe91",
 }: {
   series: { day: string; count: number }[];
   className?: string;
@@ -165,14 +166,14 @@ function AdminLayoutShell() {
     cn(
       "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap",
       isActive
-        ? "bg-red-600 text-white shadow-md"
+        ? "bg-[var(--mg-brand)] text-white shadow-md"
         : "text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800"
     );
   const subNavCls = ({ isActive }: { isActive: boolean }) =>
     cn(
       "flex items-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all",
       isActive
-        ? "bg-rose-500/15 text-rose-600 dark:text-rose-400"
+        ? "bg-[var(--mg-brand)]/15 text-[var(--mg-brand-strong)] dark:text-emerald-300"
         : "text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800"
     );
 
@@ -199,8 +200,8 @@ function AdminLayoutShell() {
       >
         <div className="p-3 flex items-center justify-between gap-2 border-b dark:border-slate-800">
           {!collapsed && (
-            <span className="font-bold text-red-600 flex items-center gap-2">
-              <QrCode size={22} /> QRMenu
+            <span className="font-bold text-[var(--mg-ink)] dark:text-white flex items-center gap-2">
+              <BrandMark className="h-8 w-8" /> MenuGo
             </span>
           )}
           <button
@@ -258,7 +259,7 @@ function AdminLayoutShell() {
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium w-full text-left transition-all",
                   settingsPaths
-                    ? "bg-red-600/15 text-red-700 dark:text-red-300"
+                    ? "bg-[var(--mg-brand)]/15 text-[var(--mg-brand-strong)] dark:text-emerald-300"
                     : "text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800"
                 )}
               >
@@ -376,8 +377,8 @@ function DashboardPage() {
       icon: CalendarClock,
       label: "Bu gün qeydiyyat",
       val: d.registrationsToday ?? 0,
-      accent: "from-rose-500/20 to-red-600/10",
-      iconBg: "bg-rose-500/15 text-rose-600 dark:text-rose-300",
+      accent: "from-emerald-500/20 to-[var(--mg-brand)]/10",
+      iconBg: "bg-[var(--mg-brand-soft)] text-[var(--mg-brand-strong)] dark:text-emerald-300",
       link: "/admin/users",
     },
     {
@@ -585,7 +586,7 @@ function PlansPage() {
         <h1 className="text-2xl font-bold">Abunə planları</h1>
         <Button
           onClick={() => setCreating(true)}
-          className="bg-red-600 text-white"
+          className="bg-[var(--mg-brand)] text-white hover:bg-[var(--mg-brand-strong)]"
         >
           <Plus className="inline mr-1" size={18} /> Yeni plan
         </Button>
@@ -597,7 +598,7 @@ function PlansPage() {
             whileHover={{ y: -3 }}
             transition={{ type: "spring", stiffness: 380, damping: 24 }}
           >
-            <Card className="p-5 flex flex-col gap-3 h-full border-2 border-transparent hover:border-rose-200/80 dark:hover:border-rose-900/50 transition-colors">
+            <Card className="p-5 flex flex-col gap-3 h-full border-2 border-transparent hover:border-[var(--mg-brand)]/40 dark:hover:border-emerald-900/50 transition-colors">
             <div className="flex justify-between items-start gap-2">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -870,7 +871,7 @@ function PlanModal({
                 initial?.id
               )
             }
-            className="flex-1 bg-red-600 text-white"
+            className="flex-1 bg-[var(--mg-brand)] text-white hover:bg-[var(--mg-brand-strong)]"
           >
             Saxla
           </Button>
@@ -1023,7 +1024,7 @@ function RestaurantsAdminPage() {
           <Button
             type="button"
             onClick={openCreateForm}
-            className="bg-red-600 text-white"
+            className="bg-[var(--mg-brand)] text-white hover:bg-[var(--mg-brand-strong)]"
           >
             <Plus className="inline mr-1" size={16} /> Yeni restoran
           </Button>
@@ -1092,7 +1093,7 @@ function RestaurantsAdminPage() {
         </label>
         <Button
           onClick={createRestaurant}
-          className="sm:col-span-2 lg:col-span-3 bg-red-600 text-white"
+          className="sm:col-span-2 lg:col-span-3 bg-[var(--mg-brand)] text-white hover:bg-[var(--mg-brand-strong)]"
         >
           Yeni restoran yarat
         </Button>
@@ -1116,7 +1117,7 @@ function RestaurantsAdminPage() {
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && load()}
           />
-          <Button onClick={load} className="bg-red-600 text-white">
+          <Button onClick={load} className="bg-[var(--mg-brand)] text-white hover:bg-[var(--mg-brand-strong)]">
             Axtar
           </Button>
         </div>
@@ -1234,7 +1235,7 @@ function RestaurantsAdminPage() {
       <button
         type="button"
         onClick={openCreateForm}
-        className="fixed bottom-6 right-6 z-40 rounded-full shadow-xl bg-red-600 hover:bg-red-700 text-white p-4 sm:hidden"
+        className="fixed bottom-6 right-6 z-40 rounded-full shadow-xl bg-[var(--mg-brand)] hover:bg-[var(--mg-brand-strong)] text-white p-4 sm:hidden"
         aria-label="Yeni restoran yarat"
       >
         <Plus size={22} />
@@ -1527,7 +1528,7 @@ function NotificationsPage() {
                 >
                   <div className="flex flex-wrap justify-between gap-3">
                     <div>
-                      <p className="font-bold text-lg">{n.title}</p>
+                      <p className="font-bold text-lg">{String(n.title || "").replace(/\bQRMenu\b/g, "MenuGo")}</p>
                       <p className="text-xs text-gray-500 mt-1">
                         {n.created_at ? new Date(n.created_at).toLocaleString() : "—"}
                       </p>
@@ -1554,7 +1555,7 @@ function NotificationsPage() {
                   </div>
                   {n.body ? (
                     <p className="text-sm text-gray-600 dark:text-slate-300 mt-3 whitespace-pre-wrap">
-                      {n.body}
+                      {String(n.body || "").replace(/\bQRMenu\b/g, "MenuGo")}
                     </p>
                   ) : null}
                 </Card>
@@ -1665,7 +1666,7 @@ function CouponsAdminPage() {
         >
           Promo kuponlar
         </motion.h1>
-        <Button className="bg-rose-600 text-white" onClick={() => nav("/admin/coupons/new")}>
+        <Button className="bg-[var(--mg-brand)] text-white hover:bg-[var(--mg-brand-strong)]" onClick={() => nav("/admin/coupons/new")}>
           <Plus size={18} className="inline mr-1" /> Yeni kupon
         </Button>
       </div>
@@ -1713,14 +1714,14 @@ function CouponsAdminPage() {
                   ? `₼${Number(c.discount_value).toFixed(2)}`
                   : `${Number(c.discount_value)}%`;
               return (
-                <tr key={c.id} className="hover:bg-rose-50/40 dark:hover:bg-slate-800/40">
+                <tr key={c.id} className="hover:bg-[var(--mg-brand-soft)]/40 dark:hover:bg-slate-800/40">
                   <td className="p-3 font-mono font-bold">{c.code}</td>
                   <td className="p-3">{disc}</td>
                   <td className="p-3 min-w-[140px]">
                     <div className="text-xs mb-1">{used} / {max}</div>
                     <div className="h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-rose-500 to-amber-400 transition-all"
+                        className="h-full rounded-full bg-gradient-to-r from-[var(--mg-brand)] to-amber-400 transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -1837,7 +1838,7 @@ function CouponsAdminPage() {
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
           />
           <div className="flex gap-2">
-            <Button className="flex-1 bg-rose-600 text-white" onClick={() => void saveCoupon()}>
+            <Button className="flex-1 bg-[var(--mg-brand)] text-white hover:bg-[var(--mg-brand-strong)]" onClick={() => void saveCoupon()}>
               Saxla
             </Button>
             <Button className="flex-1 border" onClick={() => setEditing(null)}>
@@ -2007,7 +2008,7 @@ function CouponsCreatePage() {
           Aktiv et
         </label>
         <div className="flex gap-2">
-          <Button className="bg-rose-600 text-white" disabled={saving} onClick={() => void save()}>
+          <Button className="bg-[var(--mg-brand)] text-white hover:bg-[var(--mg-brand-strong)]" disabled={saving} onClick={() => void save()}>
             {saving ? "Saxlanılır..." : "Kuponu yarat"}
           </Button>
           <Button className="border" onClick={() => nav("/admin/coupons")}>
@@ -2160,7 +2161,7 @@ function PlanRequestsPage() {
                 </Button>
                 <Button
                   type="button"
-                  className="rounded-xl bg-red-600 text-white"
+                  className="rounded-xl bg-[var(--mg-brand)] text-white hover:bg-[var(--mg-brand-strong)]"
                   onClick={async () => {
                     await fetch(`/api/admin/plan-requests/${r.id}`, {
                       method: "PATCH",

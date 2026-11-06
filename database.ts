@@ -2,6 +2,19 @@ import "dotenv/config";
 import knex, { type Knex } from "knex";
 import { DEMO_AZ_SLUG } from "./demoConstants.js";
 import { seedDemoAzMenu } from "./demoMenuSeed.js";
+import { storePassword } from "./passwordHash.js";
+import {
+  assertDatabaseDriverAllowed,
+  isAutoMigrateEnabled,
+  isDemoSeedAllowed,
+  isProductionRuntime,
+  readAdminBootstrap,
+} from "./dbRuntime.js";
+import {
+  inspectRequiredSchema,
+  schemaInspectPublic,
+  type SchemaInspectReport,
+} from "./schemaAudit.js";
 
 function mysqlConnectionFromEnv():
   | { host: string; port: number; user: string; password: string; database: string }
@@ -39,6 +52,7 @@ function mysqlConnectionFromEnv():
 export function createKnex(): Knex {
   const mysql = mysqlConnectionFromEnv();
   if (mysql) {
+    assertDatabaseDriverAllowed("mysql");
     return knex({
       client: "mysql2",
       connection: {
@@ -50,6 +64,7 @@ export function createKnex(): Knex {
       useNullAsDefault: true,
     });
   }
+  assertDatabaseDriverAllowed("sqlite");
   return knex({
     client: "better-sqlite3",
     connection: {
@@ -63,6 +78,19 @@ export const db = createKnex();
 
 export function getDbDriver(): "mysql" | "sqlite" {
   return mysqlConnectionFromEnv() ? "mysql" : "sqlite";
+}
+
+let menuAppearanceColumnReady = false;
+export function hasMenuAppearanceColumn() {
+  return menuAppearanceColumnReady;
+}
+
+let lastSchemaReport: SchemaInspectReport | null = null;
+export function getLastSchemaReport() {
+  return lastSchemaReport;
+}
+export function getSchemaHealth() {
+  return schemaInspectPublic(lastSchemaReport);
 }
 
 /** Default UI strings (seeded into ui_locale; frontend merges with built-in fallbacks). */
@@ -257,16 +285,44 @@ export const DEFAULT_UI_STRINGS: Record<string, Record<string, string>> = {
   },
 };
 
+/** bcrypt hashes are 60 chars. Warn only — never ALTER production here. */
+async function warnPasswordColumnCapacity() {
+  const tables = ["restaurant_users", "admin_users"] as const;
+  try {
+    if (getDbDriver() === "mysql") {
+      for (const table of tables) {
+        const raw = await db.raw(`SHOW COLUMNS FROM \`${table}\` LIKE 'password'`);
+        const list = Array.isArray(raw) ? raw[0] : raw;
+        const first = Array.isArray(list) ? list[0] : list;
+        const type = String((first as { Type?: string } | undefined)?.Type || "");
+        const m = type.match(/varchar\((\d+)\)/i);
+        const len = m ? Number(m[1]) : null;
+        if (len != null && len < 60) {
+          console.warn(
+            `password column ${table}.password is ${type}; bcrypt needs >= 60 chars. Do not enable PASSWORD_HASHING=on until ALTER.`
+          );
+        }
+      }
+      return;
+    }
+    // SQLite TEXT/VARCHAR is not length-capped the same way; 255 declared length still stores bcrypt.
+  } catch {
+    console.warn("Could not inspect password column width (no values printed).");
+  }
+}
+
 async function ensureColumn(
   tableName: string,
   columnName: string,
   alter: (table: Knex.AlterTableBuilder) => void
 ) {
   const has = await db.schema.hasColumn(tableName, columnName);
-  if (!has) {
-    console.log(`Adding column ${tableName}.${columnName}`);
-    await db.schema.alterTable(tableName, alter);
+  if (has) return;
+  if (!isAutoMigrateEnabled(getDbDriver())) {
+    return;
   }
+  console.log(`Adding column ${tableName}.${columnName}`);
+  await db.schema.alterTable(tableName, alter);
 }
 
 async function seedSubscriptionPlans() {
@@ -351,15 +407,32 @@ export async function initDatabase() {
         table.string("primary_color").defaultTo("#ef4444");
         table.string("whatsapp_number");
         table.string("theme").defaultTo("modern");
-        table.string("menu_template", 64).defaultTo("modern-01");
+        table.string("menu_template", 64).defaultTo("bistro-rail");
         table.text("tagline");
         table.string("maps_url", 500);
         table.string("phone", 64);
         table.string("reservation_url", 500);
         table.string("instagram", 200);
         table.string("tiktok", 200);
+        table.string("facebook", 200);
         table.boolean("is_active").defaultTo(true);
         table.string("plan").defaultTo("free");
+        table.string("cover_image_url", 500);
+        table.integer("subscription_plan_id").unsigned();
+        table.integer("total_page_views").defaultTo(0);
+        table.boolean("social_instagram_visible").defaultTo(true);
+        table.boolean("social_tiktok_visible").defaultTo(true);
+        table.boolean("social_facebook_visible").defaultTo(true);
+        table.text("opening_hours");
+        table.boolean("strict_opening_hours").defaultTo(false);
+        table.boolean("onboarding_completed").defaultTo(true);
+        table.timestamp("subscription_ends_at").nullable();
+        table.text("subscription_overrides").nullable();
+        if (getDbDriver() === "mysql") {
+          table.specificType("menu_appearance_json", "MEDIUMTEXT");
+        } else {
+          table.text("menu_appearance_json");
+        }
         table.timestamps(true, true);
       });
     }
@@ -419,6 +492,7 @@ export async function initDatabase() {
         table.boolean("active_hours_enabled").defaultTo(false);
         table.string("active_from", 5);
         table.string("active_to", 5);
+        table.integer("view_count").defaultTo(0);
         table.timestamps(true, true);
       });
     }
@@ -452,6 +526,8 @@ export async function initDatabase() {
         table.boolean("premium_templates_enabled").defaultTo(false);
         table.boolean("is_active").defaultTo(true);
         table.integer("sort_order").defaultTo(0);
+        table.decimal("original_price_monthly", 10, 2).nullable();
+        table.boolean("is_featured").defaultTo(false);
         table.timestamps(true, true);
       });
     }
@@ -568,6 +644,8 @@ export async function initDatabase() {
           .onDelete("CASCADE");
         table.string("username", 64).unique().notNullable();
         table.string("password", 255).notNullable();
+        table.string("full_name", 200);
+        table.timestamp("last_login_at").nullable();
         table.timestamps(true, true);
       });
     }
@@ -596,6 +674,8 @@ export async function initDatabase() {
         table.integer("max_uses").notNullable().defaultTo(1);
         table.integer("used_count").notNullable().defaultTo(0);
         table.boolean("is_active").defaultTo(true);
+        table.string("discount_type", 16).defaultTo("percent");
+        table.decimal("discount_value", 10, 2).defaultTo(0);
         table.timestamp("valid_from").nullable();
         table.timestamp("valid_until").nullable();
         table.integer("active_hours").nullable();
@@ -617,6 +697,7 @@ export async function initDatabase() {
         table.string("title", 255).notNullable();
         table.text("body");
         table.boolean("is_read").defaultTo(false);
+        table.string("channel", 24).defaultTo("system");
         table.timestamp("created_at").defaultTo(db.fn.now());
       });
     }
@@ -698,6 +779,17 @@ export async function initDatabase() {
       });
       await ensureColumn("restaurants", "menu_template", (table) => {
         table.string("menu_template", 64);
+      });
+      /**
+       * Color JSON. Added on new tables in createTable.
+       * Existing DBs: ensureColumn only when DB_AUTO_MIGRATE allows (SQLite default on, MySQL default off).
+       */
+      await ensureColumn("restaurants", "menu_appearance_json", (table) => {
+        if (getDbDriver() === "mysql") {
+          table.specificType("menu_appearance_json", "MEDIUMTEXT");
+        } else {
+          table.text("menu_appearance_json");
+        }
       });
       await ensureColumn("restaurants", "tagline", (table) => {
         table.text("tagline");
@@ -812,6 +904,24 @@ export async function initDatabase() {
       });
     }
 
+    lastSchemaReport = await inspectRequiredSchema(db);
+    menuAppearanceColumnReady = lastSchemaReport.hasMenuAppearanceJson;
+    if (!menuAppearanceColumnReady) {
+      console.warn(
+        "[schema] restaurants.menu_appearance_json missing. Color save needs an approved ALTER; boot will not auto-ALTER on MySQL unless DB_AUTO_MIGRATE=on."
+      );
+    }
+    if (!lastSchemaReport.ok) {
+      const summary = [...lastSchemaReport.missingTables, ...lastSchemaReport.missingColumns].join(", ");
+      const migrate = isAutoMigrateEnabled(getDbDriver());
+      if (isProductionRuntime() && !migrate) {
+        throw new Error(`Schema missing (auto-ALTER disabled): ${summary}`);
+      }
+      if (!migrate) {
+        console.warn(`[schema] missing without auto-migrate: ${summary}`);
+      }
+    }
+
     const settingsRow = await db("settings").count("id as c").first();
     if (Number((settingsRow as { c?: string | number })?.c ?? 0) === 0) {
       await db("settings").insert([
@@ -837,93 +947,110 @@ export async function initDatabase() {
     await seedUiLocale();
     await seedSubscriptionPlans();
 
-    const countResult = await db("restaurants").count("id as count").first();
-    const count = Number((countResult as { count?: string | number })?.count ?? 0);
-    if (count === 0) {
-      const vipPlan = await db("subscription_plans").where({ slug: "vip" }).first();
-      const coverDemo =
-        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600&q=80&auto=format&fit=crop";
-      const logoDemo =
-        "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=80&auto=format&fit=crop";
-      const ids = await db("restaurants").insert({
-        name: "Nümunə Azərbaycan Menyusu",
-        slug: DEMO_AZ_SLUG,
-        whatsapp_number: "994501234567",
-        primary_color: "#b45309",
-        theme: "modern",
-        plan: "vip",
-        subscription_plan_id: vipPlan?.id ?? null,
-        menu_template: "modern-01",
-        tagline: "Milli mətbəx · QR kod ilə canlı menyuya baxın",
-        maps_url: "https://maps.google.com/?q=Baku+Azerbaijan",
-        phone: "+994 12 555 00 00",
-        reservation_url: "https://example.com/book",
-        instagram: "https://instagram.com",
-        tiktok: "https://tiktok.com",
-        cover_image_url: coverDemo,
-        logo_url: logoDemo,
-      });
-      const newRid = Number(Array.isArray(ids) ? ids[0] : ids);
-      await seedDemoAzMenu(db, newRid);
-      await db("restaurant_users").insert({
-        restaurant_id: newRid,
-        username: "demo",
-        password: "demo123",
-        full_name: "Demo istifadəçi",
-      });
-    }
-
-    const demoRow = await db("restaurants").where({ slug: DEMO_AZ_SLUG }).first();
-    if (!demoRow) {
-      const vipPlan = await db("subscription_plans").where({ slug: "vip" }).first();
-      const coverDemo =
-        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600&q=80&auto=format&fit=crop";
-      const logoDemo =
-        "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=80&auto=format&fit=crop";
-      const ids = await db("restaurants").insert({
-        name: "Nümunə Azərbaycan Menyusu",
-        slug: DEMO_AZ_SLUG,
-        whatsapp_number: "994501234567",
-        primary_color: "#b45309",
-        theme: "modern",
-        plan: "vip",
-        subscription_plan_id: vipPlan?.id ?? null,
-        menu_template: "modern-01",
-        tagline: "Milli mətbəx · QR kod ilə canlı menyuya baxın",
-        maps_url: "https://maps.google.com/?q=Baku+Azerbaijan",
-        phone: "+994 12 555 00 00",
-        reservation_url: "https://example.com/book",
-        instagram: "https://instagram.com",
-        tiktok: "https://tiktok.com",
-        cover_image_url: coverDemo,
-        logo_url: logoDemo,
-      });
-      const newRid = Number(Array.isArray(ids) ? ids[0] : ids);
-      await seedDemoAzMenu(db, newRid);
-      const ruDemo = await db("restaurant_users").where({ username: "demo" }).first();
-      if (!ruDemo) {
+    if (isDemoSeedAllowed()) {
+      const countResult = await db("restaurants").count("id as count").first();
+      const count = Number((countResult as { count?: string | number })?.count ?? 0);
+      if (count === 0) {
+        const vipPlan = await db("subscription_plans").where({ slug: "vip" }).first();
+        const coverDemo =
+          "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600&q=80&auto=format&fit=crop";
+        const logoDemo =
+          "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=80&auto=format&fit=crop";
+        const ids = await db("restaurants").insert({
+          name: "Nümunə Azərbaycan Menyusu",
+          slug: DEMO_AZ_SLUG,
+          whatsapp_number: "994501234567",
+          primary_color: "#b45309",
+          theme: "modern",
+          plan: "vip",
+          subscription_plan_id: vipPlan?.id ?? null,
+          menu_template: "modern-01",
+          tagline: "Milli mətbəx · QR kod ilə canlı menyuya baxın",
+          maps_url: "https://maps.google.com/?q=Baku+Azerbaijan",
+          phone: "+994 12 555 00 00",
+          reservation_url: "https://example.com/book",
+          instagram: "https://instagram.com",
+          tiktok: "https://tiktok.com",
+          cover_image_url: coverDemo,
+          logo_url: logoDemo,
+        });
+        const newRid = Number(Array.isArray(ids) ? ids[0] : ids);
+        await seedDemoAzMenu(db, newRid);
         await db("restaurant_users").insert({
           restaurant_id: newRid,
           username: "demo",
-          password: "demo123",
+          password: await storePassword("demo123"),
           full_name: "Demo istifadəçi",
         });
       }
+
+      const demoRow = await db("restaurants").where({ slug: DEMO_AZ_SLUG }).first();
+      if (!demoRow) {
+        const vipPlan = await db("subscription_plans").where({ slug: "vip" }).first();
+        const coverDemo =
+          "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600&q=80&auto=format&fit=crop";
+        const logoDemo =
+          "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=80&auto=format&fit=crop";
+        const ids = await db("restaurants").insert({
+          name: "Nümunə Azərbaycan Menyusu",
+          slug: DEMO_AZ_SLUG,
+          whatsapp_number: "994501234567",
+          primary_color: "#b45309",
+          theme: "modern",
+          plan: "vip",
+          subscription_plan_id: vipPlan?.id ?? null,
+          menu_template: "modern-01",
+          tagline: "Milli mətbəx · QR kod ilə canlı menyuya baxın",
+          maps_url: "https://maps.google.com/?q=Baku+Azerbaijan",
+          phone: "+994 12 555 00 00",
+          reservation_url: "https://example.com/book",
+          instagram: "https://instagram.com",
+          tiktok: "https://tiktok.com",
+          cover_image_url: coverDemo,
+          logo_url: logoDemo,
+        });
+        const newRid = Number(Array.isArray(ids) ? ids[0] : ids);
+        await seedDemoAzMenu(db, newRid);
+        const ruDemo = await db("restaurant_users").where({ username: "demo" }).first();
+        if (!ruDemo) {
+          await db("restaurant_users").insert({
+            restaurant_id: newRid,
+            username: "demo",
+            password: await storePassword("demo123"),
+            full_name: "Demo istifadəçi",
+          });
+        }
+      }
     }
 
-    const adminUser = await db("admin_users").where({ username: "admin" }).first();
-    if (!adminUser) {
-      await db("admin_users").insert({
-        username: "admin",
-        password: "admin123",
-      });
+    const bootstrap = readAdminBootstrap();
+    if (bootstrap) {
+      const existingBoot = await db("admin_users").where({ username: bootstrap.username }).first();
+      if (!existingBoot) {
+        await db("admin_users").insert({
+          username: bootstrap.username,
+          password: await storePassword(bootstrap.password),
+        });
+        console.log(`Admin bootstrap created (username=${bootstrap.username}; secret not logged).`);
+      }
+    } else if (isDemoSeedAllowed()) {
+      const adminUser = await db("admin_users").where({ username: "admin" }).first();
+      if (!adminUser) {
+        await db("admin_users").insert({
+          username: "admin",
+          password: await storePassword("admin123"),
+        });
+      }
     } else {
-      await db("admin_users")
-        .where({ username: "admin" })
-        .update({ password: "admin123" });
+      const adminCount = await db("admin_users").count("id as c").first();
+      if (Number((adminCount as { c?: string | number })?.c ?? 0) === 0) {
+        console.warn(
+          "No admin user and demo seed is disabled. Set ADMIN_BOOTSTRAP_PASSWORD (not a known test password)."
+        );
+      }
     }
 
-    await db("restaurants").whereNull("menu_template").update({ menu_template: "modern-01" });
+    await db("restaurants").whereNull("menu_template").update({ menu_template: "bistro-rail" });
 
     const freePlan = await db("subscription_plans").where({ slug: "free" }).first();
     if (freePlan) {
@@ -940,6 +1067,8 @@ export async function initDatabase() {
         is_read: false,
       });
     }
+
+    await warnPasswordColumnCapacity();
 
   } catch (err) {
     console.error("initDatabase error:", err);

@@ -1,18 +1,23 @@
 {
-  "name": "QRMenu",
-  "short_name": "QRMenu",
-  "description": "Digital QR restaurant menus",
+  "name": "MenuGo",
+  "short_name": "MenuGo",
+  "description": "Restoranlar üçün QR menyu platforması",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#dc2626",
+  "background_color": "#F7FAF8",
+  "theme_color": "#0DBE91",
   "orientation": "portrait-primary",
-  "lang": "en",
+  "lang": "az",
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "64x64",
-      "type": "image/x-icon"
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
     }
   ]
 }

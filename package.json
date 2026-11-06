@@ -13,6 +13,11 @@
     "preview": "vite preview",
     "clean": "rm -rf dist dist-server",
     "lint": "tsc --noEmit",
+    "test:password": "tsx --test qa/password-hash.node.test.ts",
+    "test:staging": "tsx --test --test-concurrency=1 qa/staging-safety.node.test.ts",
+    "check:schema": "tsx scripts/check-schema.ts",
+    "test:skins": "playwright test --config=playwright.config.ts && node qa/playwright/merge-qa.mjs && node qa/playwright/generate-gallery.mjs",
+    "test:skins:gallery": "node qa/playwright/generate-gallery.mjs",
     "start": "node server.js",
     "deploy:build": "npm run build",
     "seed:demae": "tsx seedDemaeRestaurant.ts",
@@ -22,6 +27,7 @@
   "dependencies": {
     "@google/genai": "^1.29.0",
     "@types/qrcode": "^1.5.6",
+    "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.8.0",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
@@ -38,7 +44,9 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.2.2",
+    "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.1.0",
     "@types/node": "^22.14.0",

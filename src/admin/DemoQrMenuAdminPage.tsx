@@ -327,7 +327,7 @@ export default function DemoQrMenuAdminPage() {
                   href={rel || st.publicDemoPath}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-semibold"
+                  className="inline-flex items-center gap-1 px-4 py-2.5 rounded-xl bg-[var(--mg-brand)] text-white text-sm font-semibold hover:bg-[var(--mg-brand-strong)]"
                 >
                   <ExternalLink size={16} /> Aç
                 </a>

@@ -5,11 +5,17 @@ import { fileURLToPath } from "url";
 import { randomBytes } from "crypto";
 import multer from "multer";
 import QRCode from "qrcode";
-import { db, initDatabase, getUiTranslationsForApi, getDbDriver } from "./database.js";
+import { db, initDatabase, getUiTranslationsForApi, getDbDriver, hasMenuAppearanceColumn, getSchemaHealth } from "./database.js";
 import { templateSelectionError } from "./planTemplatePolicy.js";
+import { sanitizeMenuAppearanceJson } from "./menuAppearance.js";
 import { DEMO_AZ_SLUG, DEMO_QR_PUBLIC_SLUG } from "./demoConstants.js";
 import { seedDemoAzMenu } from "./demoMenuSeed.js";
 import { runDemaeSeed } from "./demaeSeedRunner.js";
+import {
+  storePassword,
+  upgradePlaintextIfNeeded,
+  verifyPassword,
+} from "./passwordHash.js";
 
 console.log("Server script started.");
 
@@ -94,6 +100,21 @@ function getSession(req: express.Request): Session | null {
     return null;
   }
   return rec.session;
+}
+
+async function authenticateTableUser(
+  table: "restaurant_users" | "admin_users",
+  username: string,
+  password: string
+): Promise<Record<string, unknown> | null> {
+  const row = await db(table).where({ username }).first();
+  const stored = row ? String((row as { password?: string }).password ?? "") : "";
+  const ok = await verifyPassword(password, stored);
+  if (!row || !ok) return null;
+  await upgradePlaintextIfNeeded(stored, password, (hash) =>
+    db(table).where({ id: (row as { id: number }).id }).andWhere("password", stored).update({ password: hash })
+  );
+  return row as Record<string, unknown>;
 }
 
 function requireSuper(req: express.Request, res: express.Response): Session | null {
@@ -377,6 +398,7 @@ async function startServer() {
   app.get("/api/health", async (_req, res) => {
     const driver = getDbDriver();
     const t0 = Date.now();
+    const schema = getSchemaHealth();
     try {
       await db.raw(driver === "mysql" ? "SELECT 1 AS ok" : "SELECT 1");
       res.json({
@@ -384,13 +406,14 @@ async function startServer() {
         database: "connected",
         driver,
         latencyMs: Date.now() - t0,
+        schema,
       });
-    } catch (e) {
+    } catch {
       res.status(503).json({
         ok: false,
         database: "error",
         driver,
-        message: String(e),
+        schema,
       });
     }
   });
@@ -479,7 +502,7 @@ async function startServer() {
           slug,
           whatsapp_number: wa || null,
           phone: String(phone).slice(0, 64),
-          menu_template: "modern-01",
+          menu_template: "bistro-rail",
           subscription_plan_id: planId,
           onboarding_completed: false,
         });
@@ -487,7 +510,7 @@ async function startServer() {
         await trx("restaurant_users").insert({
           restaurant_id: newId,
           username: uname,
-          password: String(password),
+          password: await storePassword(String(password)),
           full_name: String(full_name).slice(0, 200),
         });
       });
@@ -514,12 +537,12 @@ async function startServer() {
   app.post("/api/admin/login", async (req, res) => {
     const username = String(req.body?.username ?? "").trim();
     const password = String(req.body?.password ?? "").trim();
-    const user = await db("admin_users").where({ username, password }).first();
+    const user = await authenticateTableUser("admin_users", username, password);
     if (user) {
       const token = storeSession({
         kind: "super",
-        userId: user.id,
-        username: user.username,
+        userId: Number(user.id),
+        username: String(user.username),
       });
       res.json({
         success: true,
@@ -534,9 +557,7 @@ async function startServer() {
   app.post("/api/restaurant/login", async (req, res) => {
     const username = String(req.body?.username ?? "").trim();
     const password = String(req.body?.password ?? "").trim();
-    const row = await db("restaurant_users")
-      .where({ username, password })
-      .first();
+    const row = await authenticateTableUser("restaurant_users", username, password);
     if (!row) {
       res.status(401).json({ success: false, error: "Invalid credentials" });
       return;
@@ -544,8 +565,8 @@ async function startServer() {
     await db("restaurant_users").where({ id: row.id }).update({ last_login_at: db.fn.now() });
     const token = storeSession({
       kind: "restaurant",
-      restaurantId: row.restaurant_id,
-      username: row.username,
+      restaurantId: Number(row.restaurant_id),
+      username: String(row.username),
     });
     res.json({
       success: true,
@@ -624,6 +645,7 @@ async function startServer() {
       whatsapp_number,
       primary_color,
       menu_template,
+      menu_appearance_json,
       tagline,
       maps_url,
       phone,
@@ -665,6 +687,13 @@ async function startServer() {
       patch.strict_opening_hours = strict_opening_hours;
     if (typeof onboarding_completed === "boolean")
       patch.onboarding_completed = onboarding_completed;
+    if (menu_appearance_json !== undefined) {
+      if (!hasMenuAppearanceColumn()) {
+        res.status(409).json({ error: "Rəng saxlama üçün təsdiqli migration tələb olunur" });
+        return;
+      }
+      patch.menu_appearance_json = sanitizeMenuAppearanceJson(menu_appearance_json);
+    }
     if (typeof menu_template === "string" && menu_template.trim()) {
       const tid = menu_template.trim();
       const { plan } = await getRestaurantWithPlan(id);
@@ -713,6 +742,7 @@ async function startServer() {
       whatsapp_number,
       primary_color,
       menu_template,
+      menu_appearance_json,
       tagline,
       maps_url,
       phone,
@@ -732,6 +762,13 @@ async function startServer() {
     if (typeof name === "string") patch.name = name;
     if (typeof whatsapp_number === "string") patch.whatsapp_number = whatsapp_number;
     if (typeof primary_color === "string") patch.primary_color = primary_color;
+    if (menu_appearance_json !== undefined) {
+      if (!hasMenuAppearanceColumn()) {
+        res.status(409).json({ error: "Rəng saxlama üçün təsdiqli migration tələb olunur" });
+        return;
+      }
+      patch.menu_appearance_json = sanitizeMenuAppearanceJson(menu_appearance_json);
+    }
     if (typeof tagline === "string") patch.tagline = tagline;
     if (typeof maps_url === "string") patch.maps_url = maps_url;
     if (typeof phone === "string") patch.phone = phone;
@@ -833,7 +870,7 @@ async function startServer() {
       theme: "modern",
       plan: "vip",
       subscription_plan_id: vipPlan?.id ?? null,
-      menu_template: "modern-01",
+      menu_template: "bistro-rail",
       tagline: "Milli mətbəx · QR kod ilə canlı menyuya baxın",
       maps_url: "https://maps.google.com/?q=Baku+Azerbaijan",
       phone: "+994 12 555 00 00",
@@ -850,7 +887,7 @@ async function startServer() {
       await db("restaurant_users").insert({
         restaurant_id: newRid,
         username: "demo",
-        password: "demo123",
+        password: await storePassword("demo123"),
         full_name: "Demo istifadəçi",
       });
     }
@@ -1097,14 +1134,14 @@ async function startServer() {
           name,
           slug,
           whatsapp_number,
-          menu_template: "modern-01",
+          menu_template: "bistro-rail",
           subscription_plan_id: planId,
         });
         newId = Number(Array.isArray(ids) ? ids[0] : ids);
         await trx("restaurant_users").insert({
           restaurant_id: newId,
           username: admin_username,
-          password: admin_password,
+          password: await storePassword(String(admin_password)),
         });
       });
 
@@ -1150,7 +1187,7 @@ async function startServer() {
       await db("restaurant_users").insert({
         restaurant_id: restaurantId,
         username,
-        password,
+        password: await storePassword(String(password)),
       });
       res.json({ success: true, username });
     } catch {
@@ -2190,7 +2227,7 @@ async function startServer() {
       patch.username = u;
     }
     if (req.body.new_password != null && String(req.body.new_password).length > 0) {
-      patch.password = String(req.body.new_password);
+      patch.password = await storePassword(String(req.body.new_password));
     }
     if (Object.keys(patch).length === 0) {
       res.status(400).json({ error: "Heç bir dəyişiklik yoxdur" });

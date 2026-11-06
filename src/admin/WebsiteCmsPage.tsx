@@ -496,7 +496,7 @@ function CmsShellWrapped({ ctx }: { ctx: CmsCtx }) {
     cn(
       "px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all",
       isActive
-        ? "bg-rose-600 text-white shadow-md"
+        ? "bg-[var(--mg-brand)] text-white shadow-md"
         : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
     );
 

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { motion } from "motion/react";
-import { MapPin, ChevronRight, Store } from "lucide-react";
+import { MapPin, ChevronRight } from "lucide-react";
 import { TemplatePicker, resolveMenuTemplate, MENU_TEMPLATE_COUNT, type MenuTemplateDef } from "./menu-templates";
 import { authAnyStaffHeaders } from "./lib/headers";
 import { useI18nBundle } from "./i18n/bundleContext";
+import { BrandMark, BrandWordmark } from "./ui/BrandMark";
 
 function asBool(v: unknown) {
   return v === true || v === 1 || v === "1";
@@ -28,7 +29,7 @@ export default function RestaurantOnboarding() {
     whatsapp_number: "",
     maps_url: "",
     slug: "",
-    menu_template: "modern-01",
+    menu_template: "bistro-rail",
   });
 
   const t = (k: string) => bundle[lang]?.[k] || bundle.az?.[k] || k;
@@ -66,7 +67,7 @@ export default function RestaurantOnboarding() {
         whatsapp_number: r.whatsapp_number || "",
         maps_url: r.maps_url || "",
         slug: r.slug || "",
-        menu_template: r.menu_template || "modern-01",
+        menu_template: r.menu_template || "bistro-rail",
       });
       const rows = data.customTemplates || [];
       setExtraTemplates(
@@ -145,82 +146,112 @@ export default function RestaurantOnboarding() {
     );
   }
 
-  const host = typeof window !== "undefined" ? window.location.host : "qrmenu.site";
+  const host = typeof window !== "undefined" ? window.location.host : "menugo.az";
+  const fieldCls =
+    "w-full min-h-[48px] rounded-xl border border-[var(--mg-border)] bg-white px-4 py-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-[var(--mg-brand)]/35";
+  const primaryCls =
+    "min-h-[48px] flex-1 rounded-xl bg-[var(--mg-brand)] py-3 font-bold text-white disabled:opacity-60";
+  const ghostCls = "min-h-[48px] flex-1 rounded-xl border border-[var(--mg-border)] bg-white py-3 font-semibold";
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white pb-24">
-      <header className="sticky top-0 z-10 border-b bg-white/90 backdrop-blur px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 font-bold text-red-600">
-          <Store size={22} />
-          <span className="truncate max-w-[10rem]">{t("onboarding_title")}</span>
+    <div className="min-h-screen bg-[var(--mg-paper)] pb-24">
+      <header className="sticky top-0 z-10 border-b border-[var(--mg-border)] bg-white/90 backdrop-blur px-4 py-3 flex items-center justify-between">
+        <div className="flex min-w-0 items-center gap-2 font-bold text-[var(--mg-ink)]">
+          <BrandMark className="h-8 w-8 shrink-0" />
+          <BrandWordmark className="truncate text-base" ink />
         </div>
-        <div className="flex gap-2 text-xs text-gray-500">
-          <span>{step}/3</span>
-          <Link to={`/restaurant/${id}`} className="text-red-600 hover:underline">
+        <div className="flex items-center gap-3 text-xs text-[var(--mg-muted)]">
+          <span aria-current="step">{step}/3</span>
+          <select
+            aria-label={t("language")}
+            value={lang}
+            onChange={(e) => setLang(e.target.value)}
+            className="rounded-lg border border-[var(--mg-border)] bg-white px-2 py-1 text-xs font-bold"
+          >
+            <option value="az">AZ</option>
+            <option value="en">EN</option>
+            <option value="ru">RU</option>
+            <option value="tr">TR</option>
+          </select>
+          <Link to={`/restaurant/${id}`} className="min-h-11 inline-flex items-center text-[var(--mg-brand-strong)] hover:underline">
             {t("onboarding_skip")}
           </Link>
         </div>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 py-8">
+      <div className="mx-auto max-w-lg px-4 py-6">
+        <ol className="mb-5 grid grid-cols-3 gap-2" aria-hidden>
+          {[1, 2, 3].map((n) => (
+            <li key={n} className={`h-1.5 rounded-full ${step >= n ? "bg-[var(--mg-brand)]" : "bg-[var(--mg-border)]"}`} />
+          ))}
+        </ol>
         <motion.div
           key={step}
           initial={{ opacity: 0, x: 16 }}
           animate={{ opacity: 1, x: 0 }}
-          className="rounded-2xl border border-red-100 bg-white shadow-lg p-6 space-y-4"
+          className="space-y-4 rounded-2xl border border-[var(--mg-border)] bg-white p-6 shadow-lg"
         >
           {step === 1 && (
             <>
-              <h1 className="text-xl font-bold text-gray-900">{t("onboarding_step1_title")}</h1>
-              <p className="text-sm text-gray-500">{t("onboarding_step1_sub")}</p>
-              <input
-                className="w-full p-3 border rounded-xl"
-                placeholder={t("restaurant_name_label")}
-                value={profile.name}
-                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-              />
-              <input
-                className="w-full p-3 border rounded-xl"
-                placeholder="Instagram"
-                value={profile.instagram}
-                onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
-              />
-              <input
-                className="w-full p-3 border rounded-xl"
-                placeholder="TikTok"
-                value={profile.tiktok}
-                onChange={(e) => setProfile({ ...profile, tiktok: e.target.value })}
-              />
-              <input
-                className="w-full p-3 border rounded-xl"
-                placeholder={t("whatsapp")}
-                value={profile.whatsapp_number}
-                onChange={(e) => setProfile({ ...profile, whatsapp_number: e.target.value })}
-              />
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-gray-600">{t("onboarding_location")}</label>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    disabled={geoBusy}
-                    onClick={pickGeo}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-100 text-sm font-medium"
-                  >
-                    <MapPin size={16} /> {geoBusy ? "…" : t("checkout_location_btn")}
-                  </button>
-                </div>
+              <h1 className="text-xl font-bold text-[var(--mg-ink)]">{t("onboarding_step1_title")}</h1>
+              <p className="text-sm text-[var(--mg-muted)]">{t("onboarding_step1_sub")}</p>
+              <label className="block text-sm font-medium text-[var(--mg-ink)]">
+                {t("restaurant_name_label")}
                 <input
-                  className="w-full p-3 border rounded-xl text-sm"
-                  placeholder={t("maps_url_placeholder")}
-                  value={profile.maps_url}
-                  onChange={(e) => setProfile({ ...profile, maps_url: e.target.value })}
+                  className={`${fieldCls} mt-1.5`}
+                  placeholder={t("restaurant_name_label")}
+                  value={profile.name}
+                  onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                  required
                 />
-              </div>
+              </label>
+              <details className="rounded-xl border border-[var(--mg-border)] bg-[var(--mg-paper)] p-3">
+                <summary className="cursor-pointer text-sm font-semibold text-[var(--mg-ink)]">
+                  {t("onboarding_optional")}
+                </summary>
+                <div className="mt-3 space-y-3">
+                  <input
+                    className={fieldCls}
+                    placeholder="Instagram"
+                    value={profile.instagram}
+                    onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
+                  />
+                  <input
+                    className={fieldCls}
+                    placeholder="TikTok"
+                    value={profile.tiktok}
+                    onChange={(e) => setProfile({ ...profile, tiktok: e.target.value })}
+                  />
+                  <input
+                    className={fieldCls}
+                    placeholder={t("whatsapp")}
+                    value={profile.whatsapp_number}
+                    onChange={(e) => setProfile({ ...profile, whatsapp_number: e.target.value })}
+                  />
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-[var(--mg-muted)]">{t("onboarding_location")}</label>
+                    <button
+                      type="button"
+                      disabled={geoBusy}
+                      onClick={pickGeo}
+                      className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-medium"
+                    >
+                      <MapPin size={16} /> {geoBusy ? "…" : t("checkout_location_btn")}
+                    </button>
+                    <input
+                      className={`${fieldCls} text-sm`}
+                      placeholder={t("maps_url_placeholder")}
+                      value={profile.maps_url}
+                      onChange={(e) => setProfile({ ...profile, maps_url: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </details>
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || !profile.name.trim()}
                 onClick={nextFromStep1}
-                className="w-full py-3 rounded-xl bg-red-600 text-white font-bold flex items-center justify-center gap-2"
+                className={`${primaryCls} flex w-full items-center justify-center gap-2`}
               >
                 {t("onboarding_next")} <ChevronRight size={18} />
               </button>
@@ -229,13 +260,14 @@ export default function RestaurantOnboarding() {
 
           {step === 2 && (
             <>
-              <h1 className="text-xl font-bold text-gray-900">{t("onboarding_step2_title")}</h1>
-              <p className="text-sm text-gray-500">{t("onboarding_step2_sub")}</p>
-              <p className="text-xs font-mono bg-gray-50 p-3 rounded-lg break-all">
-                {t("onboarding_link_example_prefix")} https://{host}/r/<span className="text-red-600">{profile.slug || "restoran-adı"}</span>
+              <h1 className="text-xl font-bold text-[var(--mg-ink)]">{t("onboarding_step2_title")}</h1>
+              <p className="text-sm text-[var(--mg-muted)]">{t("onboarding_step2_sub")}</p>
+              <p className="break-all rounded-lg bg-[var(--mg-paper)] p-3 font-mono text-xs">
+                {t("onboarding_link_example_prefix")} https://{host}/r/
+                <span className="text-[var(--mg-brand-strong)]">{profile.slug || "restoran-adi"}</span>
               </p>
               <input
-                className="w-full p-3 border rounded-xl font-mono"
+                className={`${fieldCls} font-mono`}
                 placeholder={t("slug_label")}
                 value={profile.slug}
                 onChange={(e) =>
@@ -246,15 +278,10 @@ export default function RestaurantOnboarding() {
                 }
               />
               <div className="flex gap-2">
-                <button type="button" onClick={() => setStep(1)} className="flex-1 py-3 rounded-xl border">
+                <button type="button" onClick={() => setStep(1)} className={ghostCls}>
                   {t("onboarding_back")}
                 </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={nextFromStep2}
-                  className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold"
-                >
+                <button type="button" disabled={busy || !profile.slug.trim()} onClick={nextFromStep2} className={primaryCls}>
                   {t("onboarding_next")}
                 </button>
               </div>
@@ -263,8 +290,8 @@ export default function RestaurantOnboarding() {
 
           {step === 3 && (
             <>
-              <h1 className="text-xl font-bold text-gray-900">{t("onboarding_step3_title")}</h1>
-              <p className="text-sm text-gray-500 mb-2">
+              <h1 className="text-xl font-bold text-[var(--mg-ink)]">{t("onboarding_step3_title")}</h1>
+              <p className="mb-2 text-sm text-[var(--mg-muted)]">
                 {MENU_TEMPLATE_COUNT}+ {t("templates_section_sub")}
               </p>
               <TemplatePicker
@@ -272,17 +299,13 @@ export default function RestaurantOnboarding() {
                 selectedId={profile.menu_template}
                 onSelect={selectTemplate}
                 extraTemplates={extraTemplates}
+                t={t}
               />
               <div className="flex gap-2 pt-4">
-                <button type="button" onClick={() => setStep(2)} className="flex-1 py-3 rounded-xl border">
+                <button type="button" onClick={() => setStep(2)} className={ghostCls}>
                   {t("onboarding_back")}
                 </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={finish}
-                  className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold"
-                >
+                <button type="button" disabled={busy} onClick={finish} className={primaryCls}>
                   {t("onboarding_finish")}
                 </button>
               </div>

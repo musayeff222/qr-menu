@@ -2,9 +2,44 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+:root {
+  --mg-ink: #0a1720;
+  --mg-deep: #102933;
+  --mg-brand: #0dbe91;
+  --mg-brand-strong: #078363;
+  --mg-brand-soft: #dcf8ec;
+  --mg-paper: #f7faf8;
+  --mg-white: #ffffff;
+  --mg-muted: #63747c;
+  --mg-border: #e2ece7;
+  --mg-coral: #ff925b;
+  --mg-danger: #c6384d;
+}
+
 @layer base {
   html {
-    font-family: "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+    font-family: Inter, "Noto Sans", ui-sans-serif, system-ui, sans-serif;
+    overflow-x: clip;
+  }
+  body,
+  #root {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+  img,
+  video {
+    max-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -55,5 +90,25 @@
     border-width: 3px;
     border-style: solid;
     border-color: color-mix(in srgb, var(--mt-primary) 35%, transparent);
+  }
+
+  [data-skin] h1 {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+  }
+  [data-skin] .tabular-nums {
+    flex-shrink: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-skin] *,
+    [data-skin] *::before,
+    [data-skin] *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

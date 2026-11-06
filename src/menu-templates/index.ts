@@ -10,8 +10,14 @@ export {
   getTemplateById,
   templatesByCategory,
 } from "./registry";
-export { MenuTemplateView } from "./MenuTemplateView";
-export type { MenuTemplateViewProps, CartLine } from "./MenuTemplateView";
+export { GuestSkinLoader } from "./GuestSkinLoader";
+export type { GuestSkinProps, CartLine } from "./guestSkinContract";
 export { TemplatePicker } from "./TemplatePicker";
 export { MenuPhoneMockup } from "./MenuPhoneMockup";
+export { ThemeEditor } from "./theme/ThemeEditor";
+export { parseAppearance } from "./theme/appearance";
+export { PREVIEW_MSG } from "./shared/useSkinModel";
+export { getSkinMeta } from "./skinCatalog";
+export type { SkinColorTokens } from "./theme/tokens";
 export { resolveMenuTemplate, type CustomTemplateRow } from "./resolveMenuTemplate";
+export { remapLegacyTemplateId } from "./legacyRemap";

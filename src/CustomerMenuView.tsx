@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import {
-  MenuTemplateView,
+  GuestSkinLoader,
   resolveMenuTemplate,
   type CartLine,
 } from "./menu-templates";
@@ -88,18 +88,18 @@ export default function CustomerMenuView({
 
   useEffect(() => {
     if (!data?.name) return;
-    const tid = previewTemplateId || data.menu_template || "modern-01";
+    const tid = previewTemplateId || data.menu_template || "bistro-rail";
     const tpl = resolveMenuTemplate(tid, data.custom_templates);
     document.title = `${data.name} · ${tpl.name}`;
     return () => {
-      document.title = "QRMenu";
+      document.title = "MenuGo";
     };
   }, [data, previewTemplateId]);
 
   useEffect(() => {
     if (!data) return;
     const tpl = resolveMenuTemplate(
-      previewTemplateId || data.menu_template || "modern-01",
+      previewTemplateId || data.menu_template || "bistro-rail",
       data.custom_templates
     );
     if (tpl.theme.renderMode === "smartweb") setOrderType("delivery");
@@ -110,12 +110,12 @@ export default function CustomerMenuView({
   const { categories, products, custom_templates, plan_features, orders_allowed, ...restaurantRow } =
     data;
   const template = resolveMenuTemplate(
-    previewTemplateId || data.menu_template || "modern-01",
+    previewTemplateId || data.menu_template || "bistro-rail",
     custom_templates
   );
-  const mega1Mode = template.theme.renderMode === "fastfood-pro";
-  const mega2Mode = template.theme.renderMode === "mega2-kinetic";
-  const smartwebMode = template.theme.renderMode === "smartweb";
+  const mega1Mode = false;
+  const mega2Mode = false;
+  const smartwebMode = false;
 
   const ordersAllowed = orders_allowed !== false;
   const ordersClosedHint = t("orders_closed_hint");
@@ -272,7 +272,7 @@ export default function CustomerMenuView({
       "",
       `Müştəri: ${fullName.trim()}`,
       `Telefon: ${phoneNumber.trim()}`,
-      `Növ: ${orderType === "pickup" ? "Məkandan götür" : "Çatdırılma"}`,
+      `Növ: ${orderType === "pickup" ? t("checkout_pickup") : t("checkout_delivery")}`,
       "",
       ...lines,
       "",
@@ -378,7 +378,7 @@ export default function CustomerMenuView({
 
   return (
     <>
-      <MenuTemplateView
+      <GuestSkinLoader
         template={template}
         restaurant={restaurantRow}
         categories={categories}
@@ -408,28 +408,6 @@ export default function CustomerMenuView({
           whatsapp_order: plan_features?.whatsapp_order !== false,
           reservation: plan_features?.reservation !== false,
         }}
-        smartWebCheckout={
-          smartwebMode
-            ? {
-                fullName,
-                setFullName,
-                phoneNumber,
-                setPhoneNumber,
-                addressText,
-                setAddressText,
-                geoUrl,
-                setGeoUrl,
-                customerNote,
-                setCustomerNote,
-                pickGeo,
-                geoBusy,
-                submitOrder: sendOrderSmartWeb,
-                checkoutErr,
-                checkoutOk,
-                checkoutBusy,
-              }
-            : undefined
-        }
       />
       <AnimatePresence>
         {checkoutOpen && !smartwebMode ? (
@@ -474,7 +452,7 @@ export default function CustomerMenuView({
                         : "border border-gray-200"
                   )}
                 >
-                  Məkandan götür
+                  {t("checkout_pickup")}
                 </button>
                 <button
                   type="button"
@@ -490,10 +468,10 @@ export default function CustomerMenuView({
                         : "border border-gray-200"
                   )}
                 >
-                  Çatdırılma
+                  {t("checkout_delivery")}
                 </button>
               </div>
-              <label className="block text-sm font-medium mb-1">Ad soyad</label>
+              <label className="block text-sm font-medium mb-1">{t("full_name_label")}</label>
               <input
                 className={cn(
                   "w-full p-4 text-sm mb-3",
@@ -506,9 +484,9 @@ export default function CustomerMenuView({
                   setFullName(e.target.value);
                   setCheckoutErr("");
                 }}
-                placeholder="Ad soyad"
+                placeholder={t("full_name_label")}
               />
-              <label className="block text-sm font-medium mb-1">Telefon nömrəsi</label>
+              <label className="block text-sm font-medium mb-1">{t("phone_label")}</label>
               <input
                 className={cn(
                   "w-full p-4 text-sm mb-3",
@@ -587,12 +565,12 @@ export default function CustomerMenuView({
                 )}
                 style={mega2Mode ? { display: "none" } : undefined}
               >
-                {geoBusy ? t("checkout_location_busy") : "Xəritədə konum seç"}
+                {geoBusy ? t("checkout_location_busy") : t("checkout_location_btn")}
               </button>
               {geoUrl ? (
                 <p className="text-xs text-green-700 mb-4 break-all">✓ {geoUrl}</p>
               ) : null}
-              <label className="block text-sm font-medium mb-1">Qeyd</label>
+              <label className="block text-sm font-medium mb-1">{t("note")}</label>
               <textarea
                 className={cn(
                   "w-full p-4 text-sm mb-4 min-h-[60px]",
@@ -602,7 +580,7 @@ export default function CustomerMenuView({
                 )}
                 value={customerNote}
                 onChange={(e) => setCustomerNote(e.target.value)}
-                placeholder="Qeyd (istəyə görə)"
+                placeholder={t("cart_note_placeholder")}
               />
               <p className="text-sm font-medium mb-2">{t("checkout_payment")}</p>
               <div className="flex gap-2 mb-4">
@@ -629,7 +607,7 @@ export default function CustomerMenuView({
               </div>
               {!mega2Mode ? (
                 <>
-                  <p className="text-sm font-medium mb-2">Göndərmə üsulu</p>
+                  <p className="text-sm font-medium mb-2">{t("checkout_send_via")}</p>
                   <div className="flex gap-2 mb-4">
                     <button
                       type="button"
@@ -639,7 +617,7 @@ export default function CustomerMenuView({
                         orderSource === "web" ? "border-red-600 bg-red-50 text-red-800" : "border-gray-200"
                       )}
                     >
-                      Web sayt
+                      {t("checkout_web")}
                     </button>
                     <button
                       type="button"
@@ -649,7 +627,7 @@ export default function CustomerMenuView({
                         orderSource === "whatsapp" ? "border-red-600 bg-red-50 text-red-800" : "border-gray-200"
                       )}
                     >
-                      WhatsApp
+                      {t("checkout_whatsapp")}
                     </button>
                   </div>
                 </>

@@ -1,26 +1,47 @@
 import type { MenuTemplateDef, TemplateCategory } from "./types";
-import { buildConceptMenuTemplates } from "./conceptRegistry";
-import { SMARTWEB_MENU_TEMPLATE } from "./smartwebTemplate";
+import { remapLegacyTemplateId } from "./legacyRemap";
+import { DEFAULT_SKIN_ID, SKIN_CATALOG, type SkinMeta } from "./skinCatalog";
 
-export const MENU_TEMPLATES: MenuTemplateDef[] = [
-  ...buildConceptMenuTemplates(),
-  SMARTWEB_MENU_TEMPLATE,
-];
-
-/** Plan limiti üçün 50 əsas şablon (+ əlavə smartweb və s.) */
-export const MENU_TEMPLATE_COUNT = 50;
-const builtinCount = MENU_TEMPLATES.length - 1;
-if (builtinCount !== MENU_TEMPLATE_COUNT) {
-  console.warn(
-    `[menu-templates] expected ${MENU_TEMPLATE_COUNT} builtin templates, got ${builtinCount}`
-  );
+function skinToTemplate(meta: SkinMeta): MenuTemplateDef {
+  return {
+    id: meta.id,
+    name: meta.name,
+    category: meta.family as TemplateCategory,
+    description: `${meta.header} · ${meta.navigation} · ${meta.productCards}`,
+    heroImage: meta.cover,
+    theme: {
+      fontPair: "space-dm",
+      headingWeight: "font-bold",
+      primary: meta.defaults.primary,
+      secondary: meta.defaults.secondary,
+      accent: meta.defaults.accent,
+      background: meta.defaults.background,
+      surface: meta.defaults.surface,
+      text: meta.defaults.text,
+      muted: meta.defaults.muted,
+      radius: "lg",
+      cardStyle: "elevated",
+      heroVariant: "compact",
+      categoryNav: "pills",
+      density: "comfortable",
+      showFab: true,
+      showBottomNav: false,
+      overlayPercent: 40,
+      productImageRadius: "lg",
+      heroPattern: "none",
+      renderMode: meta.id,
+    },
+  };
 }
 
-export const DEFAULT_TEMPLATE_ID = "modern-01";
+export const MENU_TEMPLATES: MenuTemplateDef[] = SKIN_CATALOG.map(skinToTemplate);
+
+export const MENU_TEMPLATE_COUNT = MENU_TEMPLATES.length;
+export const DEFAULT_TEMPLATE_ID = DEFAULT_SKIN_ID;
 
 export function getTemplateById(id: string | null | undefined): MenuTemplateDef {
-  const found = MENU_TEMPLATES.find((t) => t.id === id);
-  return found ?? MENU_TEMPLATES[0];
+  const mapped = remapLegacyTemplateId(id);
+  return MENU_TEMPLATES.find((t) => t.id === mapped) || MENU_TEMPLATES[0];
 }
 
 export function templatesByCategory(): Record<TemplateCategory, MenuTemplateDef[]> {

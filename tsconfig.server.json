@@ -13,8 +13,12 @@
   },
   "include": [
     "server.ts",
+    "passwordHash.ts",
     "database.ts",
+    "dbRuntime.ts",
+    "schemaAudit.ts",
     "planTemplatePolicy.ts",
+    "menuAppearance.ts",
     "demoConstants.ts",
     "demoMenuSeed.ts",
     "demaeMenuSeed.ts",

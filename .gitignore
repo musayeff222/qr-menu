@@ -13,6 +13,10 @@ build/
 # Environment (secrets)
 .env
 .env.local
+.env.staging
+.env.production
+.env.*
+!.env.example
 .env.*.local
 
 # Logs
@@ -44,3 +48,12 @@ Thumbs.db
 
 # Testing
 coverage/
+test-results/
+qa/playwright/playwright-report/
+qa/playwright/results.json
+qa/playwright/shots/
+qa/playwright/overflows/
+qa/playwright/fingerprints/
+qa/playwright/perf/
+qa/playwright/*.json
+*.zip

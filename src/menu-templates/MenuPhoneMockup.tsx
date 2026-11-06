@@ -6,36 +6,42 @@ export function MenuPhoneMockup({
   iframeSrc,
   reloadKey,
   className,
+  title = "Canlı önizləmə",
+  subtitle = "Real menyunuz, mobil görünüş",
+  liveLabel = "Canlı",
 }: {
   iframeSrc: string;
   reloadKey: number;
   className?: string;
+  title?: string;
+  subtitle?: string;
+  liveLabel?: string;
 }) {
   return (
     <div className={cn("relative flex flex-col", className)}>
       <div
-        className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-red-50/40 px-5 py-4 dark:border-slate-700 dark:from-slate-800/80 dark:via-slate-900 dark:to-red-950/20"
+        className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-[var(--mg-brand-soft)]/40 px-5 py-4 dark:border-slate-700 dark:from-slate-800/80 dark:via-slate-900 dark:to-emerald-950/20"
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--mg-brand-soft)] text-[var(--mg-brand-strong)] dark:bg-emerald-500/15 dark:text-emerald-400">
               <Smartphone className="h-4 w-4" strokeWidth={2.25} />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-slate-900 dark:text-white">Canlı önizləmə</p>
-              <p className="truncate text-xs text-slate-500 dark:text-slate-400">Real menyunuz, mobil görünüş</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">{title}</p>
+              <p className="truncate text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
             </div>
           </div>
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--mg-brand)] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
             <Radio className="h-3 w-3 animate-pulse" />
-            Canlı
+            {liveLabel}
           </span>
         </div>
       </div>
 
       <div className="relative flex justify-center bg-gradient-to-b from-slate-100/90 via-slate-50 to-white px-4 pb-6 pt-8 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
         <div
-          className="pointer-events-none absolute left-1/2 top-12 h-48 w-48 -translate-x-1/2 rounded-full bg-red-400/15 blur-3xl dark:bg-red-500/20"
+          className="pointer-events-none absolute left-1/2 top-12 h-48 w-48 -translate-x-1/2 rounded-full bg-[var(--mg-brand)]/15 blur-3xl dark:bg-emerald-500/20"
           aria-hidden
         />
         <div className="relative w-[min(100%,292px)] shrink-0">
@@ -47,6 +53,7 @@ export function MenuPhoneMockup({
             <div className="overflow-hidden rounded-[2.05rem] bg-black ring-1 ring-white/[0.12]">
               {iframeSrc ? (
                 <iframe
+                  id="menugo-menu-preview"
                   key={`${iframeSrc}-${reloadKey}`}
                   title="Menyu önizləməsi"
                   src={iframeSrc}
