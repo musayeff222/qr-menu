@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build && tsc -p tsconfig.server.json",
+    "build:hostinger": "npm ci --include=dev && npm run build",
     "preview": "vite preview",
     "clean": "rm -rf dist dist-server",
     "lint": "tsc --noEmit",
