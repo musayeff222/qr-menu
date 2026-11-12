@@ -17,6 +17,7 @@
     "lint": "tsc --noEmit",
     "test:password": "tsx --test qa/password-hash.node.test.ts",
     "test:staging": "tsx --test --test-concurrency=1 qa/staging-safety.node.test.ts",
+    "test:security": "tsx --test --test-concurrency=1 qa/request-security.node.test.ts qa/security-phase1.node.test.ts qa/security-phase2.node.test.ts",
     "check:schema": "tsx scripts/check-schema.ts",
     "test:skins": "playwright test --config=playwright.config.ts && node qa/playwright/merge-qa.mjs && node qa/playwright/generate-gallery.mjs",
     "test:skins:gallery": "node qa/playwright/generate-gallery.mjs",

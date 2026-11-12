@@ -65,6 +65,32 @@ export default function CustomerMenuView({
     return id;
   };
 
+  const orderAccessKey = () => `qrmenu-order-access-${slug}`;
+  const getOrderAccessTokens = (): string[] => {
+    const raw = localStorage.getItem(orderAccessKey()) || "";
+    if (!raw) return [];
+    if (raw.startsWith("v2.")) return [raw];
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((item) => (typeof item === "string" ? item : String((item as { token?: string }).token || "")))
+          .filter((t) => t.startsWith("v2."))
+          .slice(-50);
+      }
+    } catch {
+      /* phase-1 hex tokens are not accepted */
+    }
+    return [];
+  };
+  const addOrderAccessToken = (token: string) => {
+    const tkn = String(token || "").trim();
+    if (!tkn.startsWith("v2.")) return;
+    const next = getOrderAccessTokens().filter((x) => x !== tkn);
+    next.push(tkn);
+    localStorage.setItem(orderAccessKey(), JSON.stringify(next.slice(-50)));
+  };
+
   useEffect(() => {
     fetch("/api/public/settings")
       .then((r) => r.json())
@@ -245,9 +271,18 @@ export default function CustomerMenuView({
   };
 
   const fetchOrderHistory = async () => {
-    const deviceId = getDeviceId();
-    const r = await fetch(`/api/restaurants/${encodeURIComponent(slug)}/orders?device_id=${encodeURIComponent(deviceId)}`);
-    if (!r.ok) return;
+    const tokens = getOrderAccessTokens();
+    if (tokens.length === 0) {
+      setOrdersHistory([]);
+      return;
+    }
+    const r = await fetch(`/api/restaurants/${encodeURIComponent(slug)}/orders`, {
+      headers: { "X-Order-Access": tokens.join(",") },
+    });
+    if (!r.ok) {
+      setOrdersHistory([]);
+      return;
+    }
     const rows = await r.json();
     setOrdersHistory(Array.isArray(rows) ? rows : []);
   };
@@ -308,6 +343,7 @@ export default function CustomerMenuView({
         setCheckoutErr(String(data.error || t("server_error")));
         return;
       }
+      if (data.access_token) addOrderAccessToken(String(data.access_token));
       setCheckoutOk(
         "Sifarişiniz qeydə alındı. Ən qısa zamanda sizinlə əlaqə saxlanılacaq"
       );
@@ -343,6 +379,7 @@ export default function CustomerMenuView({
         setCheckoutErr(String(body.error || t("server_error")));
         return;
       }
+      if (body.access_token) addOrderAccessToken(String(body.access_token));
       if (waAllowed && wa) {
         openRestaurantWhatsApp();
       }

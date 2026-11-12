@@ -38,6 +38,7 @@ export default defineConfig({
       MYSQL_DATABASE: "",
       DATABASE_URL: "",
       DB_CLIENT: "",
+      ORDER_ACCESS_SECRET: "menugo-isolated-test-order-access-secret-do-not-use-in-prod",
     },
   },
   projects: [

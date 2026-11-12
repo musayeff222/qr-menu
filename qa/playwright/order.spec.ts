@@ -4,6 +4,19 @@ import { openSkin } from "./helpers";
 
 test("isolated web order POST on local demo restaurant", async ({ request }) => {
   const stamp = Date.now();
+  const menuRes = await request.get(`/api/restaurants/${DEMO_SLUG}?preview=true`);
+  expect(menuRes.ok(), await menuRes.text()).toBeTruthy();
+  const menu = await menuRes.json();
+  const products = (menu.products || []) as Array<{
+    id: number;
+    name?: string;
+    price?: number;
+    variants?: Array<{ id: number; price?: number }>;
+  }>;
+  const product = products.find((p) => Number(p.id) > 0);
+  expect(product?.id, "demo product").toBeTruthy();
+  const variant = product!.variants?.[0];
+  const unit = Number(variant?.price ?? product!.price ?? 0);
   const res = await request.post(`/api/restaurants/${DEMO_SLUG}/orders`, {
     data: {
       device_id: `qa-pw-${stamp}`,
@@ -15,15 +28,15 @@ test("isolated web order POST on local demo restaurant", async ({ request }) => 
       address_text: "",
       geo_url: "",
       note: "QA playwright isolated order",
-      total_amount: 9.5,
+      total_amount: 0.01,
       cart: [
         {
           line_id: `qa-pw-${stamp}`,
-          product_id: 4,
-          label: "QA Düşbərə",
-          variant_id: null,
+          product_id: product!.id,
+          label: product!.name || "QA Dish",
+          variant_id: variant?.id ?? null,
           qty: 1,
-          unit_price: 9.5,
+          unit_price: 0.01,
           note: "QA test qeydi",
         },
       ],
@@ -33,6 +46,16 @@ test("isolated web order POST on local demo restaurant", async ({ request }) => 
   const body = await res.json();
   const id = body.id || body.order?.id;
   expect(id, JSON.stringify(body)).toBeTruthy();
+  expect(body.access_token, "guest access token").toBeTruthy();
+  if (Number.isFinite(unit) && unit > 0) {
+    expect(Number(body.order?.total_amount)).toBeCloseTo(unit, 2);
+  }
+  const listed = await request.get(`/api/restaurants/${DEMO_SLUG}/orders`, {
+    headers: { "X-Order-Access": body.access_token },
+  });
+  expect(listed.ok(), await listed.text()).toBeTruthy();
+  const rows = await listed.json();
+  expect(JSON.stringify(rows)).not.toMatch(/\+994501119911/);
 });
 
 test("orders_allowed=false disables add-to-cart", async ({ page }) => {

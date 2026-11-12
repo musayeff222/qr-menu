@@ -16,6 +16,22 @@ import {
   upgradePlaintextIfNeeded,
   verifyPassword,
 } from "./passwordHash.js";
+import {
+  assertOrderAccessSecretConfigured,
+  centsToMoney,
+  createOrderAccessNonce,
+  issueOrderAccessToken,
+  loginRateLimit,
+  moneyToCents,
+  orderAccessExpiry,
+  parseCartLines,
+  parseOrderAccessToken,
+  registerRateLimit,
+  sniffUpload,
+  splitOrderAccessHeader,
+  tokenExpired,
+  type QuotedLine,
+} from "./requestSecurity.js";
 
 console.log("Server script started.");
 
@@ -307,8 +323,101 @@ async function attachVariantsToProducts(
   return parsedProducts.map((p) => ({ ...p, variants: m.get(Number(p.id)) || [] }));
 }
 
+function isProductOrderable(product: Record<string, unknown>): boolean {
+  if (product.is_available === false || product.is_available === 0 || product.is_available === "0") {
+    return false;
+  }
+  return isProductActiveNow(product);
+}
+
+async function quoteGuestCart(
+  restaurantId: number,
+  cartRaw: unknown
+): Promise<{ ok: true; quoted: QuotedLine[]; total: number } | { ok: false; error: string }> {
+  const lines = parseCartLines(cartRaw);
+  if (!lines) return { ok: false, error: "Invalid cart" };
+  const quoted: QuotedLine[] = [];
+  let cents = 0;
+  for (const line of lines) {
+    const product = await db("products")
+      .where({ id: line.product_id, restaurant_id: restaurantId })
+      .first();
+    if (!product || !isProductOrderable(product as Record<string, unknown>)) {
+      return { ok: false, error: "Product not available" };
+    }
+    let unitCents: number;
+    let label = line.label || String(product.name || "Məhsul");
+    if (line.variant_id) {
+      const variant = await db("product_variants")
+        .where({ id: line.variant_id, product_id: product.id })
+        .first();
+      if (!variant) return { ok: false, error: "Product not available" };
+      unitCents = moneyToCents(variant.price);
+      const vn = String(variant.name || "");
+      if (!line.label) label = vn ? `${vn} · ${product.name}` : String(product.name);
+    } else {
+      unitCents = moneyToCents(product.price);
+    }
+    if (unitCents < 0) return { ok: false, error: "Invalid price" };
+    cents += unitCents * line.qty;
+    quoted.push({
+      product_id: Number(product.id),
+      variant_id: line.variant_id,
+      qty: line.qty,
+      unit_price: centsToMoney(unitCents),
+      label: String(label).slice(0, 200),
+      note: line.note,
+    });
+  }
+  return { ok: true, quoted, total: centsToMoney(cents) };
+}
+
+function ownerAccountUserDto(user: Record<string, unknown> | null | undefined) {
+  if (!user) return null;
+  return {
+    id: user.id,
+    restaurant_id: user.restaurant_id,
+    username: user.username,
+    full_name: user.full_name,
+    last_login_at: user.last_login_at,
+  };
+}
+
+function publicGuestOrderDto(row: Record<string, unknown>) {
+  const payload = safeJsonParse(row.payload as string, {} as Record<string, unknown>);
+  const cart = Array.isArray(payload.cart) ? payload.cart : [];
+  const items = Array.isArray(payload.items)
+    ? payload.items
+    : cart.map((l: { label?: string; qty?: number }) => ({
+        name: l.label || "Məhsul",
+        qty: l.qty || 1,
+      }));
+  return {
+    id: row.id,
+    status: row.status,
+    order_type: row.order_type,
+    payment_method: row.payment_method,
+    order_source: row.order_source,
+    created_at: row.created_at,
+    total_amount: row.total_amount,
+    payload: {
+      items,
+      cart: cart.map((l: { label?: string; qty?: number }) => ({
+        label: l.label || "Məhsul",
+        qty: l.qty || 1,
+      })),
+    },
+  };
+}
+
 async function startServer() {
   console.log("Starting server initialization...");
+  try {
+    assertOrderAccessSecretConfigured();
+  } catch (err) {
+    console.error("[security]", err instanceof Error ? err.message : "ORDER_ACCESS_SECRET rejected");
+    process.exit(1);
+  }
   try {
     await initDatabase();
     console.log("Database initialized successfully.");
@@ -318,6 +427,8 @@ async function startServer() {
   }
 
   const app = express();
+  // One hop for proto/host only. Rate limits use TCP peerAddress, not req.ip / X-Forwarded-For.
+  app.set("trust proxy", 1);
   const PORT = Number(process.env.PORT) || 3000;
 
   const uploadsDir = resolveUploadsDir();
@@ -334,22 +445,9 @@ async function startServer() {
     );
   }
   console.log(`Uploads directory: ${uploadsDir}`);
-  const uploadStorage = multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, uploadsDir),
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname) || ".jpg";
-      cb(null, `${Date.now()}-${randomBytes(8).toString("hex")}${ext}`);
-    },
-  });
   const upload = multer({
-    storage: uploadStorage,
-    limits: { fileSize: 25 * 1024 * 1024 },
-    fileFilter: (_req, file, cb) => {
-      const ok =
-        /^image\/(jpeg|png|webp|gif)$/i.test(file.mimetype) ||
-        /^video\/(mp4|webm|quicktime)$/i.test(file.mimetype);
-      cb(null, ok);
-    },
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 25 * 1024 * 1024, files: 1 },
   });
 
   app.use(express.json());
@@ -472,7 +570,10 @@ async function startServer() {
     }
   });
 
-  app.post("/api/public/register", async (req, res) => {
+  app.post(
+    "/api/public/register",
+    registerRateLimit,
+    async (req, res) => {
     const { full_name, username, password, phone } = req.body;
     if (!full_name || !username || !password || !phone) {
       res.status(400).json({ error: "Ad soyad, login, parol və telefon tələb olunur" });
@@ -532,9 +633,10 @@ async function startServer() {
       console.error(e);
       res.status(400).json({ error: "Qeydiyyat tamamlanmadı" });
     }
-  });
+    }
+  );
 
-  app.post("/api/admin/login", async (req, res) => {
+  app.post("/api/admin/login", loginRateLimit, async (req, res) => {
     const username = String(req.body?.username ?? "").trim();
     const password = String(req.body?.password ?? "").trim();
     const user = await authenticateTableUser("admin_users", username, password);
@@ -554,7 +656,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/restaurant/login", async (req, res) => {
+  app.post("/api/restaurant/login", loginRateLimit, async (req, res) => {
     const username = String(req.body?.username ?? "").trim();
     const password = String(req.body?.password ?? "").trim();
     const row = await authenticateTableUser("restaurant_users", username, password);
@@ -620,21 +722,59 @@ async function startServer() {
     res.json({ success: true });
   });
 
-  app.post("/api/upload", upload.single("file"), (req, res) => {
-    const s = getSession(req);
-    if (!s) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
+  app.post(
+    "/api/upload",
+    (req, res, next) => {
+      const s = getSession(req);
+      if (!s) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+      (req as express.Request & { staffSession?: Session }).staffSession = s;
+      next();
+    },
+    (req, res, next) => {
+      upload.single("file")(req, res, (err) => {
+        if (err) {
+          res.status(400).json({ error: "Media faylı etibarsızdır" });
+          return;
+        }
+        next();
+      });
+    },
+    (req, res) => {
+      const s = (req as express.Request & { staffSession?: Session }).staffSession;
+      if (!s) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+      const file = req.file;
+      if (!file?.buffer) {
+        res
+          .status(400)
+          .json({ error: "Media faylı tələb olunur (JPEG, PNG, WebP, GIF, MP4, WebM, MOV)" });
+        return;
+      }
+      const sniffed = sniffUpload(file.buffer);
+      if (!sniffed) {
+        res.status(400).json({ error: "Media faylı etibarsızdır" });
+        return;
+      }
+      const folder = s.kind === "restaurant" ? String(s.restaurantId) : "admin";
+      const destDir = path.join(uploadsDir, folder);
+      fs.mkdirSync(destDir, { recursive: true });
+      const name = `${Date.now()}-${randomBytes(8).toString("hex")}.${sniffed.ext}`;
+      const dest = path.join(destDir, name);
+      try {
+        fs.writeFileSync(dest, file.buffer);
+      } catch {
+        res.status(500).json({ error: "Yükləmə uğursuz oldu" });
+        return;
+      }
+      const rel = `/uploads/${folder}/${name}`;
+      res.json({ url: resolveAssetUrl(rel, req), path: rel });
     }
-    if (!req.file) {
-      res
-        .status(400)
-        .json({ error: "Media faylı tələb olunur (JPEG, PNG, WebP, GIF, MP4, WebM, MOV)" });
-      return;
-    }
-    const rel = `/uploads/${req.file.filename}`;
-    res.json({ url: resolveAssetUrl(rel, req), path: rel });
-  });
+  );
 
   app.put("/api/admin/restaurants/:id/profile", async (req, res) => {
     const id = Number(req.params.id);
@@ -1289,12 +1429,15 @@ async function startServer() {
       return res.status(403).json({ error: "Orders closed" });
     }
     const body = req.body as Record<string, unknown>;
-    const cart = Array.isArray(body.cart) ? body.cart : [];
     const deviceId = String(body.device_id || "").trim().slice(0, 120);
     const customerName = String(body.customer_name || "").trim().slice(0, 200);
     const customerPhone = String(body.customer_phone || "").trim().slice(0, 64);
-    if (!deviceId || cart.length === 0 || !customerName || !customerPhone) {
+    if (!deviceId || !customerName || !customerPhone) {
       return res.status(400).json({ error: "Missing required fields" });
+    }
+    const priced = await quoteGuestCart(Number(restaurant.id), body.cart);
+    if (priced.ok === false) {
+      return res.status(400).json({ error: priced.error });
     }
     const orderType = String(body.order_type || "pickup");
     const paymentMethod = String(body.payment_method || "cash");
@@ -1302,8 +1445,17 @@ async function startServer() {
     const addressText = String(body.address_text || "");
     const geoUrl = String(body.geo_url || "");
     const note = String(body.note || "");
-    const total = Number(body.total_amount || 0);
-    const payload = JSON.stringify(body);
+    const accessNonce = createOrderAccessNonce();
+    const accessExp = orderAccessExpiry();
+    const payload = JSON.stringify({
+      cart: priced.quoted,
+      items: priced.quoted.map((l) => ({ name: l.label, qty: l.qty })),
+      total_amount: priced.total,
+      note,
+      access_nonce: accessNonce,
+      access_exp: accessExp,
+      access_revoked: false,
+    });
     const ids = await db("menu_orders").insert({
       restaurant_id: restaurant.id,
       payload,
@@ -1317,7 +1469,7 @@ async function startServer() {
       address_text: addressText,
       geo_url: geoUrl,
       note,
-      total_amount: Number.isFinite(total) ? total : 0,
+      total_amount: priced.total,
     });
     const orderId = Number(Array.isArray(ids) ? ids[0] : ids);
     await db("order_status_logs").insert({
@@ -1327,11 +1479,21 @@ async function startServer() {
       to_status: "pending",
       actor: "system",
     });
+    const accessToken = issueOrderAccessToken({
+      restaurantId: Number(restaurant.id),
+      orderId,
+      deviceId,
+      nonce: accessNonce,
+      exp: accessExp,
+    });
     res.json({
       success: true,
+      access_token: accessToken,
+      access_exp: accessExp,
       order: {
         id: orderId,
         status: "pending",
+        total_amount: priced.total,
       },
       message: "Sifarişiniz qeydə alındı. Ən qısa zamanda sizinlə əlaqə saxlanılacaq",
     });
@@ -1340,18 +1502,74 @@ async function startServer() {
   app.get("/api/restaurants/:slug/orders", async (req, res) => {
     const restaurant = await db("restaurants").where({ slug: req.params.slug }).first();
     if (!restaurant) return res.status(404).json({ error: "Not found" });
-    const deviceId = String(req.query.device_id || "").trim().slice(0, 120);
-    if (!deviceId) return res.status(400).json({ error: "device_id is required" });
+    const headerTokens = splitOrderAccessHeader(req.headers["x-order-access"]);
+    if (headerTokens.length === 0) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const authorizedIds: number[] = [];
+    let sawForged = false;
+    for (const raw of headerTokens) {
+      const claims = parseOrderAccessToken(raw);
+      if (!claims || claims.restaurantId !== Number(restaurant.id)) {
+        sawForged = true;
+        break;
+      }
+      if (tokenExpired(claims.exp)) continue;
+      const row = await db("menu_orders")
+        .where({ id: claims.orderId, restaurant_id: restaurant.id })
+        .first();
+      if (!row || String(row.device_id || "") !== claims.deviceId) {
+        sawForged = true;
+        break;
+      }
+      const stored = safeJsonParse(row.payload as string, {} as Record<string, unknown>);
+      if (stored.access_revoked === true || String(stored.access_nonce || "") !== claims.nonce) {
+        continue;
+      }
+      authorizedIds.push(Number(row.id));
+    }
+    if (sawForged || authorizedIds.length === 0) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
     const rows = await db("menu_orders")
-      .where({ restaurant_id: restaurant.id, device_id: deviceId })
-      .orderBy("id", "desc")
-      .limit(100);
-    res.json(
-      rows.map((row) => ({
-        ...row,
-        payload: safeJsonParse(row.payload as string, {}),
-      }))
-    );
+      .where({ restaurant_id: restaurant.id })
+      .whereIn("id", authorizedIds)
+      .orderBy("id", "desc");
+    res.json(rows.map((row) => publicGuestOrderDto(row as Record<string, unknown>)));
+  });
+
+  app.post("/api/restaurants/:slug/orders/:orderId/revoke", async (req, res) => {
+    const restaurant = await db("restaurants").where({ slug: req.params.slug }).first();
+    if (!restaurant) return res.status(404).json({ error: "Not found" });
+    const tokens = splitOrderAccessHeader(req.headers["x-order-access"]);
+    const orderId = Number(req.params.orderId);
+    if (!tokens.length || !Number.isInteger(orderId) || orderId < 1) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const claims = parseOrderAccessToken(tokens[0]);
+    if (
+      !claims ||
+      claims.orderId !== orderId ||
+      claims.restaurantId !== Number(restaurant.id) ||
+      tokenExpired(claims.exp)
+    ) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const row = await db("menu_orders")
+      .where({ id: orderId, restaurant_id: restaurant.id })
+      .first();
+    if (!row || String(row.device_id || "") !== claims.deviceId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    const stored = safeJsonParse(row.payload as string, {} as Record<string, unknown>);
+    if (String(stored.access_nonce || "") !== claims.nonce) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    stored.access_revoked = true;
+    await db("menu_orders")
+      .where({ id: orderId, restaurant_id: restaurant.id })
+      .update({ payload: JSON.stringify(stored) });
+    res.json({ success: true });
   });
 
   app.get("/api/admin/restaurants/:id/menu", async (req, res) => {
@@ -2030,7 +2248,11 @@ async function startServer() {
         const plan = rest.subscription_plan_id
           ? await db("subscription_plans").where({ id: rest.subscription_plan_id }).first()
           : null;
-        return { restaurant: rest, user, plan };
+        return {
+          restaurant: rest,
+          user: ownerAccountUserDto(user as Record<string, unknown> | undefined),
+          plan,
+        };
       })
     );
     res.json(rows);
@@ -2297,7 +2519,13 @@ async function startServer() {
     if (!row) return res.status(404).json({ error: "Not found" });
     const fromStatus = String(row.status || "pending");
     const nextStatus = status === "accepted" ? "pending" : status;
-    await db("menu_orders").where({ id: orderId }).update({ status: nextStatus });
+    const statusPatch: Record<string, unknown> = { status: nextStatus };
+    if (nextStatus === "cancelled") {
+      const stored = safeJsonParse(row.payload as string, {} as Record<string, unknown>);
+      stored.access_revoked = true;
+      statusPatch.payload = JSON.stringify(stored);
+    }
+    await db("menu_orders").where({ id: orderId }).update(statusPatch);
     await db("order_status_logs").insert({
       order_id: orderId,
       restaurant_id: id,

@@ -42,6 +42,8 @@ const pub = await fetch(`${BASE}/api/restaurants/demo-az-menu?preview=true`);
 const menu = await pub.json();
 const saved = JSON.parse(menu.menu_appearance_json || "{}");
 console.log("public primary", saved.overridesByTemplate?.["bistro-rail"]?.colors?.primary);
+const product = (menu.products || []).find((p) => p?.id);
+const variant = product?.variants?.[0];
 
 const order = await fetch(`${BASE}/api/restaurants/demo-az-menu/orders`, {
   method: "POST",
@@ -56,15 +58,15 @@ const order = await fetch(`${BASE}/api/restaurants/demo-az-menu/orders`, {
     address_text: "",
     geo_url: "",
     note: "QA isolated skin test",
-    total_amount: 9.5,
+    total_amount: 0.01,
     cart: [
       {
         line_id: "qa-1",
-        product_id: 4,
-        label: "QA Düşbərə",
-        variant_id: null,
+        product_id: product?.id,
+        label: product?.name || "QA Dish",
+        variant_id: variant?.id ?? null,
         qty: 1,
-        unit_price: 9.5,
+        unit_price: 0.01,
         note: "QA test qeydi",
       },
     ],

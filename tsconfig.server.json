@@ -23,7 +23,8 @@
     "demoMenuSeed.ts",
     "demaeMenuSeed.ts",
     "demaeProductImages.ts",
-    "demaeSeedRunner.ts"
+    "demaeSeedRunner.ts",
+    "requestSecurity.ts"
   ],
   "exclude": ["node_modules", "src", "dist"]
 }
