@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "tsx server.ts",
+    "prebuild": "npm ci --include=dev",
     "build": "vite build && tsc -p tsconfig.server.json",
     "build:hostinger": "npm ci --include=dev && npm run build",
     "preview": "vite preview",
