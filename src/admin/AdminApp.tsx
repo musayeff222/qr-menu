@@ -295,6 +295,13 @@ function AdminLayoutShell() {
           <button
             type="button"
             onClick={() => {
+              const token = localStorage.getItem("adminSession");
+              if (token) {
+                void fetch("/api/auth/logout", {
+                  method: "POST",
+                  headers: { Authorization: `Bearer ${token}` },
+                }).catch(() => undefined);
+              }
               localStorage.removeItem("adminSession");
               localStorage.removeItem("adminUser");
               nav("/admin-login-page", { replace: true });

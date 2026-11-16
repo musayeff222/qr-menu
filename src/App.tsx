@@ -842,6 +842,13 @@ const RestaurantPanel = () => {
   };
 
   const staffLogout = () => {
+    const token = localStorage.getItem("restaurantSession");
+    if (token) {
+      void fetch("/api/auth/logout", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => undefined);
+    }
     localStorage.removeItem("restaurantSession");
     localStorage.removeItem("restaurantId");
     navigate("/panel");

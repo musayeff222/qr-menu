@@ -76,6 +76,26 @@ export function registerRateLimit(req: Request, res: Response, next: NextFunctio
   next();
 }
 
+/** Guest order spam shield. TCP peer only (no XFF). */
+const ORDER_WINDOW_MS = 15 * 60 * 1000;
+
+export function guestOrderRateLimit(req: Request, res: Response, next: NextFunction) {
+  const peer = peerAddress(req);
+  const slug = String(req.params?.slug ?? "")
+    .trim()
+    .toLowerCase()
+    .slice(0, 64);
+  if (slug && hit(`order-slug-peer:${slug}:${peer}`, ORDER_WINDOW_MS, 30)) {
+    res.status(429).json(GENERIC_429);
+    return;
+  }
+  if (hit(`order-peer:${peer}`, ORDER_WINDOW_MS, 60)) {
+    res.status(429).json(GENERIC_429);
+    return;
+  }
+  next();
+}
+
 export function assertOrderAccessSecretConfigured(): void {
   const raw = String(process.env.ORDER_ACCESS_SECRET ?? "").trim();
   if (!raw || Buffer.byteLength(raw, "utf8") < MIN_SECRET_BYTES || WEAK_SECRETS.has(raw.toLowerCase())) {

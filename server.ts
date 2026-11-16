@@ -20,6 +20,7 @@ import {
   assertOrderAccessSecretConfigured,
   centsToMoney,
   createOrderAccessNonce,
+  guestOrderRateLimit,
   isValidStudioPreviewTicket,
   issueOrderAccessToken,
   issueStudioPreviewTicket,
@@ -87,10 +88,11 @@ function useProductionStatic(): boolean {
 }
 
 const SESSION_MS = 7 * 24 * 60 * 60 * 1000;
+const IMPERSONATE_SESSION_MS = 60 * 60 * 1000;
 
 type Session =
   | { kind: "super"; userId: number; username: string }
-  | { kind: "restaurant"; restaurantId: number; username: string };
+  | { kind: "restaurant"; restaurantId: number; username: string; impersonatedBy?: string };
 
 const sessions = new Map<string, { session: Session; expires: number }>();
 
@@ -98,10 +100,15 @@ function createSessionToken(): string {
   return randomBytes(32).toString("hex");
 }
 
-function storeSession(session: Session): string {
+function storeSession(session: Session, ttlMs: number = SESSION_MS): string {
   const token = createSessionToken();
-  sessions.set(token, { session, expires: Date.now() + SESSION_MS });
+  sessions.set(token, { session, expires: Date.now() + ttlMs });
   return token;
+}
+
+function revokeSessionToken(token: string | null | undefined): boolean {
+  if (!token) return false;
+  return sessions.delete(token);
 }
 
 function getBearer(req: express.Request): string | null {
@@ -413,6 +420,68 @@ function publicGuestOrderDto(row: Record<string, unknown>) {
   };
 }
 
+/** Public QR menu restaurant payload — no subscription / analytics internals. */
+function publicRestaurantDto(
+  restaurant: Record<string, unknown>,
+  req: express.Request
+): Record<string, unknown> {
+  const resolved = withResolvedImages(restaurant, req, ["logo_url", "cover_image_url"]);
+  const pick = (key: string) => (key in resolved ? resolved[key] : undefined);
+  return {
+    id: pick("id"),
+    name: pick("name"),
+    slug: pick("slug"),
+    logo_url: pick("logo_url"),
+    cover_image_url: pick("cover_image_url"),
+    primary_color: pick("primary_color"),
+    whatsapp_number: pick("whatsapp_number"),
+    theme: pick("theme"),
+    is_active: pick("is_active"),
+    menu_template: pick("menu_template"),
+    tagline: pick("tagline"),
+    maps_url: pick("maps_url"),
+    phone: pick("phone"),
+    reservation_url: pick("reservation_url"),
+    instagram: pick("instagram"),
+    tiktok: pick("tiktok"),
+    facebook: pick("facebook"),
+    social_instagram_visible: pick("social_instagram_visible"),
+    social_tiktok_visible: pick("social_tiktok_visible"),
+    social_facebook_visible: pick("social_facebook_visible"),
+    opening_hours: pick("opening_hours"),
+    strict_opening_hours: pick("strict_opening_hours"),
+    menu_appearance_json: pick("menu_appearance_json"),
+  };
+}
+
+function isAllowedQrTargetUrl(raw: string, req: express.Request): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+  const allowedHostnames = new Set<string>();
+  const envBase = publicBaseUrl();
+  if (envBase) {
+    try {
+      allowedHostnames.add(new URL(envBase).hostname.toLowerCase());
+    } catch {
+      /* ignore bad APP_URL */
+    }
+  }
+  const reqHost = req.get("host");
+  if (reqHost) {
+    try {
+      allowedHostnames.add(new URL(`http://${reqHost}`).hostname.toLowerCase());
+    } catch {
+      allowedHostnames.add(reqHost.split(":")[0].toLowerCase());
+    }
+  }
+  return allowedHostnames.has(parsed.hostname.toLowerCase());
+}
+
 async function startServer() {
   console.log("Starting server initialization...");
   try {
@@ -453,9 +522,23 @@ async function startServer() {
     limits: { fileSize: 25 * 1024 * 1024, files: 1 },
   });
 
+  app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    next();
+  });
+
   app.use(express.json());
   app.use("/uploads", express.static(uploadsDir));
   console.log("Express middleware configured.");
+
+  app.post("/api/auth/logout", (req, res) => {
+    const token = getBearer(req);
+    revokeSessionToken(token);
+    res.json({ success: true });
+  });
 
   app.post("/api/public/analytics/ping", async (req, res) => {
     try {
@@ -1152,12 +1235,15 @@ async function startServer() {
 
   app.get("/api/qrcode", async (req, res) => {
     const { url } = req.query;
-    if (!url) return res.status(400).send("URL required");
+    if (!url || typeof url !== "string") return res.status(400).json({ error: "URL required" });
+    if (!isAllowedQrTargetUrl(url, req)) {
+      return res.status(400).json({ error: "URL not allowed" });
+    }
     try {
-      const qrDataUrl = await QRCode.toDataURL(url as string);
+      const qrDataUrl = await QRCode.toDataURL(url);
       res.json({ qrDataUrl });
-    } catch (err) {
-      res.status(500).send("Error generating QR code");
+    } catch {
+      res.status(500).json({ error: "Error generating QR code" });
     }
   });
 
@@ -1405,10 +1491,7 @@ async function startServer() {
 
     const orders_allowed = ordersAllowedForRestaurant(restaurant);
 
-    const restaurantOut = withResolvedImages(restaurant as Record<string, unknown>, req, [
-      "logo_url",
-      "cover_image_url",
-    ]);
+    const restaurantOut = publicRestaurantDto(restaurant as Record<string, unknown>, req);
     const mediaOut = media_assets.map((a) =>
       withResolvedImages(a as Record<string, unknown>, req, ["url"])
     );
@@ -1441,7 +1524,7 @@ async function startServer() {
     res.json({ ticket, exp, slug: restaurant.slug });
   });
 
-  app.post("/api/restaurants/:slug/orders", async (req, res) => {
+  app.post("/api/restaurants/:slug/orders", guestOrderRateLimit, async (req, res) => {
     const restaurant = await db("restaurants").where({ slug: req.params.slug }).first();
     if (!restaurant) return res.status(404).json({ error: "Not found" });
     const body = (req.body && typeof req.body === "object" ? req.body : {}) as Record<string, unknown>;
@@ -1887,6 +1970,16 @@ async function startServer() {
     } = req.body;
     const rid = Number(restaurant_id);
     if (!requireRestaurantOrSuper(req, res, rid)) return;
+    const cid = Number(category_id);
+    if (!Number.isFinite(cid) || cid <= 0) {
+      res.status(400).json({ error: "Invalid category" });
+      return;
+    }
+    const cat = await db("categories").where({ id: cid, restaurant_id: rid }).first();
+    if (!cat) {
+      res.status(400).json({ error: "Category not found for restaurant" });
+      return;
+    }
     const { plan } = await getRestaurantWithPlan(rid);
     if (plan && Number(plan.max_products) >= 0) {
       const c = await countWhere("products", { restaurant_id: rid });
@@ -1897,7 +1990,7 @@ async function startServer() {
     }
     const [pid] = await db("products").insert({
       restaurant_id: rid,
-      category_id,
+      category_id: cid,
       name,
       description,
       price,
@@ -1932,12 +2025,13 @@ async function startServer() {
     const cat = await db("categories").where({ id: req.params.id }).first();
     if (!cat) return res.status(404).json({ error: "Not found" });
     if (!requireRestaurantOrSuper(req, res, cat.restaurant_id)) return;
-    const pids = (await db("products").where({ category_id: cat.id }).select("id")).map(
-      (r) => r.id
-    );
+    const rid = Number(cat.restaurant_id);
+    const pids = (
+      await db("products").where({ category_id: cat.id, restaurant_id: rid }).select("id")
+    ).map((r) => r.id);
     if (pids.length) await db("product_variants").whereIn("product_id", pids).delete();
-    await db("products").where({ category_id: cat.id }).delete();
-    await db("categories").where({ id: cat.id }).delete();
+    await db("products").where({ category_id: cat.id, restaurant_id: rid }).delete();
+    await db("categories").where({ id: cat.id, restaurant_id: rid }).delete();
     res.json({ success: true });
   });
 
@@ -2531,12 +2625,22 @@ async function startServer() {
       res.status(404).json({ error: "Restoran işçisi yoxdur" });
       return;
     }
-    const token = storeSession({
-      kind: "restaurant",
-      restaurantId,
-      username: ru.username as string,
-    });
-    res.json({ token, restaurantId });
+    const admin = getSession(req);
+    const adminName =
+      admin && admin.kind === "super" ? String(admin.username || "super") : "super";
+    const token = storeSession(
+      {
+        kind: "restaurant",
+        restaurantId,
+        username: ru.username as string,
+        impersonatedBy: adminName,
+      },
+      IMPERSONATE_SESSION_MS
+    );
+    console.info(
+      `[audit] impersonate restaurantId=${restaurantId} by=${adminName} ttlSec=${IMPERSONATE_SESSION_MS / 1000}`
+    );
+    res.json({ token, restaurantId, expires_in_sec: IMPERSONATE_SESSION_MS / 1000 });
   });
 
   app.get("/api/admin/restaurants/:id/orders", async (req, res) => {
