@@ -19,8 +19,8 @@ test("THEME_PRESETS meet WCAG AA for text and button pairs", () => {
   }
 });
 
-test("30 skin default palettes meet WCAG AA", () => {
-  expect(SKIN_CATALOG.length).toBe(30);
+test("3 skin default palettes meet WCAG AA", () => {
+  expect(SKIN_CATALOG.length).toBe(3);
   for (const skin of SKIN_CATALOG) {
     assertAa(`skin ${skin.id}`, skin.defaults);
   }

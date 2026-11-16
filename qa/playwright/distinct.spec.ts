@@ -41,7 +41,12 @@ test("layout fingerprints are unique per skin", async () => {
 test("overflow records exist for every skin × viewport", async () => {
   const dir = path.resolve("qa/playwright/overflows");
   const expected = SKIN_IDS.length * VIEWPORTS.length;
-  const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith(".json")) : [];
+  const files = fs.existsSync(dir)
+    ? fs.readdirSync(dir).filter((f) => {
+        if (!f.endsWith(".json")) return false;
+        return SKIN_IDS.some((id) => f.startsWith(`${id}__`));
+      })
+    : [];
   expect(files.length, `overflow shards ${files.length}/${expected}`).toBe(expected);
   const merged: Record<string, number> = {};
   for (const file of files) {

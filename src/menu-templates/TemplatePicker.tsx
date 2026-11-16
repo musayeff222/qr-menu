@@ -3,16 +3,10 @@ import { motion } from "motion/react";
 import { Eye, Check, Sparkles, MonitorSmartphone } from "lucide-react";
 import type { MenuTemplateDef, TemplateCategory } from "./types";
 import { MENU_TEMPLATES } from "./registry";
+import { studioPreviewPath } from "./studioPreview";
 import { cn } from "./cn";
 
-const CATEGORY_ORDER: TemplateCategory[] = [
-  "Bistro",
-  "Cafe",
-  "QSR",
-  "Street",
-  "Fine dining",
-  "Night",
-];
+const CATEGORY_ORDER: TemplateCategory[] = ["QSR", "Cafe", "Bistro"];
 
 export interface TemplatePickerProps {
   restaurantSlug: string;
@@ -30,6 +24,8 @@ export interface TemplatePickerProps {
   /** studio: önizləməyə sabitlənmiş şablon id */
   pinnedPreviewId?: string | null;
   onPinPreview?: (templateId: string) => void;
+  /** studio: real QR menyu overlay (save etmədən) */
+  onLivePreview?: (templateId: string) => void;
   t?: (key: string) => string;
 }
 
@@ -50,6 +46,7 @@ export function TemplatePicker({
   mode = "default",
   pinnedPreviewId = null,
   onPinPreview,
+  onLivePreview,
   t: tProp,
 }: TemplatePickerProps) {
   const t = (key: string, fallback: string) => tProp?.(key) || fallback;
@@ -108,11 +105,13 @@ export function TemplatePicker({
               {allTemplates.length}
             </span>
           </button>
-          {CATEGORY_ORDER.map((c) => (
-            <button key={c} type="button" onClick={() => setFilter(c)} className={pill(filter === c)}>
-              {c}
-            </button>
-          ))}
+          {allTemplates.length > 4
+            ? CATEGORY_ORDER.map((c) => (
+                <button key={c} type="button" onClick={() => setFilter(c)} className={pill(filter === c)}>
+                  {c}
+                </button>
+              ))
+            : null}
         </div>
       </div>
 
@@ -185,7 +184,10 @@ export function TemplatePicker({
                   <>
                     <button
                       type="button"
-                      onClick={() => onPinPreview?.(tpl.id)}
+                      onClick={() => {
+                        onPinPreview?.(tpl.id);
+                        onLivePreview?.(tpl.id);
+                      }}
                       className={cn(
                         "inline-flex flex-1 items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors",
                         pinnedPreviewId === tpl.id
@@ -207,13 +209,13 @@ export function TemplatePicker({
                       )}
                     >
                       <Check size={16} strokeWidth={2.25} />
-                      {selectedId === tpl.id ? t("picker_selected", "Seçildi") : t("picker_select", "Seç")}
+                      {selectedId === tpl.id ? t("picker_selected", "Seçildi") : t("picker_select", "Bu dizaynı seç")}
                     </button>
                   </>
                 ) : (
                   <>
                     <a
-                      href={`/r/${encodeURIComponent(restaurantSlug)}?preview=true&previewTemplate=${encodeURIComponent(tpl.id)}`}
+                      href={studioPreviewPath(restaurantSlug, tpl.id)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={cn(
@@ -235,7 +237,7 @@ export function TemplatePicker({
                       )}
                     >
                       <Check size={16} strokeWidth={2.25} />
-                      {selectedId === tpl.id ? t("picker_selected", "Seçildi") : t("picker_select", "Seç")}
+                      {selectedId === tpl.id ? t("picker_selected", "Seçildi") : t("picker_select", "Bu dizaynı seç")}
                     </button>
                   </>
                 )}

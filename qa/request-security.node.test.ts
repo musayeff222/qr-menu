@@ -4,10 +4,13 @@ import {
   assertOrderAccessSecretConfigured,
   createOrderAccessNonce,
   issueOrderAccessToken,
+  issueStudioPreviewTicket,
+  isValidStudioPreviewTicket,
   moneyToCents,
   centsToMoney,
   parseCartLines,
   parseOrderAccessToken,
+  parseStudioPreviewTicket,
   sniffUpload,
   tokenExpired,
 } from "../requestSecurity.js";
@@ -66,6 +69,29 @@ test("HMAC v2 token is bound to order, restaurant, device, nonce", () => {
 test("token expiry helper", () => {
   assert.equal(tokenExpired(Math.floor(Date.now() / 1000) - 1), true);
   assert.equal(tokenExpired(Math.floor(Date.now() / 1000) + 60), false);
+  const now = 1_700_000_000_000;
+  assert.equal(tokenExpired(1_700_000_000, now), true);
+  assert.equal(tokenExpired(1_700_000_001, now), false);
+});
+
+test("studio preview ticket is HMAC-bound to restaurant and expires", () => {
+  process.env.ORDER_ACCESS_SECRET = SECRET;
+  const exp = Math.floor(Date.now() / 1000) + 600;
+  const ticket = issueStudioPreviewTicket({ restaurantId: 7, slug: "Demo-AZ", exp });
+  const parsed = parseStudioPreviewTicket(ticket);
+  assert.ok(parsed);
+  assert.equal(parsed!.restaurantId, 7);
+  assert.equal(parsed!.slug, "demo-az");
+  assert.equal(isValidStudioPreviewTicket(ticket, { id: 7, slug: "demo-az" }), true);
+  assert.equal(isValidStudioPreviewTicket(ticket, { id: 8, slug: "demo-az" }), false);
+  assert.equal(isValidStudioPreviewTicket(ticket, { id: 7, slug: "other" }), false);
+  assert.equal(parseStudioPreviewTicket(ticket.slice(0, -2) + "ff"), null);
+  const expired = issueStudioPreviewTicket({
+    restaurantId: 7,
+    slug: "demo-az",
+    exp: Math.floor(Date.now() / 1000) - 5,
+  });
+  assert.equal(isValidStudioPreviewTicket(expired, { id: 7, slug: "demo-az" }), false);
 });
 
 test("cart parser rejects empty, huge qty, and non-integer ids", () => {

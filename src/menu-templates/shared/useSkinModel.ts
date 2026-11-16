@@ -105,7 +105,12 @@ export function useSkinModel(props: GuestSkinProps) {
     return () => window.removeEventListener("message", onMsg);
   }, [template.id, meta.defaults]);
 
-  const tokens: SkinColorTokens = previewTokens || saved.overridesByTemplate[template.id]?.colors || meta.defaults;
+  const savedId = remapLegacyTemplateId(template.id);
+  const tokens: SkinColorTokens =
+    previewTokens ||
+    saved.overridesByTemplate[savedId]?.colors ||
+    saved.overridesByTemplate[template.id]?.colors ||
+    meta.defaults;
   const cssVars = tokensToCssVars(tokens);
   const readable = contrastRatio(tokens.text, tokens.background) >= 3;
 
@@ -135,6 +140,7 @@ export function useSkinModel(props: GuestSkinProps) {
   const allowWa = planFeatures?.whatsapp_order !== false;
   const allowRes = planFeatures?.reservation !== false;
   const reservationUrl = String(restaurant.reservation_url || "");
+  const openingHours = String(restaurant.opening_hours || "");
   const canOrder = allowWa && ordersAllowed;
 
   const q = query.trim().toLowerCase();
@@ -216,6 +222,7 @@ export function useSkinModel(props: GuestSkinProps) {
     allowWa,
     allowRes,
     reservationUrl,
+    openingHours,
     canOrder,
     ordersAllowed,
     ordersClosedHint,

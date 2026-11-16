@@ -267,7 +267,9 @@ test("phase2 isolated: per-order token, expiry, revoke, XFF cannot bypass", { ti
   });
   assert.equal(goodLogin.status, 200, goodLogin.text);
 
-  const expProc = spawnServer({ ORDER_ACCESS_TTL_SEC: "1" });
+  // Deterministic expiry: wait until the token's own `exp` claim is past
+  // (fixed sleep was flaky when clock/TTL boundary landed near the wait window).
+  const expProc = spawnServer({ ORDER_ACCESS_TTL_SEC: "2" });
   await waitReady(expProc);
   const e = await bootRestaurant(expProc.port, `p2e${stamp}`, "Phase2RestE!1");
   const short = await req(expProc.port, "POST", `/api/restaurants/${e.restaurant.slug}/orders`, {
@@ -280,7 +282,15 @@ test("phase2 isolated: per-order token, expiry, revoke, XFF cannot bypass", { ti
   });
   assert.equal(short.status, 200, short.text);
   const shortTok = String(short.data.access_token);
-  await new Promise((r) => setTimeout(r, 2200));
+  process.env.ORDER_ACCESS_SECRET = ISOLATED_ORDER_ACCESS_SECRET;
+  const { parseOrderAccessToken, tokenExpired } = await import("../requestSecurity.js");
+  const claims = parseOrderAccessToken(shortTok);
+  assert.ok(claims, "short-lived token must parse");
+  const deadline = claims!.exp * 1000 + 400;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  assert.equal(tokenExpired(claims!.exp), true, "token must be expired before GET");
   const expired = await req(expProc.port, "GET", `/api/restaurants/${e.restaurant.slug}/orders`, {
     headers: { "X-Order-Access": shortTok },
   });

@@ -20,7 +20,9 @@ import {
   assertOrderAccessSecretConfigured,
   centsToMoney,
   createOrderAccessNonce,
+  isValidStudioPreviewTicket,
   issueOrderAccessToken,
+  issueStudioPreviewTicket,
   loginRateLimit,
   moneyToCents,
   orderAccessExpiry,
@@ -29,6 +31,7 @@ import {
   registerRateLimit,
   sniffUpload,
   splitOrderAccessHeader,
+  studioPreviewExpiry,
   tokenExpired,
   type QuotedLine,
 } from "./requestSecurity.js";
@@ -1410,6 +1413,8 @@ async function startServer() {
       withResolvedImages(a as Record<string, unknown>, req, ["url"])
     );
 
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
     res.json({
       ...restaurantOut,
       plan_features,
@@ -1421,14 +1426,53 @@ async function startServer() {
     });
   });
 
+  /** Signed studio preview ticket — only restaurant session / super can mint. */
+  app.post("/api/admin/restaurants/:id/studio-preview-ticket", async (req, res) => {
+    const id = Number(req.params.id);
+    if (!requireRestaurantOrSuper(req, res, id)) return;
+    const restaurant = await db("restaurants").where({ id }).first();
+    if (!restaurant) return res.status(404).json({ error: "Not found" });
+    const exp = studioPreviewExpiry();
+    const ticket = issueStudioPreviewTicket({
+      restaurantId: id,
+      slug: String(restaurant.slug || ""),
+      exp,
+    });
+    res.json({ ticket, exp, slug: restaurant.slug });
+  });
+
   app.post("/api/restaurants/:slug/orders", async (req, res) => {
     const restaurant = await db("restaurants").where({ slug: req.params.slug }).first();
     if (!restaurant) return res.status(404).json({ error: "Not found" });
+    const body = (req.body && typeof req.body === "object" ? req.body : {}) as Record<string, unknown>;
+    const previewTicket = String(
+      req.query.pt || req.headers["x-menugo-preview-ticket"] || body.preview_ticket || ""
+    ).trim();
+    if (
+      previewTicket &&
+      isValidStudioPreviewTicket(previewTicket, {
+        id: Number(restaurant.id),
+        slug: String(restaurant.slug || ""),
+      })
+    ) {
+      return res.status(403).json({
+        error: "Preview only — order not created",
+        code: "PREVIEW_READONLY",
+      });
+    }
+    const previewHeader = String(req.headers["x-menugo-preview"] || "").toLowerCase();
+    const previewQuery = String(req.query.studioPreview ?? "") === "1";
+    const previewBody = String(body.preview_mode || "").toLowerCase();
+    if (previewHeader === "studio" || previewQuery || previewBody === "studio") {
+      return res.status(403).json({
+        error: "Preview only — order not created",
+        code: "PREVIEW_READONLY",
+      });
+    }
     if (!restaurant.is_active) return res.status(403).json({ error: "Restaurant inactive" });
     if (!ordersAllowedForRestaurant(restaurant)) {
       return res.status(403).json({ error: "Orders closed" });
     }
-    const body = req.body as Record<string, unknown>;
     const deviceId = String(body.device_id || "").trim().slice(0, 120);
     const customerName = String(body.customer_name || "").trim().slice(0, 200);
     const customerPhone = String(body.customer_phone || "").trim().slice(0, 64);

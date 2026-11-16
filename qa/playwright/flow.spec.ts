@@ -69,6 +69,7 @@ for (const skin of SKIN_IDS) {
     }
     expect(await checkout.count(), `${skin} checkout control`).toBeGreaterThan(0);
     await checkout.first().click();
+    await expect(page.locator('[data-checkout="full"]')).toBeVisible();
     await expect(page.getByRole("button", { name: /Məkandan götür|Pickup/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /Çatdırılma|Delivery/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /Web sayt|Website/i })).toBeVisible();

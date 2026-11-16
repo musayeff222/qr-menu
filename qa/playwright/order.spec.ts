@@ -70,7 +70,7 @@ test("orders_allowed=false disables add-to-cart", async ({ page }) => {
     });
   });
   await page.setViewportSize({ width: 375, height: 812 });
-  await openSkin(page, "bistro-split");
+  await openSkin(page, "bella-classic");
   const add = page.getByRole("button", { name: /Əlavə et/i }).first();
   await expect(add).toBeDisabled();
   const before = await page.locator("[data-skin]").innerText();
@@ -83,7 +83,7 @@ test("orders_allowed=false disables add-to-cart", async ({ page }) => {
   expect(before.length).toBeGreaterThan(0);
 });
 
-test("lazy chunk: visiting one skin does not fetch all 30 Skin-*.js", async ({ page }) => {
+test("lazy chunk: visiting one skin does not fetch all Skin-*.js", async ({ page }) => {
   const skinChunks: string[] = [];
   page.on("response", (res) => {
     const url = res.url();
@@ -91,7 +91,7 @@ test("lazy chunk: visiting one skin does not fetch all 30 Skin-*.js", async ({ p
   });
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto(`/r/${DEMO_SLUG}?preview=true&previewTemplate=bistro-rail`);
-  await page.locator('[data-skin="bistro-rail"]').waitFor();
+  await page.locator('[data-skin="bella-classic"]').waitFor();
   await page.waitForTimeout(1500);
   const unique = [...new Set(skinChunks)];
   expect(unique.length, unique.join("\n")).toBeLessThanOrEqual(2);

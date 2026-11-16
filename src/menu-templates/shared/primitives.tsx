@@ -401,6 +401,7 @@ export function SkinChrome({ m, children }: { m: SkinModel; children: React.Reac
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      if (document.querySelector('[data-checkout="full"]')) return;
       if (m.noteLineId) m.setNoteLineId(null);
       else if (m.variantPick) m.setVariantPick(null);
       else if (m.detail) m.setDetail(null);

@@ -27,7 +27,7 @@ for (const skin of SKIN_IDS) {
   });
 }
 
-const LANG_SAMPLES: SkinId[] = ["bistro-split", "menu-paper", "neon-snap"];
+const LANG_SAMPLES: SkinId[] = ["fastfood-pro", "ocean-modern", "bella-classic"];
 
 for (const skin of LANG_SAMPLES) {
   test(`${skin} EN/RU/TR add + cart labels`, async ({ page }) => {

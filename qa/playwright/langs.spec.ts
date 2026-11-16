@@ -74,10 +74,10 @@ for (const lang of LANGS) {
     await page.waitForTimeout(300);
     await expect(page.locator("body")).not.toContainText("undefined");
 
-    await openSkin(page, "bistro-split");
+    await openSkin(page, "bella-classic");
     await page.locator('select[aria-label="Dil"]').first().selectOption(lang.id);
     await expect(page.getByRole("button", { name: lang.add }).first()).toBeVisible();
-    await page.locator("[data-skin] article button").filter({ hasText: /Plov/i }).first().click();
+    await page.getByRole("button", { name: /Plov/i }).first().click();
     await expect(page.getByRole("dialog").getByText(/Plov/i).first()).toBeVisible();
     await page.keyboard.press("Escape");
     await page.waitForTimeout(200);
@@ -85,6 +85,7 @@ for (const lang of LANGS) {
     await openCart(page);
     await expect(page.getByRole("button", { name: lang.checkout }).first()).toBeVisible();
     await page.getByRole("button", { name: lang.checkout }).first().click();
+    await expect(page.locator('[data-checkout="full"]')).toBeVisible();
     await expect(page.getByRole("button", { name: lang.pickup }).first()).toBeVisible();
   });
 }

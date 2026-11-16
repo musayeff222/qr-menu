@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import {
   GuestSkinLoader,
   resolveMenuTemplate,
+  DEFAULT_TEMPLATE_ID,
   type CartLine,
 } from "./menu-templates";
+import { CheckoutScreen, type CheckoutPhase } from "./menu-templates/shared/CheckoutScreen";
+import { readStudioPreviewTicket } from "./menu-templates/studioPreview";
 import { useI18nBundle } from "./i18n/bundleContext";
 import { orderStatusBadgeClass, orderStatusLabel } from "./lib/orderStatus";
 
@@ -31,6 +35,8 @@ export default function CustomerMenuView({
   demoMode = false,
 }: CustomerMenuViewProps) {
   const bundle = useI18nBundle();
+  const [searchParams] = useSearchParams();
+  const previewTicket = readStudioPreviewTicket(searchParams);
   const [data, setData] = useState<any>(null);
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -48,6 +54,8 @@ export default function CustomerMenuView({
   const [checkoutErr, setCheckoutErr] = useState("");
   const [checkoutOk, setCheckoutOk] = useState("");
   const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutPhase, setCheckoutPhase] = useState<CheckoutPhase>("form");
+  const [placedOrderId, setPlacedOrderId] = useState<number | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [ordersHistory, setOrdersHistory] = useState<any[]>([]);
   const [mapOpen, setMapOpen] = useState(false);
@@ -102,7 +110,10 @@ export default function CustomerMenuView({
 
   useEffect(() => {
     const qs = preview ? "?preview=true" : "";
-    fetch(`/api/restaurants/${encodeURIComponent(slug)}${qs}`)
+    fetch(`/api/restaurants/${encodeURIComponent(slug)}${qs}`, {
+      cache: "no-store",
+      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+    })
       .then((res) => res.json())
       .then((res) => {
         setData(res);
@@ -114,7 +125,7 @@ export default function CustomerMenuView({
 
   useEffect(() => {
     if (!data?.name) return;
-    const tid = previewTemplateId || data.menu_template || "bistro-rail";
+    const tid = previewTemplateId || data.menu_template || DEFAULT_TEMPLATE_ID;
     const tpl = resolveMenuTemplate(tid, data.custom_templates);
     document.title = `${data.name} · ${tpl.name}`;
     return () => {
@@ -125,7 +136,7 @@ export default function CustomerMenuView({
   useEffect(() => {
     if (!data) return;
     const tpl = resolveMenuTemplate(
-      previewTemplateId || data.menu_template || "bistro-rail",
+      previewTemplateId || data.menu_template || DEFAULT_TEMPLATE_ID,
       data.custom_templates
     );
     if (tpl.theme.renderMode === "smartweb") setOrderType("delivery");
@@ -136,10 +147,9 @@ export default function CustomerMenuView({
   const { categories, products, custom_templates, plan_features, orders_allowed, ...restaurantRow } =
     data;
   const template = resolveMenuTemplate(
-    previewTemplateId || data.menu_template || "bistro-rail",
+    previewTemplateId || data.menu_template || DEFAULT_TEMPLATE_ID,
     custom_templates
   );
-  const mega1Mode = false;
   const mega2Mode = false;
   const smartwebMode = false;
 
@@ -212,7 +222,25 @@ export default function CustomerMenuView({
   const openCheckout = () => {
     setCheckoutErr("");
     setCheckoutOk("");
+    setCheckoutPhase("form");
+    setPlacedOrderId(null);
     setCheckoutOpen(true);
+  };
+
+  const closeCheckoutKeepCart = () => {
+    setCheckoutOpen(false);
+    setCheckoutErr("");
+    setCheckoutOk("");
+    setCheckoutPhase("form");
+  };
+
+  const leaveCheckoutToMenu = () => {
+    setCheckoutOpen(false);
+    setCheckoutErr("");
+    setCheckoutOk("");
+    setCheckoutPhase("form");
+    setPlacedOrderId(null);
+    setMenuView("browse");
   };
 
   const pickGeo = () => {
@@ -260,7 +288,7 @@ export default function CustomerMenuView({
 
   const validateCheckout = () => {
     if (!fullName.trim() || !phoneNumber.trim()) {
-      setCheckoutErr("Ad soyad və telefon mütləqdir");
+      setCheckoutErr(t("checkout_contact_required"));
       return false;
     }
     if (orderType === "delivery" && !addressText.trim() && !geoUrl.trim()) {
@@ -328,25 +356,58 @@ export default function CustomerMenuView({
     return true;
   };
 
+  const orderHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (demoMode) headers["X-MenuGo-Preview"] = "studio";
+    if (previewTicket) headers["X-MenuGo-Preview-Ticket"] = previewTicket;
+    return headers;
+  };
+
+  const orderPostUrl = () => {
+    const base = `/api/restaurants/${encodeURIComponent(slug)}/orders`;
+    const q = new URLSearchParams();
+    if (demoMode) q.set("studioPreview", "1");
+    if (previewTicket) q.set("pt", previewTicket);
+    const qs = q.toString();
+    return qs ? `${base}?${qs}` : base;
+  };
+
+  const orderBody = (extra: Record<string, unknown> = {}) => ({
+    ...orderPayload(),
+    ...extra,
+    ...(demoMode ? { preview_mode: "studio" } : {}),
+    ...(previewTicket ? { preview_ticket: previewTicket } : {}),
+  });
+
   const sendOrderWeb = async () => {
     if (!validateCheckout()) return;
+    // Studio / demo preview: never create a real order (client short-circuit).
+    if (demoMode || previewTicket) {
+      setCheckoutErr(t("checkout_preview_blocked"));
+      setCheckoutPhase("form");
+      setPlacedOrderId(null);
+      return;
+    }
     setCheckoutBusy(true);
     setCheckoutErr("");
     try {
-      const res = await fetch(`/api/restaurants/${encodeURIComponent(slug)}/orders`, {
+      const res = await fetch(orderPostUrl(), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderPayload()),
+        headers: orderHeaders(),
+        body: JSON.stringify(orderBody()),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setCheckoutErr(String(data.error || t("server_error")));
+        setCheckoutPhase("form");
+        setPlacedOrderId(null);
         return;
       }
       if (data.access_token) addOrderAccessToken(String(data.access_token));
-      setCheckoutOk(
-        "Sifarişiniz qeydə alındı. Ən qısa zamanda sizinlə əlaqə saxlanılacaq"
-      );
+      const oid = Number(data.order?.id);
+      setPlacedOrderId(Number.isFinite(oid) && oid > 0 ? oid : null);
+      setCheckoutOk("");
+      setCheckoutPhase("success");
       setCart([]);
       setMenuView("browse");
       await fetchOrderHistory();
@@ -357,6 +418,10 @@ export default function CustomerMenuView({
 
   const sendOrderSmartWeb = async () => {
     if (!validateCheckout()) return;
+    if (demoMode || previewTicket) {
+      setCheckoutErr(t("checkout_preview_blocked"));
+      return;
+    }
     const waAllowed = plan_features?.whatsapp_order !== false;
     const wa = String(data.whatsapp_number ?? "").replace(/\D/g, "");
     if (waAllowed && !wa) {
@@ -366,13 +431,14 @@ export default function CustomerMenuView({
     setCheckoutBusy(true);
     setCheckoutErr("");
     try {
-      const res = await fetch(`/api/restaurants/${encodeURIComponent(slug)}/orders`, {
+      const res = await fetch(orderPostUrl(), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...orderPayload(),
-          order_source: waAllowed && wa ? "whatsapp" : "web",
-        }),
+        headers: orderHeaders(),
+        body: JSON.stringify(
+          orderBody({
+            order_source: waAllowed && wa ? "whatsapp" : "web",
+          })
+        ),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -397,6 +463,11 @@ export default function CustomerMenuView({
   };
 
   const sendOrderWhatsApp = () => {
+    if (demoMode || previewTicket) {
+      if (!validateCheckout()) return;
+      setCheckoutErr(t("checkout_preview_blocked"));
+      return;
+    }
     const wa = String(data.whatsapp_number ?? "").replace(/\D/g, "");
     if (!wa) return;
     if (!validateCheckout()) {
@@ -448,270 +519,53 @@ export default function CustomerMenuView({
       />
       <AnimatePresence>
         {checkoutOpen && !smartwebMode ? (
-          <motion.div
-            key="ck"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-black/60 flex items-end sm:items-center justify-center p-4"
-            onClick={() => setCheckoutOpen(false)}
-          >
-            <motion.div
-              initial={{ y: 40 }}
-              animate={{ y: 0 }}
-              exit={{ y: 40 }}
-              className={cn(
-                "w-full max-w-md bg-white text-gray-900 shadow-2xl max-h-[90vh] overflow-y-auto",
-                mega1Mode ? "rounded-3xl p-6" : mega2Mode ? "rounded-3xl p-6" : "rounded-2xl p-5"
-              )}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 className={cn("font-black mb-6", mega1Mode || mega2Mode ? "text-2xl" : "text-lg")}>
-                {mega1Mode ? "Məlumatlar" : mega2Mode ? "Sifarişi Tamamla" : t("checkout_title")}
-              </h2>
-              {mega2Mode ? (
-                <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[var(--mt-primary)]">
-                  Mərhələ 2 / 2
-                </p>
-              ) : null}
-              <div className={cn("mb-4 grid grid-cols-2 gap-2", mega1Mode && "rounded-2xl bg-gray-200 p-1")}>
-                <button
-                  type="button"
-                  onClick={() => setOrderType("pickup")}
-                  className={cn(
-                    "rounded-xl py-3 text-sm font-bold transition-colors",
-                  mega1Mode || mega2Mode
-                      ? orderType === "pickup"
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-gray-500"
-                      : orderType === "pickup"
-                        ? "border border-red-600 bg-red-50 text-red-700"
-                        : "border border-gray-200"
-                  )}
-                >
-                  {t("checkout_pickup")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOrderType("delivery")}
-                  className={cn(
-                    "rounded-xl py-3 text-sm font-bold transition-colors",
-                  mega1Mode || mega2Mode
-                      ? orderType === "delivery"
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-gray-500"
-                      : orderType === "delivery"
-                        ? "border border-red-600 bg-red-50 text-red-700"
-                        : "border border-gray-200"
-                  )}
-                >
-                  {t("checkout_delivery")}
-                </button>
-              </div>
-              <label className="block text-sm font-medium mb-1">{t("full_name_label")}</label>
-              <input
-                className={cn(
-                  "w-full p-4 text-sm mb-3",
-                  mega1Mode || mega2Mode
-                    ? "rounded-2xl border-0 shadow-sm ring-1 ring-gray-200"
-                    : "border rounded-xl"
-                )}
-                value={fullName}
-                onChange={(e) => {
-                  setFullName(e.target.value);
-                  setCheckoutErr("");
-                }}
-                placeholder={t("full_name_label")}
-              />
-              <label className="block text-sm font-medium mb-1">{t("phone_label")}</label>
-              <input
-                className={cn(
-                  "w-full p-4 text-sm mb-3",
-                  mega1Mode || mega2Mode
-                    ? "rounded-2xl border-0 shadow-sm ring-1 ring-gray-200"
-                    : "border rounded-xl"
-                )}
-                value={phoneNumber}
-                onChange={(e) => {
-                  setPhoneNumber(e.target.value);
-                  setCheckoutErr("");
-                }}
-                placeholder="+994..."
-              />
-              <label className="block text-sm font-medium mb-1">{t("checkout_address_placeholder")}</label>
-              {!mega2Mode ? (
-                <textarea
-                  className={cn(
-                    "w-full p-4 text-sm mb-3 min-h-[72px]",
-                    mega1Mode || mega2Mode
-                      ? "rounded-2xl border-0 shadow-sm ring-1 ring-gray-200"
-                      : "border rounded-xl"
-                  )}
-                  value={addressText}
-                  onChange={(e) => {
-                    setAddressText(e.target.value);
-                    setCheckoutErr("");
-                  }}
-                  placeholder={t("checkout_address_placeholder")}
-                  disabled={orderType !== "delivery"}
-                />
-              ) : null}
-              {mega2Mode ? (
-                <section className="mb-4 overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
-                  <div className="px-4 pt-4">
-                    <h3 className="text-base font-bold">Çatdırılma Ünvanı</h3>
-                    <p className="text-xs text-gray-500">Xəritədə yeri dəqiqləşdirmək üçün toxunun</p>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={geoBusy}
-                    onClick={() => {
-                      setCheckoutErr("");
-                      setMapOpen(true);
-                    }}
-                    className="mt-3 h-36 w-full bg-slate-200/80 text-sm font-semibold text-slate-700"
-                  >
-                    {geoBusy ? t("checkout_location_busy") : "Xəritədən seç"}
-                  </button>
-                  <div className="p-4">
-                    <input
-                      className="w-full rounded-full bg-gray-100 px-4 py-3 text-sm outline-none"
-                      value={addressText}
-                      onChange={(e) => {
-                        setAddressText(e.target.value);
-                        setCheckoutErr("");
-                      }}
-                      placeholder="Mərtəbə, mənzil və ya nişangah daxil edin"
-                      disabled={orderType !== "delivery"}
-                    />
-                  </div>
-                </section>
-              ) : null}
-              <button
-                type="button"
-                disabled={geoBusy}
-                onClick={() => {
-                  setCheckoutErr("");
-                  setMapOpen(true);
-                }}
-                className={cn(
-                  "w-full mb-4 text-sm font-semibold disabled:opacity-60",
-                  mega1Mode || mega2Mode
-                    ? "h-40 rounded-3xl border-4 border-white bg-slate-200 shadow-lg"
-                    : "py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50"
-                )}
-                style={mega2Mode ? { display: "none" } : undefined}
-              >
-                {geoBusy ? t("checkout_location_busy") : t("checkout_location_btn")}
-              </button>
-              {geoUrl ? (
-                <p className="text-xs text-green-700 mb-4 break-all">✓ {geoUrl}</p>
-              ) : null}
-              <label className="block text-sm font-medium mb-1">{t("note")}</label>
-              <textarea
-                className={cn(
-                  "w-full p-4 text-sm mb-4 min-h-[60px]",
-                  mega1Mode || mega2Mode
-                    ? "rounded-2xl border-0 shadow-sm ring-1 ring-gray-200"
-                    : "border rounded-xl"
-                )}
-                value={customerNote}
-                onChange={(e) => setCustomerNote(e.target.value)}
-                placeholder={t("cart_note_placeholder")}
-              />
-              <p className="text-sm font-medium mb-2">{t("checkout_payment")}</p>
-              <div className="flex gap-2 mb-4">
-                <button
-                  type="button"
-                  onClick={() => setPayment("cash")}
-                  className={cn(
-                    "flex-1 py-3 rounded-2xl border text-sm font-bold",
-                    payment === "cash" ? "border-red-500 bg-red-50 text-red-800" : "border-gray-200"
-                  )}
-                >
-                  {t("checkout_cash")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPayment("card")}
-                  className={cn(
-                    "flex-1 py-3 rounded-2xl border text-sm font-bold",
-                    payment === "card" ? "border-red-500 bg-red-50 text-red-800" : "border-gray-200"
-                  )}
-                >
-                  {t("checkout_card")}
-                </button>
-              </div>
-              {!mega2Mode ? (
-                <>
-                  <p className="text-sm font-medium mb-2">{t("checkout_send_via")}</p>
-                  <div className="flex gap-2 mb-4">
-                    <button
-                      type="button"
-                      onClick={() => setOrderSource("web")}
-                      className={cn(
-                        "flex-1 py-3 rounded-2xl border text-sm font-bold",
-                        orderSource === "web" ? "border-red-600 bg-red-50 text-red-800" : "border-gray-200"
-                      )}
-                    >
-                      {t("checkout_web")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setOrderSource("whatsapp")}
-                      className={cn(
-                        "flex-1 py-3 rounded-2xl border text-sm font-bold",
-                        orderSource === "whatsapp" ? "border-red-600 bg-red-50 text-red-800" : "border-gray-200"
-                      )}
-                    >
-                      {t("checkout_whatsapp")}
-                    </button>
-                  </div>
-                </>
-              ) : null}
-              {checkoutErr ? <p className="text-sm text-red-600 mb-3">{checkoutErr}</p> : null}
-              {checkoutOk ? <p className="text-sm text-green-700 mb-3">{checkoutOk}</p> : null}
-              <div className={cn("flex gap-2", mega2Mode && "mt-3 flex-col rounded-3xl bg-slate-900 p-4")}>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex-1 py-3 rounded-2xl border border-gray-200 font-medium",
-                    mega2Mode && "hidden"
-                  )}
-                  onClick={() => setCheckoutOpen(false)}
-                >
-                  {t("checkout_cancel")}
-                </button>
-                <button
-                  type="button"
-                  disabled={checkoutBusy}
-                  className={cn(
-                    "flex-1 py-3 rounded-2xl text-white font-bold disabled:opacity-60",
-                    !mega2Mode && orderSource === "whatsapp"
-                      ? "bg-green-500"
-                      : mega1Mode
-                        ? "bg-indigo-600"
-                        : mega2Mode
-                          ? "bg-gradient-to-r from-[#9c3f00] to-[#ff7a2f]"
-                          : "bg-green-600"
-                  )}
-                  onClick={mega2Mode ? () => void sendOrderWeb() : orderSource === "whatsapp" ? sendOrderWhatsApp : () => void sendOrderWeb()}
-                >
-                  {checkoutBusy ? "..." : mega2Mode ? "Web vasitəsilə tamamla" : orderSource === "whatsapp" ? t("checkout_send") : "Sifarişi ver"}
-                </button>
-                {mega2Mode ? (
-                  <button
-                    type="button"
-                    disabled={checkoutBusy}
-                    className="flex-1 py-3 rounded-2xl border border-white/10 bg-white/10 text-white font-bold backdrop-blur-md disabled:opacity-60"
-                    onClick={sendOrderWhatsApp}
-                  >
-                    WhatsApp vasitəsilə sifariş et
-                  </button>
-                ) : null}
-              </div>
-            </motion.div>
-          </motion.div>
+          <CheckoutScreen
+            templateId={template.id}
+            restaurant={restaurantRow}
+            cart={cart}
+            lang={currentLang}
+            t={t}
+            phase={checkoutPhase}
+            placedOrderId={placedOrderId}
+            fullName={fullName}
+            setFullName={(v) => {
+              setFullName(v);
+              setCheckoutErr("");
+            }}
+            phoneNumber={phoneNumber}
+            setPhoneNumber={(v) => {
+              setPhoneNumber(v);
+              setCheckoutErr("");
+            }}
+            addressText={addressText}
+            setAddressText={(v) => {
+              setAddressText(v);
+              setCheckoutErr("");
+            }}
+            customerNote={customerNote}
+            setCustomerNote={setCustomerNote}
+            orderType={orderType}
+            setOrderType={setOrderType}
+            payment={payment}
+            setPayment={setPayment}
+            orderSource={orderSource}
+            setOrderSource={setOrderSource}
+            geoUrl={geoUrl}
+            geoBusy={geoBusy}
+            onPickLocation={() => {
+              setCheckoutErr("");
+              setMapOpen(true);
+            }}
+            checkoutErr={checkoutErr}
+            checkoutBusy={checkoutBusy}
+            onBack={closeCheckoutKeepCart}
+            onSubmit={orderSource === "whatsapp" ? sendOrderWhatsApp : () => void sendOrderWeb()}
+            onOpenOrders={() => {
+              void fetchOrderHistory();
+              setHistoryOpen(true);
+            }}
+            onBackToMenu={leaveCheckoutToMenu}
+          />
         ) : null}
       </AnimatePresence>
       <AnimatePresence>

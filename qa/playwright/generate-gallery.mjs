@@ -3,15 +3,8 @@ import path from "node:path";
 
 const ROOT = path.resolve("qa/playwright");
 const SHOTS = path.join(ROOT, "shots");
-const SKINS = [
-  "bistro-rail", "bistro-split", "bistro-ledger", "bistro-market", "bistro-counter",
-  "atelier-cover", "noir-columns", "tasting-chapters", "gallery-plates", "menu-paper",
-  "cafe-homestead", "patisserie-sheets", "roastery-journal", "cafe-polaroid", "cafe-calendar",
-  "quick-kiosk", "speed-lane", "build-a-meal", "pizza-slices", "burger-stack",
-  "izakaya-night", "neon-snap", "lounge-glass", "speakeasy-book", "midnight-table",
-  "street-market", "street-zine", "street-filmstrip", "street-map", "street-tickets",
-];
-const VIEWS = ["320", "375", "390", "430", "768", "1280", "1440"];
+const SKINS = ["fastfood-pro", "ocean-modern", "bella-classic"];
+const VIEWS = ["320", "375", "390", "430", "768", "1024", "1280", "1440"];
 const EXTRAS = ["375-full", "1280-full", "375-cart", "375-checkout", "375-variant", "375-detail"];
 
 fs.mkdirSync(SHOTS, { recursive: true });
@@ -56,7 +49,7 @@ const html = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MenuGo 30 skin — screenshot müqayisə</title>
+<title>MenuGo 3 skin — screenshot müqayisə</title>
 <style>
   :root { color-scheme: dark; }
   body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #101214; color: #e8eaed; }
@@ -68,7 +61,7 @@ const html = `<!doctype html>
   nav a:hover { background: #2a333c; }
   section { padding: 20px 16px 8px; border-top: 1px solid #22282f; }
   h2 { margin: 0 0 12px; font-size: 15px; letter-spacing: .04em; }
-  .row { display: grid; grid-template-columns: repeat(7, minmax(140px, 1fr)); gap: 10px; overflow-x: auto; }
+  .row { display: grid; grid-template-columns: repeat(8, minmax(140px, 1fr)); gap: 10px; overflow-x: auto; }
   .row.extras { margin-top: 10px; grid-template-columns: repeat(6, minmax(140px, 1fr)); }
   figure { margin: 0; background: #1a1f24; border-radius: 10px; overflow: hidden; }
   figure[data-ok="false"] { outline: 2px solid #c45c5c; }
@@ -80,7 +73,7 @@ const html = `<!doctype html>
 </head>
 <body>
 <header>
-  <h1>MenuGo 30 skin QA qalereyası</h1>
+  <h1>MenuGo 3 skin QA qalereyası</h1>
   <p class="meta">${present.length} ekran görüntüsü · viewport 320–1440 + fullPage 375/1280 + cart/checkout/variant/detail · çatışmayan: ${missing.length}</p>
   <nav>${nav}</nav>
 </header>

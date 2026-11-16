@@ -187,6 +187,68 @@ test("phase1 isolated: order reprice, guest GET, password DTO, rate limit, uploa
   });
   assert.equal(fake.status, 400, fake.text);
 
+  const previewBlock = await req(port, "POST", `/api/restaurants/${slugA}/orders`, {
+    headers: { "X-MenuGo-Preview": "studio" },
+    body: {
+      device_id: "sec-device-preview",
+      customer_name: "Preview Guest",
+      customer_phone: "994509990099",
+      order_type: "pickup",
+      payment_method: "cash",
+      preview_mode: "studio",
+      cart: [{ product_id: pidA, variant_id: variantA?.id ?? null, qty: 1 }],
+    },
+  });
+  assert.equal(previewBlock.status, 403, previewBlock.text);
+  assert.equal((previewBlock.data as { code?: string }).code, "PREVIEW_READONLY");
+  assert.equal(previewBlock.data.access_token, undefined);
+
+  const previewQuery = await req(port, "POST", `/api/restaurants/${slugA}/orders?studioPreview=1`, {
+    body: {
+      device_id: "sec-device-preview-q",
+      customer_name: "Preview Guest",
+      customer_phone: "994509990098",
+      cart: [{ product_id: pidA, variant_id: variantA?.id ?? null, qty: 1 }],
+    },
+  });
+  assert.equal(previewQuery.status, 403, previewQuery.text);
+
+  const ticketMint = await req(port, "POST", `/api/admin/restaurants/${ridA}/studio-preview-ticket`, {
+    token: tokA,
+  });
+  assert.equal(ticketMint.status, 200, ticketMint.text);
+  const previewTicket = String((ticketMint.data as { ticket?: string }).ticket || "");
+  assert.match(previewTicket, /^pt1\./);
+  const ticketBlock = await req(port, "POST", `/api/restaurants/${slugA}/orders`, {
+    headers: { "X-MenuGo-Preview-Ticket": previewTicket },
+    body: {
+      device_id: "sec-device-preview-ticket",
+      customer_name: "Preview Guest",
+      customer_phone: "994509990097",
+      order_type: "pickup",
+      payment_method: "cash",
+      preview_ticket: previewTicket,
+      cart: [{ product_id: pidA, variant_id: variantA?.id ?? null, qty: 1 }],
+    },
+  });
+  assert.equal(ticketBlock.status, 403, ticketBlock.text);
+  assert.equal((ticketBlock.data as { code?: string }).code, "PREVIEW_READONLY");
+  assert.equal(ticketBlock.data.access_token, undefined);
+
+  // Forged / invalid ticket must NOT block normal guest orders (public menu stays open).
+  const forgedTicket = await req(port, "POST", `/api/restaurants/${slugA}/orders`, {
+    headers: { "X-MenuGo-Preview-Ticket": "pt1.forged.deadbeef" },
+    body: {
+      device_id: "sec-device-preview-forged",
+      customer_name: "Preview Guest",
+      customer_phone: "994509990096",
+      order_type: "pickup",
+      payment_method: "cash",
+      cart: [{ product_id: pidA, variant_id: variantA?.id ?? null, qty: 1 }],
+    },
+  });
+  assert.equal(forgedTicket.status, 200, forgedTicket.text);
+
   const honest = await req(port, "POST", `/api/restaurants/${slugA}/orders`, {
     body: {
       device_id: "sec-device-a",

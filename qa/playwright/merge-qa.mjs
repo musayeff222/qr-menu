@@ -5,8 +5,10 @@ const ROOT = path.resolve("qa/playwright");
 const OV_DIR = path.join(ROOT, "overflows");
 fs.mkdirSync(OV_DIR, { recursive: true });
 
+const CURRENT = ["fastfood-pro", "ocean-modern", "bella-classic"];
 const merged = {};
 for (const file of fs.readdirSync(OV_DIR).filter((f) => f.endsWith(".json"))) {
+  if (!CURRENT.some((id) => file.startsWith(`${id}__`))) continue;
   const key = file.replace(/\.json$/, "");
   const data = JSON.parse(fs.readFileSync(path.join(OV_DIR, file), "utf8"));
   merged[key] = typeof data.extra === "number" ? data.extra : data;
@@ -14,7 +16,7 @@ for (const file of fs.readdirSync(OV_DIR).filter((f) => f.endsWith(".json"))) {
 
 fs.writeFileSync(path.join(ROOT, "overflows.json"), JSON.stringify(merged, null, 2));
 
-const expected = 30 * 7;
+const expected = 3 * 8;
 const summary = {
   overflowKeys: Object.keys(merged).length,
   overflowExpected: expected,

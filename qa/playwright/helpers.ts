@@ -247,6 +247,28 @@ export async function addNamedProduct(page: Page, name: RegExp, variantShot?: st
   return picked;
 }
 
+export async function openCheckoutFromCart(page: Page) {
+  const checkoutName = /Sifarişi tamamla|Complete order|Оформить заказ|Siparişi tamamla/i;
+  let checkout = page.getByRole("dialog").getByRole("button", { name: checkoutName });
+  if ((await checkout.count()) === 0) {
+    checkout = page.getByRole("button", { name: checkoutName });
+  }
+  expect(await checkout.count(), "checkout control").toBeGreaterThan(0);
+  await checkout.first().click();
+  await page.locator('[data-checkout="full"]').waitFor({ state: "visible", timeout: 8000 });
+}
+
+export async function expectFullscreenCheckout(page: Page) {
+  const vp = page.viewportSize();
+  expect(vp, "viewport").toBeTruthy();
+  const shell = page.locator('[data-checkout="full"]');
+  await expect(shell).toBeVisible();
+  const box = await shell.boundingBox();
+  expect(box, "checkout box").toBeTruthy();
+  expect(box!.width, "checkout width").toBeGreaterThan((vp!.width * 95) / 100);
+  expect(box!.height, "checkout height").toBeGreaterThan((vp!.height * 92) / 100);
+}
+
 export async function openCart(page: Page) {
   await page.keyboard.press("Escape");
   await page.waitForTimeout(150);

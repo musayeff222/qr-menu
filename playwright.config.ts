@@ -55,7 +55,7 @@ export default defineConfig({
     },
     {
       name: "flows",
-      testMatch: /(flow|theme|order|i18n|perf|contrast|onboarding|langs|password-hash)\.spec\.ts/,
+      testMatch: /(flow|theme|order|i18n|perf|contrast|onboarding|langs|password-hash|checkout|preview)\.spec\.ts/,
       use: { ...devices["Desktop Chrome"], deviceScaleFactor: 1 },
     },
   ],

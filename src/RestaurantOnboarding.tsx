@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { MapPin, ChevronRight } from "lucide-react";
-import { TemplatePicker, resolveMenuTemplate, MENU_TEMPLATE_COUNT, type MenuTemplateDef } from "./menu-templates";
+import { TemplatePicker, resolveMenuTemplate, MENU_TEMPLATE_COUNT, remapLegacyTemplateId, type MenuTemplateDef } from "./menu-templates";
 import { authAnyStaffHeaders } from "./lib/headers";
 import { useI18nBundle } from "./i18n/bundleContext";
 import { BrandMark, BrandWordmark } from "./ui/BrandMark";
@@ -292,11 +292,11 @@ export default function RestaurantOnboarding() {
             <>
               <h1 className="text-xl font-bold text-[var(--mg-ink)]">{t("onboarding_step3_title")}</h1>
               <p className="mb-2 text-sm text-[var(--mg-muted)]">
-                {MENU_TEMPLATE_COUNT}+ {t("templates_section_sub")}
+                {MENU_TEMPLATE_COUNT} {t("templates_section_sub")}
               </p>
               <TemplatePicker
                 restaurantSlug={profile.slug || restaurant.slug}
-                selectedId={profile.menu_template}
+                selectedId={remapLegacyTemplateId(profile.menu_template)}
                 onSelect={selectTemplate}
                 extraTemplates={extraTemplates}
                 t={t}

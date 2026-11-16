@@ -5,14 +5,7 @@ import path from "node:path";
 
 const CHROME = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 const BASE = process.env.GALLERY_BASE || "http://127.0.0.1:3010";
-const IDS = [
-  "bistro-rail", "bistro-split", "bistro-ledger", "bistro-market", "bistro-counter",
-  "atelier-cover", "noir-columns", "tasting-chapters", "gallery-plates", "menu-paper",
-  "cafe-homestead", "patisserie-sheets", "roastery-journal", "cafe-polaroid", "cafe-calendar",
-  "quick-kiosk", "speed-lane", "build-a-meal", "pizza-slices", "burger-stack",
-  "izakaya-night", "neon-snap", "lounge-glass", "speakeasy-book", "midnight-table",
-  "street-market", "street-zine", "street-filmstrip", "street-map", "street-tickets",
-];
+const IDS = ["fastfood-pro", "ocean-modern", "bella-classic"];
 
 let fail = 0;
 for (const id of IDS) {
@@ -53,4 +46,4 @@ for (const id of IDS) {
   }
 }
 if (fail) process.exit(1);
-console.log("PASS 30 skins rendered");
+console.log("PASS 3 skins rendered");

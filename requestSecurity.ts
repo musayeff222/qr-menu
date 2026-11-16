@@ -166,6 +166,82 @@ export function tokenExpired(exp: number, nowMs = Date.now()): boolean {
   return exp * 1000 <= nowMs;
 }
 
+/** Studio panel preview — HMAC ticket bound to restaurant (not client-spoofable). */
+const STUDIO_PREVIEW_TTL_SEC = 15 * 60;
+
+export type StudioPreviewClaims = {
+  v: 1;
+  restaurantId: number;
+  slug: string;
+  exp: number;
+};
+
+export function studioPreviewExpiry(nowMs = Date.now()): number {
+  return Math.floor(nowMs / 1000) + STUDIO_PREVIEW_TTL_SEC;
+}
+
+export function issueStudioPreviewTicket(claims: {
+  restaurantId: number;
+  slug: string;
+  exp?: number;
+}): string {
+  const slug = String(claims.slug || "")
+    .trim()
+    .toLowerCase()
+    .slice(0, 120);
+  const restaurantId = Number(claims.restaurantId);
+  if (!Number.isInteger(restaurantId) || restaurantId < 1 || !slug) {
+    throw new Error("invalid studio preview claims");
+  }
+  const body = {
+    v: 1 as const,
+    r: restaurantId,
+    s: slug,
+    e: Number(claims.exp ?? studioPreviewExpiry()),
+    t: "studio" as const,
+  };
+  const payload = Buffer.from(JSON.stringify(body), "utf8").toString("base64url");
+  return `pt1.${payload}.${hmacHex(payload)}`;
+}
+
+export function parseStudioPreviewTicket(token: string): StudioPreviewClaims | null {
+  const raw = String(token || "").trim();
+  const parts = raw.split(".");
+  if (parts.length !== 3 || parts[0] !== "pt1") return null;
+  const payload = parts[1];
+  const mac = parts[2];
+  if (!/^[0-9a-f]{64}$/i.test(mac)) return null;
+  if (!hexEqual(mac, hmacHex(payload))) return null;
+  try {
+    const body = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Record<string, unknown>;
+    if (Number(body.v) !== 1 || body.t !== "studio") return null;
+    const restaurantId = Number(body.r);
+    const exp = Number(body.e);
+    const slug = String(body.s || "")
+      .trim()
+      .toLowerCase();
+    if (!Number.isInteger(restaurantId) || restaurantId < 1) return null;
+    if (!Number.isFinite(exp) || exp < 1) return null;
+    if (!slug || slug.length > 120) return null;
+    return { v: 1, restaurantId, slug, exp };
+  } catch {
+    return null;
+  }
+}
+
+export function isValidStudioPreviewTicket(
+  token: string,
+  restaurant: { id: number; slug: string },
+  nowMs = Date.now()
+): boolean {
+  const claims = parseStudioPreviewTicket(token);
+  if (!claims) return false;
+  if (claims.restaurantId !== Number(restaurant.id)) return false;
+  if (claims.slug !== String(restaurant.slug || "").trim().toLowerCase()) return false;
+  if (tokenExpired(claims.exp, nowMs)) return false;
+  return true;
+}
+
 export function splitOrderAccessHeader(raw: unknown): string[] {
   const s = String(raw || "").trim();
   if (!s) return [];

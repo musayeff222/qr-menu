@@ -17,10 +17,14 @@ import {
   MenuPhoneMockup,
   ThemeEditor,
   parseAppearance,
+  serializeAppearance,
   PREVIEW_MSG,
   getSkinMeta,
   remapLegacyTemplateId,
   MENU_TEMPLATE_COUNT,
+  StudioMenuPreview,
+  studioPreviewPath,
+  fetchStudioPreviewTicket,
   type MenuTemplateDef,
   type SkinColorTokens,
 } from "./menu-templates";
@@ -437,6 +441,9 @@ const RestaurantPanel = () => {
   const [templatesStudioEdit, setTemplatesStudioEdit] = useState(false);
   /** Önizləmə üçün pin (redaktə və iframe ilə üst-üstə düşür) */
   const [templatePinnedPreviewId, setTemplatePinnedPreviewId] = useState<string | null>(null);
+  /** Tam ekran QR menyu önizləməsi (save etmədən) */
+  const [studioLivePreviewId, setStudioLivePreviewId] = useState<string | null>(null);
+  const [studioPreviewTicket, setStudioPreviewTicket] = useState("");
   const [dashStats, setDashStats] = useState<{ scans: number; pageViews: number; topProducts: any[] } | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
   /** Son 100 sifariş — yalnız dashboard göstəriciləri üçün */
@@ -495,6 +502,16 @@ const RestaurantPanel = () => {
       navigate("/panel", { replace: true });
     }
   }, [id, navigate]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchStudioPreviewTicket(Number(id)).then((tok) => {
+      if (!cancelled) setStudioPreviewTicket(tok);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, menuPreviewNonce]);
 
   useEffect(() => {
     const load = async () => {
@@ -556,6 +573,8 @@ const RestaurantPanel = () => {
       setTemplatesStudioEdit(false);
       setTemplatePinnedPreviewId(null);
       setHoveredTemplatePreviewId(null);
+    } else {
+      setStudioLivePreviewId(null);
     }
   }, [section]);
 
@@ -1964,7 +1983,7 @@ const RestaurantPanel = () => {
                         {t("templates_section_title")}
                       </h2>
                       <span className="rounded-full bg-[var(--mg-brand-soft)] px-2.5 py-0.5 text-xs font-bold text-[var(--mg-brand-strong)] dark:bg-emerald-500/20 dark:text-emerald-300">
-                        {MENU_TEMPLATE_COUNT}+
+                        {MENU_TEMPLATE_COUNT}
                       </span>
                       {templatesStudioEdit ? (
                         <span className="rounded-full bg-[var(--mg-brand-soft)] px-2.5 py-0.5 text-xs font-bold text-[var(--mg-brand-strong)] dark:bg-emerald-500/25 dark:text-emerald-200">
@@ -2034,7 +2053,7 @@ const RestaurantPanel = () => {
                   <div className="p-5 sm:p-6">
                     <TemplatePicker
                       restaurantSlug={restaurant.slug}
-                      selectedId={profile.menu_template}
+                      selectedId={remapLegacyTemplateId(profile.menu_template)}
                       onSelect={selectTemplate}
                       extraTemplates={extraTemplates}
                       mode="studio"
@@ -2043,6 +2062,11 @@ const RestaurantPanel = () => {
                       onPinPreview={(tid) => {
                         setTemplatePinnedPreviewId(tid);
                         setHoveredTemplatePreviewId(tid);
+                      }}
+                      onLivePreview={(tid) => {
+                        setTemplatePinnedPreviewId(tid);
+                        setHoveredTemplatePreviewId(tid);
+                        setStudioLivePreviewId(tid);
                       }}
                     />
                   </div>
@@ -2186,14 +2210,23 @@ const RestaurantPanel = () => {
                         onSave={async (colors) => {
                           const doc = parseAppearance(profile.menu_appearance_json);
                           doc.activeTemplateId = activeSkinId;
+                          for (const key of Object.keys(doc.overridesByTemplate)) {
+                            if (remapLegacyTemplateId(key) === activeSkinId && key !== activeSkinId) {
+                              delete doc.overridesByTemplate[key];
+                            }
+                          }
                           doc.overridesByTemplate[activeSkinId] = { preset: "custom", colors };
-                          await persistAppearance(JSON.stringify(doc));
+                          await persistAppearance(serializeAppearance(doc));
                         }}
                         onReset={async () => {
                           const doc = parseAppearance(profile.menu_appearance_json);
-                          delete doc.overridesByTemplate[activeSkinId];
+                          for (const key of Object.keys(doc.overridesByTemplate)) {
+                            if (remapLegacyTemplateId(key) === activeSkinId) {
+                              delete doc.overridesByTemplate[key];
+                            }
+                          }
                           pushPreviewColors(activeSkinId, getSkinMeta(activeSkinId).defaults, true);
-                          await persistAppearance(JSON.stringify(doc));
+                          await persistAppearance(serializeAppearance(doc));
                         }}
                       />
 
@@ -2328,9 +2361,9 @@ const RestaurantPanel = () => {
                   <MenuPhoneMockup
                     iframeSrc={
                       restaurant.slug
-                        ? `/r/${encodeURIComponent(restaurant.slug)}?preview=true&previewTemplate=${encodeURIComponent(
-                            activeSkinId
-                          )}`
+                        ? studioPreviewPath(restaurant.slug, activeSkinId, {
+                            ticket: studioPreviewTicket,
+                          })
                         : ""
                     }
                     reloadKey={menuPreviewNonce}
@@ -3650,6 +3683,16 @@ const RestaurantPanel = () => {
           </div>
         )}
       </AnimatePresence>
+      {studioLivePreviewId && restaurant.slug ? (
+        <StudioMenuPreview
+          restaurantId={Number(id)}
+          slug={restaurant.slug}
+          templateId={studioLivePreviewId}
+          restaurantName={String(restaurant.name || profile.name || "")}
+          onClose={() => setStudioLivePreviewId(null)}
+          t={t}
+        />
+      ) : null}
     </div>
   );
 };
@@ -3659,9 +3702,15 @@ const CustomerMenu = () => {
   const [searchParams] = useSearchParams();
   const preview = searchParams.get("preview") === "true";
   const previewTemplateId = searchParams.get("previewTemplate") ?? "";
+  const studioPreview = searchParams.get("studioPreview") === "1";
   if (!slug) return <div className="p-10 text-center text-gray-500">{UI_TRANSLATIONS.az.menu_not_found}</div>;
   return (
-    <CustomerMenuView slug={slug} preview={preview} previewTemplateId={previewTemplateId} />
+    <CustomerMenuView
+      slug={slug}
+      preview={preview}
+      previewTemplateId={previewTemplateId}
+      demoMode={studioPreview}
+    />
   );
 };
 

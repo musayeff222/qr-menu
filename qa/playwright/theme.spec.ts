@@ -19,20 +19,36 @@ test("panel color editor preview + save + reload isolation", async ({ page, requ
   await page.locator("#rest-login-user").fill("demo");
   await page.locator("#rest-login-pass").fill("demo123");
   await page.getByRole("button", { name: /Daxil ol|Login|Giriş/i }).click();
-  await page.waitForURL(/\/restaurant\/\d+/, { timeout: 20000 });
+  try {
+    await page.waitForURL(/\/restaurant\/\d+/, { timeout: 20000 });
+  } catch {
+    await page.waitForTimeout(1500);
+    await page.getByRole("button", { name: /Daxil ol|Login|Giriş/i }).click();
+    await page.waitForURL(/\/restaurant\/\d+/, { timeout: 25000 });
+  }
 
   const restUrl = page.url();
   const id = restUrl.match(/\/restaurant\/(\d+)/)?.[1];
   expect(id).toBeTruthy();
 
   await page.goto(`/restaurant/${id}/templates`);
+  await page.locator('article[title="bella-classic"]').getByRole("button", { name: /Önizləmə|Preview/i }).click();
+  const previewBack = page.getByTestId("studio-preview-back");
+  if (await previewBack.isVisible().catch(() => false)) {
+    await previewBack.click();
+  }
   await page.getByRole("button", { name: /Redaktə et|Edit|Düzenle/i }).click();
   await expect(page.getByText(/Rəng palitrası/i)).toBeVisible();
 
   const iframe = page.locator("#menugo-menu-preview");
   await expect(iframe).toBeVisible();
   const frame = page.frameLocator("#menugo-menu-preview");
-  await frame.locator("[data-skin]").waitFor({ timeout: 25000 });
+  await frame.locator('[data-skin="bella-classic"]').waitFor({ timeout: 25000 });
+  const resetBtn = page.getByRole("button", { name: /Başlanğıc rənglərinə dön/i });
+  if (await resetBtn.isVisible().catch(() => false)) {
+    await resetBtn.click();
+    await page.waitForTimeout(400);
+  }
   const before = await frame.locator("[data-skin]").evaluate((el) =>
     getComputedStyle(el).getPropertyValue("--mt-primary").trim()
   );
@@ -57,20 +73,27 @@ test("panel color editor preview + save + reload isolation", async ({ page, requ
   expect(pub.ok()).toBeTruthy();
   const menu = await pub.json();
   const saved = JSON.parse(menu.menu_appearance_json || "{}");
-  const active = saved.activeTemplateId || "quick-kiosk";
-  const primary =
-    saved.overridesByTemplate?.[active]?.colors?.primary ||
-    saved.overridesByTemplate?.["quick-kiosk"]?.colors?.primary;
-  expect(String(primary || "").toLowerCase()).toBe(MINT_PRIMARY);
+  const primary = String(
+    saved.overridesByTemplate?.["bella-classic"]?.colors?.primary || ""
+  ).toLowerCase();
+  expect(primary).toBe(MINT_PRIMARY);
 
-  await page.goto(`/r/${DEMO_SLUG}?preview=true&previewTemplate=quick-kiosk`);
+  await page.goto(`/r/${DEMO_SLUG}?preview=true&previewTemplate=bella-classic&cb=${Date.now()}`);
   await page.locator("[data-skin]").waitFor();
-  const guestPrimary = await page.locator("[data-skin]").evaluate((el) =>
-    getComputedStyle(el).getPropertyValue("--mt-primary").trim().toLowerCase()
-  );
-  expect(guestPrimary === MINT_PRIMARY || guestPrimary.includes("13, 190, 145")).toBeTruthy();
+  await expect
+    .poll(async () =>
+      page.locator("[data-skin]").evaluate((el) =>
+        getComputedStyle(el).getPropertyValue("--mt-primary").trim().toLowerCase()
+      )
+    , { timeout: 8000 })
+    .toMatch(/#0dbe91|rgb\(\s*13,\s*190,\s*145\s*\)/);
 
   await page.goto(`/restaurant/${id}/templates`);
+  await page.locator('article[title="bella-classic"]').getByRole("button", { name: /Önizləmə|Preview/i }).click();
+  const previewBackAgain = page.getByTestId("studio-preview-back");
+  if (await previewBackAgain.isVisible().catch(() => false)) {
+    await previewBackAgain.click();
+  }
   await page.getByRole("button", { name: /Redaktə et|Edit|Düzenle/i }).click();
   await page.getByRole("button", { name: /Başlanğıc rənglərinə dön/i }).click();
   await page.waitForTimeout(600);

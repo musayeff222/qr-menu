@@ -34,7 +34,7 @@ test("isolated register → auto login → onboarding → template → product �
   await expect(page.getByText(/Menyu link|menu link|ссылк/i).first()).toBeVisible({ timeout: 10000 });
   await page.getByRole("button", { name: /Növbəti|Next|Далее|İleri/i }).click();
   await expect(page.getByText(/Şablon|template|шаблон/i).first()).toBeVisible({ timeout: 10000 });
-  const tpl = page.getByRole("button").filter({ hasText: /Bistro Rail|Quick Kiosk|Rail/i }).first();
+  const tpl = page.getByRole("button").filter({ hasText: /FastFood Pro|Ocean Modern|Bella Classic/i }).first();
   if (await tpl.count()) await tpl.click().catch(() => {});
   await page.getByRole("button", { name: /Bitir|Finish|Готово/i }).click();
   await page.waitForURL(new RegExp(`/restaurant/${restId}/?(?:\\?.*)?$`), { timeout: 20000 });

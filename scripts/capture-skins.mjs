@@ -5,14 +5,7 @@ import path from "node:path";
 const CHROME = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 const ROOT = path.resolve("qa/skin-gallery");
 const BASE = process.env.GALLERY_BASE || "http://127.0.0.1:3010";
-const ALL_IDS = [
-  "bistro-rail", "bistro-split", "bistro-ledger", "bistro-market", "bistro-counter",
-  "atelier-cover", "noir-columns", "tasting-chapters", "gallery-plates", "menu-paper",
-  "cafe-homestead", "patisserie-sheets", "roastery-journal", "cafe-polaroid", "cafe-calendar",
-  "quick-kiosk", "speed-lane", "build-a-meal", "pizza-slices", "burger-stack",
-  "izakaya-night", "neon-snap", "lounge-glass", "speakeasy-book", "midnight-table",
-  "street-market", "street-zine", "street-filmstrip", "street-map", "street-tickets",
-];
+const ALL_IDS = ["fastfood-pro", "ocean-modern", "bella-classic"];
 const ALL_VIEWS = [
   { id: "320", w: 320, h: 680 },
   { id: "375", w: 375, h: 812 },
@@ -78,7 +71,7 @@ const html = `<!doctype html>
 <html lang="az">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MenuGo 30 skin QA gallery</title>
+<title>MenuGo 3 skin QA gallery</title>
 <style>
   :root { font-family: ui-sans-serif, system-ui, sans-serif; color: #0a1720; background: #f7faf8; }
   body { margin: 0; }
@@ -93,7 +86,7 @@ const html = `<!doctype html>
   figcaption { font-size: 11px; text-align: center; margin-top: 4px; color: #63747c; }
 </style>
 <header>
-  <strong>MenuGo — 30 QR menü skin QA</strong>
+  <strong>MenuGo — 3 QR menü skin QA</strong>
   <div style="opacity:.7;font-size:12px">viewport: 320 / 375 / 390 / 430 / 1280 · demo-az-menu preview</div>
 </header>
 <nav>${ALL_IDS.map((id) => `<a href="#${id}">${id}</a>`).join("")}</nav>

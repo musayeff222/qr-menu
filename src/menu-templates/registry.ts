@@ -7,7 +7,7 @@ function skinToTemplate(meta: SkinMeta): MenuTemplateDef {
     id: meta.id,
     name: meta.name,
     category: meta.family as TemplateCategory,
-    description: `${meta.header} · ${meta.navigation} · ${meta.productCards}`,
+    description: meta.summary,
     heroImage: meta.cover,
     theme: {
       fontPair: "space-dm",
